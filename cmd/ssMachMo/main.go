@@ -1,7 +1,13 @@
 package main
 
-import "fmt"
+import (
+	"github.com/jukuly/ss_mach_mo/internal/model/server"
+	"github.com/jukuly/ss_mach_mo/internal/view"
+)
 
 func main() {
-	fmt.Println("Hello, World!")
+	updated := make(chan bool)
+
+	go server.StartAdvertising(updated)
+	view.Start(updated)
 }

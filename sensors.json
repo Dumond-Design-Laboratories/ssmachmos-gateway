@@ -1,0 +1,50 @@
+[
+  {
+    "wake_up_interval": 300,
+    "settings": {
+      "temperature": {
+        "active": "true"
+      },
+      "acoustic": {
+        "active": "false",
+        "sampling_frequency": "44100"
+      },
+      "vibration": {
+        "active": "true",
+        "sampling_frequency": "100"
+      }
+    },
+    "types": [
+      "vibration",
+      "temperature",
+      "acoustic"
+    ],
+    "battery_level": 3514,
+    "name": "Sensor 1",
+    "mac": "00:00:00:00:00:00"
+  },
+  {
+    "wake_up_interval": 300,
+    "settings": {
+      "temperature": {
+        "active": "true"
+      },
+      "acoustic": {
+        "active": "false",
+        "sampling_frequency": "44100"
+      },
+      "vibration": {
+        "active": "true",
+        "sampling_frequency": "100"
+      }
+    },
+    "types": [
+      "vibration",
+      "temperature",
+      "acoustic"
+    ],
+    "battery_level": 3514,
+    "name": "Sensor 2",
+    "mac": "AA:BB:CC:DD:EE:FF"
+  }
+]
