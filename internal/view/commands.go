@@ -114,7 +114,7 @@ func forget(args []string) {
 	}
 }
 
-func config(options []string, args []string, updated chan<- bool) {
+func config(options []string, args []string) {
 	if len(options) == 0 {
 		fmt.Print("Usage: config --id <gateway-id>\n" +
 			"              --password <gateway-password>\n" +
@@ -137,7 +137,6 @@ func config(options []string, args []string, updated chan<- bool) {
 			fmt.Println("Usage: config --sensor <mac-address> <setting> <value>")
 			return
 		}
-		updated <- true
 	default:
 		fmt.Printf("Option %s does not exist for command config\n", options[0])
 	}

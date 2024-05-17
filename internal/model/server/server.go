@@ -54,7 +54,7 @@ func Pair() {
 	adapter.AddService(&pairingService)
 }
 
-func StartAdvertising(updated <-chan bool) {
+func StartAdvertising() {
 	adapter.Enable()
 
 	service := bluetooth.Service{

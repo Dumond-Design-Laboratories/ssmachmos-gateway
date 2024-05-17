@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func handleInput(input string, updated chan<- bool) {
+func handleInput(input string) {
 	input = strings.TrimSpace(input)
 	tokens := strings.Split(input, " ")
 	if len(tokens) == 0 || tokens[0] == "" {
@@ -41,7 +41,7 @@ func handleInput(input string, updated chan<- bool) {
 	case "forget":
 		forget(args)
 	case "config":
-		config(options, args, updated)
+		config(options, args)
 	default:
 		fmt.Printf("Unknown command: %s\n", tokens[0])
 	}
@@ -55,13 +55,13 @@ func Log(msg string) {
 	fmt.Printf("[%s] %s\n", time.Now().Format(time.RFC3339), msg)
 }
 
-func Start(updated chan<- bool) {
+func Start() {
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		text, err := reader.ReadString('\n')
 		if err != nil {
 			Error(err)
 		}
-		handleInput(text, updated)
+		handleInput(text)
 	}
 }

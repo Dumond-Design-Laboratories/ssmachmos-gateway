@@ -6,8 +6,6 @@ import (
 )
 
 func main() {
-	updated := make(chan bool)
-
-	go server.StartAdvertising(updated)
-	view.Start(updated)
+	go server.StartAdvertising()
+	view.Start()
 }
