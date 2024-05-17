@@ -71,7 +71,7 @@ func help(args []string) {
 }
 
 func list() {
-	sensors, err := model.LoadSensors(model.SENSORS_FILE)
+	sensors, err := model.GetSensors()
 	if err != nil {
 		Error(err)
 		return
@@ -84,7 +84,7 @@ func view(args []string) {
 		fmt.Println("Usage: view <mac-address>")
 		return
 	}
-	sensors, err := model.LoadSensors(model.SENSORS_FILE)
+	sensors, err := model.GetSensors()
 	if err != nil {
 		Error(err)
 		return
@@ -105,6 +105,11 @@ func pair() {
 func forget(args []string) {
 	if len(args) == 0 {
 		fmt.Println("Usage: forget <mac-address>")
+		return
+	}
+	err := model.RemoveSensor(args[0])
+	if err != nil {
+		Error(err)
 		return
 	}
 }
@@ -132,6 +137,7 @@ func config(options []string, args []string, updated chan<- bool) {
 			fmt.Println("Usage: config --sensor <mac-address> <setting> <value>")
 			return
 		}
+		updated <- true
 	default:
 		fmt.Printf("Option %s does not exist for command config\n", options[0])
 	}
