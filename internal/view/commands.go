@@ -102,7 +102,7 @@ func pair() {
 
 }
 
-func forget(args []string, updated chan<- bool) {
+func forget(args []string) {
 	if len(args) == 0 {
 		fmt.Println("Usage: forget <mac-address>")
 		return

@@ -39,7 +39,7 @@ func handleInput(input string, updated chan<- bool) {
 	case "pair":
 		pair()
 	case "forget":
-		forget(args, updated)
+		forget(args)
 	case "config":
 		config(options, args, updated)
 	default:
