@@ -20,7 +20,7 @@ func StartAdvertising(updated <-chan bool) {
 			{
 				UUID:  [4]uint32{0x51FF12BB, 0x3ED846E5, 0xB4F9D64E, 0x2FEC021B},
 				Value: []byte("Hello World!"),
-				Flags: bluetooth.CharacteristicReadPermission,
+				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
 					fmt.Println("WriteEvent:")
 					fmt.Printf("\toffset: %v\n", offset)
