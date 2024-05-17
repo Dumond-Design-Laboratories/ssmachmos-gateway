@@ -21,7 +21,7 @@ type Sensor struct {
 }
 
 func (s *Sensor) ToString() string {
-	str := s.Name + " - " + s.MacToString() + "\n"
+	str := s.Name + " - " + MacToString(s.Mac) + "\n"
 	str += "Sensor Types: "
 	for i, t := range s.Types {
 		if i < len(s.Types)-1 {
@@ -42,10 +42,6 @@ func (s *Sensor) ToString() string {
 	return str
 }
 
-func (s *Sensor) MacToString() string {
-	return fmt.Sprintf("%02X:%02X:%02X:%02X:%02X:%02X", s.Mac[0], s.Mac[1], s.Mac[2], s.Mac[3], s.Mac[4], s.Mac[5])
-}
-
 func (s *Sensor) IsMacEqual(mac string) bool {
 	var m [6]byte
 	_, err := fmt.Sscanf(mac, "%02X:%02X:%02X:%02X:%02X:%02X", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5])
@@ -53,6 +49,10 @@ func (s *Sensor) IsMacEqual(mac string) bool {
 		return false
 	}
 	return s.Mac == m
+}
+
+func MacToString(mac [6]byte) string {
+	return fmt.Sprintf("%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
 }
 
 func GetSensors() ([]Sensor, error) {

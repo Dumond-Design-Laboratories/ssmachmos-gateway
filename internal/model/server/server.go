@@ -70,16 +70,19 @@ func StartAdvertising(updated <-chan bool) {
 						return
 					}
 					macAddress := [6]byte(value[:6])
+					var sensor *model.Sensor
 					for _, s := range sensors {
 						if s.Mac == macAddress {
-							view.Log("Sensor " + string(macAddress[:]) + " is already paired with the Gateway")
-							return
+							sensor = &s
+							break
 						}
 					}
+					if sensor == nil {
+						view.Log("Device " + model.MacToString(macAddress) + " tried to send data but is not authorized")
+						return
+					}
 
-					view.Log("WriteEvent:")
-					view.Log("\tOffset: " + strconv.Itoa(offset))
-					view.Log("\tValue: " + string(value))
+					go handleWriteData(sensor, offset, value[6:])
 				}},
 		}}
 
@@ -95,4 +98,15 @@ func StartAdvertising(updated <-chan bool) {
 	adv.Start()
 
 	view.Log("Advertising started")
+}
+
+func StopAdvertising() {
+	adapter.DefaultAdvertisement().Stop()
+	view.Log("Advertising stopped")
+}
+
+func handleWriteData(sensor *model.Sensor, offset int, data []byte) {
+	view.Log("Write Event from " + model.MacToString(sensor.Mac))
+	view.Log("\tOffset: " + strconv.Itoa(offset))
+	view.Log("\tValue: " + string(data))
 }
