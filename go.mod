@@ -1,6 +1,6 @@
 module github.com/jukuly/ss_mach_mo
 
-go 1.19
+go 1.20
 
 require tinygo.org/x/bluetooth v0.9.0
 

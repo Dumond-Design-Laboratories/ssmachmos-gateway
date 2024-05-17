@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jukuly/ss_mach_mo/internal/model"
 	"github.com/jukuly/ss_mach_mo/internal/view"
 	"tinygo.org/x/bluetooth"
 )
@@ -63,6 +64,19 @@ func StartAdvertising(updated <-chan bool) {
 				UUID:  [4]uint32{0x51FF12BB, 0x3ED846E5, 0xB4F9D64E, 0x2FEC021B},
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+					sensors, err := model.GetSensors()
+					if err != nil {
+						view.Error(err)
+						return
+					}
+					macAddress := [6]byte(value[:6])
+					for _, s := range sensors {
+						if s.Mac == macAddress {
+							view.Log("Sensor " + string(macAddress[:]) + " is already paired with the Gateway")
+							return
+						}
+					}
+
 					view.Log("WriteEvent:")
 					view.Log("\tOffset: " + strconv.Itoa(offset))
 					view.Log("\tValue: " + string(value))

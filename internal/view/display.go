@@ -9,7 +9,7 @@ import (
 func DisplaySensors(sensors []model.Sensor) {
 	fmt.Print("\n")
 	for _, sensor := range sensors {
-		fmt.Println(sensor.Name + " - " + sensor.Mac)
+		fmt.Println(sensor.Name + " - " + sensor.MacToString())
 	}
 }
 

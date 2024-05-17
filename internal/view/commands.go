@@ -90,7 +90,7 @@ func view(args []string) {
 		return
 	}
 	for _, sensor := range sensors {
-		if sensor.Mac == args[0] {
+		if sensor.IsMacEqual(args[0]) {
 			DisplaySensor(sensor)
 			return
 		}
