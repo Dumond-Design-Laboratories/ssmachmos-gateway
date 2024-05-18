@@ -54,7 +54,7 @@ func Pair() {
 	adapter.AddService(&pairingService)
 }
 
-func StartAdvertising() {
+func StartAdvertising(sensors *[]model.Sensor) {
 	adapter.Enable()
 
 	service := bluetooth.Service{
@@ -64,14 +64,9 @@ func StartAdvertising() {
 				UUID:  [4]uint32{0x51FF12BB, 0x3ED846E5, 0xB4F9D64E, 0x2FEC021B},
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					sensors, err := model.GetSensors()
-					if err != nil {
-						view.Error(err)
-						return
-					}
 					macAddress := [6]byte(value[:6])
 					var sensor *model.Sensor
-					for _, s := range sensors {
+					for _, s := range *sensors {
 						if s.Mac == macAddress {
 							sensor = &s
 							break

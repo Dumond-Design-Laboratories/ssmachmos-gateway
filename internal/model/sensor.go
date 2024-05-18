@@ -2,14 +2,13 @@ package model
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 )
 
 const SENSORS_FILE = "sensors.json"
-
-var sensors []Sensor
 
 type Sensor struct {
 	Mac            [6]byte                      `json:"mac"`
@@ -55,51 +54,37 @@ func MacToString(mac [6]byte) string {
 	return fmt.Sprintf("%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
 }
 
-func GetSensors() ([]Sensor, error) {
-	var err error
-	if sensors == nil {
-		err = loadSensors(SENSORS_FILE)
-	}
-	return sensors, err
-}
-
-func loadSensors(path string) error {
+func LoadSensors(path string, sensors *[]Sensor) error {
 	jsonStr, err := os.ReadFile(path)
 	if err != nil {
-		sensors = make([]Sensor, 0)
+		*sensors = make([]Sensor, 0)
 		return err
 	}
-	err = json.Unmarshal(jsonStr, &sensors)
+	err = json.Unmarshal(jsonStr, sensors)
 	if err != nil {
-		sensors = make([]Sensor, 0)
+		*sensors = make([]Sensor, 0)
 		return err
 	}
 	return nil
 }
 
-func RemoveSensor(mac string) error {
+func RemoveSensor(mac string, sensors *[]Sensor) error {
 	if sensors == nil {
-		err := loadSensors(SENSORS_FILE)
-		if err != nil {
-			return err
-		}
+		return errors.New("sensors is nil")
 	}
-	for i, s := range sensors {
+	for i, s := range *sensors {
 		if s.IsMacEqual(mac) {
-			sensors = append(sensors[:i], sensors[i+1:]...)
-			err := saveSensors(SENSORS_FILE)
+			*sensors = append((*sensors)[:i], (*sensors)[i+1:]...)
+			err := saveSensors(SENSORS_FILE, sensors)
 			return err
 		}
 	}
 	return nil
 }
 
-func saveSensors(path string) error {
+func saveSensors(path string, sensors *[]Sensor) error {
 	if sensors == nil {
-		err := loadSensors(SENSORS_FILE)
-		if err != nil {
-			return err
-		}
+		return errors.New("sensors is nil")
 	}
 
 	jsonStr, err := json.Marshal(sensors)
@@ -110,6 +95,5 @@ func saveSensors(path string) error {
 	if err != nil {
 		return err
 	}
-	err = loadSensors(SENSORS_FILE)
-	return err
+	return nil
 }

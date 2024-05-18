@@ -70,26 +70,16 @@ func help(args []string) {
 	}
 }
 
-func list() {
-	sensors, err := model.GetSensors()
-	if err != nil {
-		Error(err)
-		return
-	}
-	DisplaySensors(sensors)
+func list(sensors *[]model.Sensor) {
+	DisplaySensors(*sensors)
 }
 
-func view(args []string) {
+func view(args []string, sensors *[]model.Sensor) {
 	if len(args) == 0 {
 		fmt.Println("Usage: view <mac-address>")
 		return
 	}
-	sensors, err := model.GetSensors()
-	if err != nil {
-		Error(err)
-		return
-	}
-	for _, sensor := range sensors {
+	for _, sensor := range *sensors {
 		if sensor.IsMacEqual(args[0]) {
 			DisplaySensor(sensor)
 			return
@@ -102,19 +92,19 @@ func pair() {
 
 }
 
-func forget(args []string) {
+func forget(args []string, sensors *[]model.Sensor) {
 	if len(args) == 0 {
 		fmt.Println("Usage: forget <mac-address>")
 		return
 	}
-	err := model.RemoveSensor(args[0])
+	err := model.RemoveSensor(args[0], sensors)
 	if err != nil {
 		Error(err)
 		return
 	}
 }
 
-func config(options []string, args []string) {
+func config(options []string, args []string, sensors *[]model.Sensor) {
 	if len(options) == 0 {
 		fmt.Print("Usage: config --id <gateway-id>\n" +
 			"              --password <gateway-password>\n" +
