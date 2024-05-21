@@ -80,7 +80,7 @@ func Init(sensors *[]model.Sensor) {
 		LocalName: "Gateway Server",
 		ServiceUUIDs: []bluetooth.UUID{
 			dataService.UUID,
-			pairingServ.UUID,
+			//pairingServ.UUID,
 		}})
 }
 
