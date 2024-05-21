@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"flag"
 	"log"
 	"strconv"
 	"time"
@@ -11,7 +12,7 @@ import (
 	"tinygo.org/x/bluetooth"
 
 	"github.com/go-ble/ble"
-	"github.com/go-ble/ble/linux"
+	"github.com/go-ble/ble/examples/lib/dev"
 )
 
 var adapter = bluetooth.DefaultAdapter
@@ -89,8 +90,10 @@ func Init(sensors *[]model.Sensor) {
 		}})
 }
 
+var device = flag.String("device", "default", "implementation of ble")
+
 func InitAlt(sensors *[]model.Sensor) {
-	d, err := linux.NewDevice()
+	d, err := dev.NewDevice(*device)
 	if err != nil {
 		log.Fatalf("can't new device : %s", err)
 	}
