@@ -11,10 +11,22 @@ import (
 
 var adapter = bluetooth.DefaultAdapter
 
-var DATA_SERVICE_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}           // different for every gateway
-var DATA_CHARACTERISTIC_UUID = [4]uint32{0x51FF12BB, 0x3ED846E5, 0xB4F9D64E, 0x2FEC021B}    // different for every gateway
-var PAIRING_SERVICE_UUID = [4]uint32{0x0000FE59, 0x0000FE59, 0x0000FE59, 0x0000FE59}        // same uuid for every gateway
-var PAIRING_CHARACTERISTIC_UUID = [4]uint32{0x0000FE55, 0x0000FE55, 0x0000FE55, 0x0000FE55} // same uuid for every gateway
+var DATA_SERVICE_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}                 // different for every gateway
+var DATA_CHARACTERISTIC_UUID = [4]uint32{0x51FF12BB, 0x3ED846E5, 0xB4F9D64E, 0x2FEC021B}          // different for every gateway
+var PAIRING_SERVICE_UUID = [4]uint32{0x0000FE59, 0x0000FE59, 0x0000FE59, 0x0000FE59}              // same uuid for every gateway
+var PAIR_REQUEST_CHARACTERISTIC_UUID = [4]uint32{0x0000FE55, 0x0000FE55, 0x0000FE55, 0x0000FE55}  // same uuid for every gateway
+var PAIR_RESPONSE_CHARACTERISTIC_UUID = [4]uint32{0x0000FE56, 0x0000FE56, 0x0000FE56, 0x0000FE56} // same uuid for every gateway
+
+type pairingRequest struct {
+	mac        [6]byte
+	expiration time.Time
+}
+
+type PairingState struct {
+	active    bool
+	requested []pairingRequest
+	pairing   [6]byte
+}
 
 func Init(sensors *[]model.Sensor) {
 	adapter.Enable()
@@ -40,32 +52,43 @@ func Init(sensors *[]model.Sensor) {
 					}
 
 					go handleWriteData(sensor, offset, value[6:])
-				}},
-		}}
+				},
+			},
+		},
+	}
 	adapter.AddService(&dataService)
 
-	pairing := make(chan bool, 1)
-	var pairingCharacteristic bluetooth.Characteristic
-	pairingServ := bluetooth.Service{
+	var pairResponse bluetooth.Characteristic
+	pairingService := bluetooth.Service{
 		UUID: PAIRING_SERVICE_UUID,
 		Characteristics: []bluetooth.CharacteristicConfig{
 			{
-				Handle: &pairingCharacteristic,
-				UUID:   PAIRING_CHARACTERISTIC_UUID,
+				UUID:  PAIR_REQUEST_CHARACTERISTIC_UUID,
+				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+					go pairRequest(value, nil) // TODO pass PairingState
+				},
+			},
+			{
+				Handle: &pairResponse,
+				UUID:   PAIR_RESPONSE_CHARACTERISTIC_UUID,
 				Value:  []byte{}, // the mac address of the ACCEPTED sensor
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					go pairWriteEvent(value, pairingCharacteristic, pairing)
-				}}},
+					go pairConfirmation(value, pairResponse, nil) // TODO pass PairingState
+				},
+			},
+		},
 	}
-	adapter.AddService(&pairingServ)
+	adapter.AddService(&pairingService)
 
 	adapter.DefaultAdvertisement().Configure(bluetooth.AdvertisementOptions{
 		LocalName: "Gateway Server",
 		ServiceUUIDs: []bluetooth.UUID{
 			dataService.UUID,
-			pairingServ.UUID,
-		}})
+			pairingService.UUID,
+		},
+	})
 }
 
 func StartAdvertising() {
@@ -78,39 +101,96 @@ func StopAdvertising() {
 	view.Log("Advertising stopped")
 }
 
-func StartPairing() {
-	view.Log("Pairing started")
-}
-
-func StopPairing() {
-	view.Log("Pairing stopped")
-}
-
 func handleWriteData(sensor *model.Sensor, offset int, data []byte) {
 	view.Log("Write Event from " + model.MacToString(sensor.Mac))
 	view.Log("\tOffset: " + strconv.Itoa(offset))
 	view.Log("\tValue: " + string(data))
 }
 
-func pairWriteEvent(value []byte, pairingCharacteristic bluetooth.Characteristic, pairing chan bool) {
-	if value[0] == 0x00 { // flag => should have one for 1) done pairing 2) pairing request
-		// done pairing
-		view.Log("Sensor " + string(value) + " has been paired with the Gateway")
-		pairingCharacteristic.Write([]byte{})
-		<-pairing
-	} else if value[0] == 0x01 {
-		// pairing request
-		view.Log("Sensor " + string(value) + " wants to pair with the Gateway")
-		// ask the user if they want to pair
-		if true { // condition is temporary until we have a way to ask the user
-			pairing <- true // will only allow one sensor to pair at a time (since it's a channel with buffer size 1)
-			pairingCharacteristic.Write(value[1:])
+func StartPairing(state *PairingState) {
+	state.active = true
+	view.Log("Pairing started")
+}
 
-			// give 30 second for the sensor to pair, then allow next sensor to pair
-			time.Sleep(30 * time.Second)
-			if len(pairing) > 0 {
-				<-pairing
+func StopPairing(state *PairingState) {
+	state.active = false
+	view.Log("Pairing stopped")
+}
+
+func pairRequest(value []byte, state *PairingState) {
+	if len(value) != 6 || !state.active {
+		return
+	}
+	mac := [6]byte(value[:6])
+	if state.pairing == mac {
+		return
+	}
+	existed := false
+	for _, p := range state.requested {
+		if p.mac == mac {
+			if time.Now().Before(p.expiration) {
+				return
+			} else {
+				p.expiration = time.Now().Add(30 * time.Second)
+				existed = true
+				break
 			}
 		}
 	}
+	if !existed {
+		state.requested = append(state.requested, pairingRequest{
+			mac:        mac,
+			expiration: time.Now().Add(30 * time.Second),
+		})
+	}
+
+	view.Log("Pair request from " + model.MacToString(mac) + " | pair <mac-address> to accept")
+}
+
+func pairConfirmation(value []byte, pairResponse bluetooth.Characteristic, state *PairingState) {
+	if len(value) != 6 || !state.active {
+		return
+	}
+	mac := [6]byte(value[:6])
+	if state.pairing != mac {
+		return
+	}
+	state.pairing = [6]byte{}
+
+	pairResponse.Write([]byte{})
+	view.Log(model.MacToString(mac) + " has been paired with the Gateway")
+}
+
+func Pair(mac [6]byte, pairResponse bluetooth.Characteristic, state *PairingState) {
+	if !state.active {
+		view.Log("Pairing is not active")
+		return
+	}
+	found := false
+	for _, p := range state.requested {
+		if p.mac == mac && time.Now().Before(p.expiration) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		view.Log("Pair request from " + model.MacToString(mac) + " not found")
+		return
+	}
+	if state.pairing != [6]byte{} {
+		view.Log("Canceled pairing with " + model.MacToString(state.pairing))
+		return
+	}
+	state.pairing = mac
+
+	pairResponse.Write(mac[:])
+	view.Log("Pairing with " + model.MacToString(mac))
+
+	go func() {
+		time.Sleep(30 * time.Second)
+		if state.pairing == mac {
+			state.pairing = [6]byte{}
+			view.Log("Pairing with " + model.MacToString(mac) + " has timed out")
+		}
+	}()
 }
