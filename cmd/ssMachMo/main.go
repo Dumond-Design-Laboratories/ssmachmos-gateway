@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	var sensors *[]model.Sensor
+	var sensors *[]model.Sensor = &[]model.Sensor{}
 	model.LoadSensors(model.SENSORS_FILE, sensors)
 
 	server.Init(sensors)
