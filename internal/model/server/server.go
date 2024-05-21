@@ -1,12 +1,17 @@
 package server
 
 import (
+	"context"
+	"log"
 	"strconv"
 	"time"
 
 	"github.com/jukuly/ss_mach_mo/internal/model"
 	"github.com/jukuly/ss_mach_mo/internal/view"
 	"tinygo.org/x/bluetooth"
+
+	"github.com/go-ble/ble"
+	"github.com/go-ble/ble/linux"
 )
 
 var adapter = bluetooth.DefaultAdapter
@@ -84,27 +89,47 @@ func Init(sensors *[]model.Sensor) {
 		}})
 }
 
+func InitAlt(sensors *[]model.Sensor) {
+	d, err := linux.NewDevice()
+	if err != nil {
+		log.Fatalf("can't new device : %s", err)
+	}
+	ble.SetDefaultDevice(d)
+
+	testSvc := ble.NewService(ble.UUID{0xA0, 0x74, 0x98, 0xCA, 0xAD, 0x5B, 0x47, 0x4E, 0x94, 0x0D, 0x16, 0xF1, 0xFB, 0xE7, 0xE8, 0xCD})
+	testSvc.AddCharacteristic(ble.NewCharacteristic(ble.UUID{0x51, 0xFF, 0x12, 0xBB, 0x3E, 0xD8, 0x46, 0xE5, 0xB4, 0xF9, 0xD6, 0x4E, 0x2F, 0xEC, 0x02, 0x1B}))
+
+	if err := ble.AddService(testSvc); err != nil {
+		log.Fatalf("can't add service: %s", err)
+	}
+
+	// Advertise for specified durantion, or until interrupted by user.
+	view.Log("Advertising started")
+	ctx := ble.WithSigHandler(context.WithTimeout(context.Background(), time.Duration(0)))
+	ble.AdvertiseNameAndServices(ctx, "TestGateway", testSvc.UUID)
+}
+
 func StartAdvertising() {
-	adapter.DefaultAdvertisement().Start()
+	//adapter.DefaultAdvertisement().Start()
 	view.Log("Advertising started")
 }
 
 func StopAdvertising() {
-	adapter.DefaultAdvertisement().Stop()
+	//adapter.DefaultAdvertisement().Stop()
 	view.Log("Advertising stopped")
 }
 
 func StartPairing() {
 	//pairingEnabledCharacteristic.Write([]byte{0x01})
 	//pairingEnabled = true
-	pairingServ.Characteristics = []bluetooth.CharacteristicConfig{pairingChar}
+	//pairingServ.Characteristics = []bluetooth.CharacteristicConfig{pairingChar}
 	view.Log("Pairing started")
 }
 
 func StopPairing() {
 	//pairingEnabledCharacteristic.Write([]byte{0x00})
 	//pairingEnabled = false
-	pairingServ.Characteristics = []bluetooth.CharacteristicConfig{}
+	//pairingServ.Characteristics = []bluetooth.CharacteristicConfig{}
 	view.Log("Pairing stopped")
 }
 

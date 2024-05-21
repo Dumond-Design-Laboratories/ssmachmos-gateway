@@ -1,9 +1,6 @@
 package main
 
 import (
-	"strconv"
-	"time"
-
 	"github.com/jukuly/ss_mach_mo/internal/model"
 	"github.com/jukuly/ss_mach_mo/internal/model/server"
 	"github.com/jukuly/ss_mach_mo/internal/view"
@@ -13,9 +10,9 @@ func main() {
 	var sensors *[]model.Sensor = &[]model.Sensor{}
 	model.LoadSensors(model.SENSORS_FILE, sensors)
 
-	server.Init(sensors)
+	server.InitAlt(sensors)
 
-	go server.StartAdvertising()
+	/*go server.StartAdvertising()
 	go func() {
 		// delay for 25 seconds
 		for i := 0; i < 25; i++ {
@@ -24,7 +21,7 @@ func main() {
 		}
 
 		server.StartPairing()
-	}()
+	}()*/
 
 	view.Start(sensors)
 
