@@ -11,6 +11,57 @@ import (
 
 var adapter = bluetooth.DefaultAdapter
 
+var DATA_SERVICE_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}           // different for every gateway
+var DATA_CHARACTERISTIC_UUID = [4]uint32{0x51FF12BB, 0x3ED846E5, 0xB4F9D64E, 0x2FEC021B}    // different for every gateway
+var PAIRING_SERVICE_UUID = [4]uint32{0x0000FE59, 0x0000FE59, 0x0000FE59, 0x0000FE59}        // same uuid for every gateway
+var PAIRING_CHARACTERISTIC_UUID = [4]uint32{0x0000FE55, 0x0000FE55, 0x0000FE55, 0x0000FE55} // same uuid for every gateway
+
+func Init(sensors *[]model.Sensor) {
+	adapter.Enable()
+
+	dataService := bluetooth.Service{
+		UUID: DATA_SERVICE_UUID,
+		Characteristics: []bluetooth.CharacteristicConfig{
+			{
+				UUID:  DATA_CHARACTERISTIC_UUID,
+				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+					macAddress := [6]byte(value[:6])
+					var sensor *model.Sensor
+					for _, s := range *sensors {
+						if s.Mac == macAddress {
+							sensor = &s
+							break
+						}
+					}
+					if sensor == nil {
+						view.Log("Device " + model.MacToString(macAddress) + " tried to send data but is not authorized")
+						return
+					}
+
+					go handleWriteData(sensor, offset, value[6:])
+				}},
+		}}
+	adapter.AddService(&dataService)
+
+	pairing := make(chan bool, 1)
+	var pairingCharacteristic bluetooth.Characteristic
+	pairingService := bluetooth.Service{
+		UUID: PAIRING_SERVICE_UUID,
+		Characteristics: []bluetooth.CharacteristicConfig{
+			{
+				Handle: &pairingCharacteristic,
+				UUID:   PAIRING_CHARACTERISTIC_UUID,
+				Value:  []byte{}, // the mac address of the ACCEPTED sensor
+				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+					go pairWriteEvent(value, pairingCharacteristic, pairing)
+				}},
+		},
+	}
+	adapter.AddService(&pairingService)
+}
+
 func pairWriteEvent(value []byte, pairingCharacteristic bluetooth.Characteristic, pairing chan bool) {
 	if value[0] == 0x00 { // flag => should have one for 1) done pairing 2) pairing request
 		// done pairing
@@ -34,60 +85,31 @@ func pairWriteEvent(value []byte, pairingCharacteristic bluetooth.Characteristic
 	}
 }
 
-func Pair() {
-	pairing := make(chan bool, 1)
-
-	var pairingCharacteristic bluetooth.Characteristic
-	pairingService := bluetooth.Service{
-		UUID: [4]uint32{0x0000FE59, 0x0000FE59, 0x0000FE59, 0x0000FE59}, // same uuid for every gateway
-		Characteristics: []bluetooth.CharacteristicConfig{
-			{
-				Handle: &pairingCharacteristic,
-				UUID:   [4]uint32{0x0000FE55, 0x0000FE55, 0x0000FE55, 0x0000FE55}, // same uuid for every gateway
-				Value:  []byte{},                                                  // the mac address of the ACCEPTED sensor
-				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
-				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					go pairWriteEvent(value, pairingCharacteristic, pairing)
-				}},
-		},
-	}
-	adapter.AddService(&pairingService)
-}
-
-func StartAdvertising(sensors *[]model.Sensor) {
-	adapter.Enable()
-
-	service := bluetooth.Service{
-		UUID: [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD},
-		Characteristics: []bluetooth.CharacteristicConfig{
-			{
-				UUID:  [4]uint32{0x51FF12BB, 0x3ED846E5, 0xB4F9D64E, 0x2FEC021B},
-				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
-				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					macAddress := [6]byte(value[:6])
-					var sensor *model.Sensor
-					for _, s := range *sensors {
-						if s.Mac == macAddress {
-							sensor = &s
-							break
-						}
-					}
-					if sensor == nil {
-						view.Log("Device " + model.MacToString(macAddress) + " tried to send data but is not authorized")
-						return
-					}
-
-					go handleWriteData(sensor, offset, value[6:])
-				}},
-		}}
-
-	adapter.AddService(&service)
-
+func StartPairing() {
 	adv := adapter.DefaultAdvertisement()
 	adv.Configure(bluetooth.AdvertisementOptions{
 		LocalName: "Gateway Server",
 		ServiceUUIDs: []bluetooth.UUID{
-			service.UUID,
+			DATA_SERVICE_UUID,
+			PAIRING_SERVICE_UUID,
+		}})
+
+	//adv.Start()
+
+	view.Log("Pairing started")
+}
+
+func StopPairing() {
+	adapter.DefaultAdvertisement().Stop()
+	view.Log("Pairing stopped")
+}
+
+func StartAdvertising() {
+	adv := adapter.DefaultAdvertisement()
+	adv.Configure(bluetooth.AdvertisementOptions{
+		LocalName: "Gateway Server",
+		ServiceUUIDs: []bluetooth.UUID{
+			DATA_SERVICE_UUID,
 		}})
 
 	adv.Start()
