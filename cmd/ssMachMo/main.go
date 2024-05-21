@@ -10,7 +10,7 @@ func main() {
 	var sensors *[]model.Sensor = &[]model.Sensor{}
 	model.LoadSensors(model.SENSORS_FILE, sensors)
 
-	server.InitAlt(sensors)
+	server.Init(sensors)
 
 	/*go server.StartAdvertising()
 	go func() {
