@@ -62,6 +62,55 @@ func Init(sensors *[]model.Sensor) {
 	adapter.AddService(&pairingService)
 }
 
+func StartAdvertising() {
+	adv := adapter.DefaultAdvertisement()
+	adv.Configure(bluetooth.AdvertisementOptions{
+		LocalName: "Gateway Server",
+		ServiceUUIDs: []bluetooth.UUID{
+			DATA_SERVICE_UUID,
+		}})
+	adv.Start()
+
+	view.Log("Advertising started")
+}
+
+func StopAdvertising() {
+	adapter.DefaultAdvertisement().Stop()
+	view.Log("Advertising stopped")
+}
+
+func StartPairing() {
+	adv := adapter.DefaultAdvertisement()
+	adv.Stop()
+	adv.Configure(bluetooth.AdvertisementOptions{
+		LocalName: "Gateway Server",
+		ServiceUUIDs: []bluetooth.UUID{
+			DATA_SERVICE_UUID,
+			PAIRING_SERVICE_UUID,
+		}})
+	adv.Start()
+
+	view.Log("Pairing started")
+}
+
+func StopPairing() {
+	adv := adapter.DefaultAdvertisement()
+	adv.Stop()
+	adv.Configure(bluetooth.AdvertisementOptions{
+		LocalName: "Gateway Server",
+		ServiceUUIDs: []bluetooth.UUID{
+			DATA_SERVICE_UUID,
+		}})
+	adv.Start()
+	view.Log("Pairing stopped")
+}
+
+func handleWriteData(sensor *model.Sensor, offset int, data []byte) {
+	view.Log("Write Event from " + model.MacToString(sensor.Mac))
+	view.Log("\tOffset: " + strconv.Itoa(offset))
+	view.Log("\tValue: " + string(data))
+}
+
 func pairWriteEvent(value []byte, pairingCharacteristic bluetooth.Characteristic, pairing chan bool) {
 	if value[0] == 0x00 { // flag => should have one for 1) done pairing 2) pairing request
 		// done pairing
@@ -83,47 +132,4 @@ func pairWriteEvent(value []byte, pairingCharacteristic bluetooth.Characteristic
 			}
 		}
 	}
-}
-
-func StartPairing() {
-	adv := adapter.DefaultAdvertisement()
-	adv.Configure(bluetooth.AdvertisementOptions{
-		LocalName: "Gateway Server",
-		ServiceUUIDs: []bluetooth.UUID{
-			DATA_SERVICE_UUID,
-			PAIRING_SERVICE_UUID,
-		}})
-
-	//adv.Start()
-
-	view.Log("Pairing started")
-}
-
-func StopPairing() {
-	adapter.DefaultAdvertisement().Stop()
-	view.Log("Pairing stopped")
-}
-
-func StartAdvertising() {
-	adv := adapter.DefaultAdvertisement()
-	adv.Configure(bluetooth.AdvertisementOptions{
-		LocalName: "Gateway Server",
-		ServiceUUIDs: []bluetooth.UUID{
-			DATA_SERVICE_UUID,
-		}})
-
-	adv.Start()
-
-	view.Log("Advertising started")
-}
-
-func StopAdvertising() {
-	adapter.DefaultAdvertisement().Stop()
-	view.Log("Advertising stopped")
-}
-
-func handleWriteData(sensor *model.Sensor, offset int, data []byte) {
-	view.Log("Write Event from " + model.MacToString(sensor.Mac))
-	view.Log("\tOffset: " + strconv.Itoa(offset))
-	view.Log("\tValue: " + string(data))
 }
