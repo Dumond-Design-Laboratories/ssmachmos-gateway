@@ -104,7 +104,7 @@ func forget(args []string, sensors *[]model.Sensor) {
 	}
 }
 
-func config(options []string, args []string, sensors *[]model.Sensor) {
+func config(options []string, args []string, sensors *[]model.Sensor, gateway *model.Gateway) {
 	if len(options) == 0 {
 		fmt.Print("Usage: config --id <gateway-id>\n" +
 			"              --password <gateway-password>\n" +
@@ -117,10 +117,18 @@ func config(options []string, args []string, sensors *[]model.Sensor) {
 			fmt.Println("Usage: config --id <gateway-id>")
 			return
 		}
+		err := model.SetGatewayId(args[0], gateway)
+		if err != nil {
+			Error(err)
+		}
 	case "--password":
 		if len(args) == 0 {
 			fmt.Println("Usage: config --password <gateway-password>")
 			return
+		}
+		err := model.SetGatewayPassword(args[0], gateway)
+		if err != nil {
+			Error(err)
 		}
 	case "--sensor":
 		if len(args) < 3 {
