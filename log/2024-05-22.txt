@@ -1,4 +1,0 @@
-[2024-05-22T16:25:24-04:00] Error loading Gateway settings. Use 'config --id <gateway-id>' and 'config --password <gateway-password>' to set the Gateway settings.
-[2024-05-22T16:25:24-04:00] open gateway.json: no such file or directory
-[2024-05-22T16:25:26-04:00] Error loading Gateway settings. Use 'config --id <gateway-id>' and 'config --password <gateway-password>' to set the Gateway settings.
-[2024-05-22T16:25:26-04:00] open gateway.json: no such file or directory

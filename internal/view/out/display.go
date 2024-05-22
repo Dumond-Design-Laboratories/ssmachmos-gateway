@@ -2,14 +2,12 @@ package out
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/jukuly/ss_mach_mo/internal/model"
 )
 
-var LOG_PATH = "log/"
+// var LOG_PATH = "log/"
 
 func DisplaySensors(sensors []model.Sensor) {
 	fmt.Print("\n")
@@ -30,7 +28,7 @@ func Log(msg string) {
 	str := fmt.Sprintf("[%s] %s\n", time.Now().Format(time.RFC3339), msg)
 	fmt.Print(str)
 
-	_, err := os.Stat(LOG_PATH)
+	/*_, err := os.Stat(LOG_PATH)
 	if os.IsNotExist(err) {
 		os.MkdirAll(LOG_PATH, os.ModePerm)
 	}
@@ -41,5 +39,5 @@ func Log(msg string) {
 	if err != nil {
 		fmt.Printf("[%s] %s\n", time.Now().Format(time.RFC3339), err.Error())
 	}
-	logFile.WriteString(str)
+	logFile.WriteString(str)*/
 }
