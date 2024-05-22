@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/jukuly/ss_mach_mo/internal/model"
+	"github.com/jukuly/ss_mach_mo/internal/model/server"
 	"github.com/jukuly/ss_mach_mo/internal/view/in"
 	"github.com/jukuly/ss_mach_mo/internal/view/out"
 )
@@ -16,7 +17,11 @@ func main() {
 		out.Error(err)
 	}
 
-	//server.Init(sensors)
+	err = server.Init(sensors)
+	if err != nil {
+		out.Error(err)
+		panic("Error initializing server")
+	}
 
 	/*go server.StartAdvertising()
 	go func() {

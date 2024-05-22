@@ -16,6 +16,13 @@ var PAIRING_SERVICE_UUID = [4]uint32{0x0000FE59, 0x0000FE59, 0x0000FE59, 0x0000F
 var PAIR_REQUEST_CHARACTERISTIC_UUID = [4]uint32{0x0000FE55, 0x0000FE55, 0x0000FE55, 0x0000FE55}  // same uuid for every gateway
 var PAIR_RESPONSE_CHARACTERISTIC_UUID = [4]uint32{0x0000FE56, 0x0000FE56, 0x0000FE56, 0x0000FE56} // same uuid for every gateway
 
+var DATA_TYPES = map[byte]string{
+	0x00: "Vibration",
+	0x01: "Acoustic",
+	0x02: "Temperature",
+	0x03: "Battery",
+}
+
 type pairingRequest struct {
 	mac        [6]byte
 	expiration time.Time
@@ -27,8 +34,11 @@ type PairingState struct {
 	pairing   [6]byte
 }
 
-func Init(sensors *[]model.Sensor) {
-	adapter.Enable()
+func Init(sensors *[]model.Sensor) error {
+	err := adapter.Enable()
+	if err != nil {
+		return err
+	}
 
 	dataService := bluetooth.Service{
 		UUID: DATA_SERVICE_UUID,
@@ -42,7 +52,10 @@ func Init(sensors *[]model.Sensor) {
 			},
 		},
 	}
-	adapter.AddService(&dataService)
+	err = adapter.AddService(&dataService)
+	if err != nil {
+		return err
+	}
 
 	var pairResponse bluetooth.Characteristic
 	pairingService := bluetooth.Service{
@@ -66,29 +79,45 @@ func Init(sensors *[]model.Sensor) {
 			},
 		},
 	}
-	adapter.AddService(&pairingService)
+	err = adapter.AddService(&pairingService)
+	if err != nil {
+		return err
+	}
 
-	adapter.DefaultAdvertisement().Configure(bluetooth.AdvertisementOptions{
+	err = adapter.DefaultAdvertisement().Configure(bluetooth.AdvertisementOptions{
 		LocalName: "Gateway Server",
 		ServiceUUIDs: []bluetooth.UUID{
 			dataService.UUID,
 			pairingService.UUID,
 		},
 	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func StartAdvertising() {
-	adapter.DefaultAdvertisement().Start()
+func StartAdvertising() error {
+	err := adapter.DefaultAdvertisement().Start()
+	if err != nil {
+		return err
+	}
 	out.Log("Advertising started")
+	return nil
 }
 
-func StopAdvertising() {
-	adapter.DefaultAdvertisement().Stop()
+func StopAdvertising() error {
+	err := adapter.DefaultAdvertisement().Stop()
+	if err != nil {
+		return err
+	}
 	out.Log("Advertising stopped")
+	return nil
 }
 
-func handleData(client bluetooth.Connection, offset int, value []byte, sensors *[]model.Sensor) {
+func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Sensor) {
 	if len(value) < 8 {
+		out.Log("Invalid data received")
 		return
 	}
 
@@ -104,4 +133,9 @@ func handleData(client bluetooth.Connection, offset int, value []byte, sensors *
 		out.Log("Device " + model.MacToString(macAddress) + " tried to send data but is not authorized")
 		return
 	}
+
+	dataType := DATA_TYPES[value[6]]
+	samplingFrequency := value[7]
+
+	out.Log("Received data from " + model.MacToString(macAddress) + " (" + sensor.Name + "): " + dataType + " at " + string(samplingFrequency) + "Hz")
 }
