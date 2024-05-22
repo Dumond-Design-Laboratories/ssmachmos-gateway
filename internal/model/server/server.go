@@ -117,7 +117,7 @@ func StopAdvertising() error {
 
 func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Sensor) {
 	if len(value) < 8 {
-		out.Log("Invalid data received")
+		out.Log("Invalid data format received")
 		return
 	}
 
