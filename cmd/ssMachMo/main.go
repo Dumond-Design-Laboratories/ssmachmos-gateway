@@ -2,7 +2,8 @@ package main
 
 import (
 	"github.com/jukuly/ss_mach_mo/internal/model"
-	"github.com/jukuly/ss_mach_mo/internal/view"
+	"github.com/jukuly/ss_mach_mo/internal/view/in"
+	"github.com/jukuly/ss_mach_mo/internal/view/out"
 )
 
 func main() {
@@ -11,8 +12,8 @@ func main() {
 	model.LoadSensors(model.SENSORS_FILE, sensors)
 	err := model.LoadSettings(model.GATEWAY_FILE, gateway)
 	if err != nil {
-		view.Log("Error loading Gateway settings. Use 'config --id <gateway-id>' and 'config --password <gateway-password>' to set the Gateway settings.")
-		view.Error(err)
+		out.Log("Error loading Gateway settings. Use 'config --id <gateway-id>' and 'config --password <gateway-password>' to set the Gateway settings.")
+		out.Error(err)
 	}
 
 	//server.Init(sensors)
@@ -28,6 +29,6 @@ func main() {
 		server.StartPairing()
 	}()*/
 
-	view.Start(sensors, gateway)
+	in.Start(sensors, gateway)
 
 }

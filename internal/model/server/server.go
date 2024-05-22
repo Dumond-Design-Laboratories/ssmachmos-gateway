@@ -1,11 +1,10 @@
 package server
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/jukuly/ss_mach_mo/internal/model"
-	"github.com/jukuly/ss_mach_mo/internal/view"
+	"github.com/jukuly/ss_mach_mo/internal/view/out"
 	"tinygo.org/x/bluetooth"
 )
 
@@ -38,20 +37,7 @@ func Init(sensors *[]model.Sensor) {
 				UUID:  DATA_CHARACTERISTIC_UUID,
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					macAddress := [6]byte(value[:6])
-					var sensor *model.Sensor
-					for _, s := range *sensors {
-						if s.Mac == macAddress {
-							sensor = &s
-							break
-						}
-					}
-					if sensor == nil {
-						view.Log("Device " + model.MacToString(macAddress) + " tried to send data but is not authorized")
-						return
-					}
-
-					go handleWriteData(sensor, offset, value[6:])
+					handleData(client, offset, value, sensors)
 				},
 			},
 		},
@@ -93,104 +79,29 @@ func Init(sensors *[]model.Sensor) {
 
 func StartAdvertising() {
 	adapter.DefaultAdvertisement().Start()
-	view.Log("Advertising started")
+	out.Log("Advertising started")
 }
 
 func StopAdvertising() {
 	adapter.DefaultAdvertisement().Stop()
-	view.Log("Advertising stopped")
+	out.Log("Advertising stopped")
 }
 
-func handleWriteData(sensor *model.Sensor, offset int, data []byte) {
-	view.Log("Write Event from " + model.MacToString(sensor.Mac))
-	view.Log("\tOffset: " + strconv.Itoa(offset))
-	view.Log("\tValue: " + string(data))
-}
-
-func StartPairing(state *PairingState) {
-	state.active = true
-	view.Log("Pairing started")
-}
-
-func StopPairing(state *PairingState) {
-	state.active = false
-	view.Log("Pairing stopped")
-}
-
-func pairRequest(value []byte, state *PairingState) {
-	if len(value) != 6 || !state.active {
+func handleData(client bluetooth.Connection, offset int, value []byte, sensors *[]model.Sensor) {
+	if len(value) < 8 {
 		return
 	}
-	mac := [6]byte(value[:6])
-	if state.pairing == mac {
-		return
-	}
-	existed := false
-	for _, p := range state.requested {
-		if p.mac == mac {
-			if time.Now().Before(p.expiration) {
-				return
-			} else {
-				p.expiration = time.Now().Add(30 * time.Second)
-				existed = true
-				break
-			}
-		}
-	}
-	if !existed {
-		state.requested = append(state.requested, pairingRequest{
-			mac:        mac,
-			expiration: time.Now().Add(30 * time.Second),
-		})
-	}
 
-	view.Log("Pair request from " + model.MacToString(mac) + " | pair <mac-address> to accept")
-}
-
-func pairConfirmation(value []byte, pairResponse bluetooth.Characteristic, state *PairingState) {
-	if len(value) != 6 || !state.active {
-		return
-	}
-	mac := [6]byte(value[:6])
-	if state.pairing != mac {
-		return
-	}
-	state.pairing = [6]byte{}
-
-	pairResponse.Write([]byte{})
-	view.Log(model.MacToString(mac) + " has been paired with the Gateway")
-}
-
-func Pair(mac [6]byte, pairResponse bluetooth.Characteristic, state *PairingState) {
-	if !state.active {
-		view.Log("Pairing is not active")
-		return
-	}
-	found := false
-	for _, p := range state.requested {
-		if p.mac == mac && time.Now().Before(p.expiration) {
-			found = true
+	macAddress := [6]byte(value[:6])
+	var sensor *model.Sensor
+	for _, s := range *sensors {
+		if s.Mac == macAddress {
+			sensor = &s
 			break
 		}
 	}
-	if !found {
-		view.Log("Pair request from " + model.MacToString(mac) + " not found")
+	if sensor == nil {
+		out.Log("Device " + model.MacToString(macAddress) + " tried to send data but is not authorized")
 		return
 	}
-	if state.pairing != [6]byte{} {
-		view.Log("Canceled pairing with " + model.MacToString(state.pairing))
-		return
-	}
-	state.pairing = mac
-
-	pairResponse.Write(mac[:])
-	view.Log("Pairing with " + model.MacToString(mac))
-
-	go func() {
-		time.Sleep(30 * time.Second)
-		if state.pairing == mac {
-			state.pairing = [6]byte{}
-			view.Log("Pairing with " + model.MacToString(mac) + " has timed out")
-		}
-	}()
 }

@@ -1,9 +1,10 @@
-package view
+package in
 
 import (
 	"fmt"
 
 	"github.com/jukuly/ss_mach_mo/internal/model"
+	"github.com/jukuly/ss_mach_mo/internal/view/out"
 )
 
 func help(args []string) {
@@ -71,7 +72,7 @@ func help(args []string) {
 }
 
 func list(sensors *[]model.Sensor) {
-	DisplaySensors(*sensors)
+	out.DisplaySensors(*sensors)
 }
 
 func view(args []string, sensors *[]model.Sensor) {
@@ -81,7 +82,7 @@ func view(args []string, sensors *[]model.Sensor) {
 	}
 	for _, sensor := range *sensors {
 		if sensor.IsMacEqual(args[0]) {
-			DisplaySensor(sensor)
+			out.DisplaySensor(sensor)
 			return
 		}
 	}
@@ -99,7 +100,7 @@ func forget(args []string, sensors *[]model.Sensor) {
 	}
 	err := model.RemoveSensor(args[0], sensors)
 	if err != nil {
-		Error(err)
+		out.Error(err)
 		return
 	}
 }
@@ -119,7 +120,7 @@ func config(options []string, args []string, sensors *[]model.Sensor, gateway *m
 		}
 		err := model.SetGatewayId(args[0], gateway)
 		if err != nil {
-			Error(err)
+			out.Error(err)
 		}
 	case "--password":
 		if len(args) == 0 {
@@ -128,7 +129,7 @@ func config(options []string, args []string, sensors *[]model.Sensor, gateway *m
 		}
 		err := model.SetGatewayPassword(args[0], gateway)
 		if err != nil {
-			Error(err)
+			out.Error(err)
 		}
 	case "--sensor":
 		if len(args) < 3 {

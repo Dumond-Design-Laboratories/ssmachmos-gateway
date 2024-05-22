@@ -1,13 +1,13 @@
-package view
+package in
 
 import (
 	"bufio"
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/jukuly/ss_mach_mo/internal/model"
+	"github.com/jukuly/ss_mach_mo/internal/view/out"
 )
 
 func handleInput(input string, sensors *[]model.Sensor, gateway *model.Gateway) {
@@ -55,20 +55,12 @@ func handleInput(input string, sensors *[]model.Sensor, gateway *model.Gateway) 
 	}
 }
 
-func Error(err error) {
-	Log(err.Error())
-}
-
-func Log(msg string) {
-	fmt.Printf("[%s] %s\n", time.Now().Format(time.RFC3339), msg)
-}
-
 func Start(sensors *[]model.Sensor, gateway *model.Gateway) {
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		text, err := reader.ReadString('\n')
 		if err != nil {
-			Error(err)
+			out.Error(err)
 		}
 		handleInput(text, sensors, gateway)
 	}
