@@ -196,10 +196,6 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 			},
 		}
 	}
-	Aa(measurements, timestamp, gateway)
-}
-
-func Aa(measurements []map[string]interface{}, timestamp int64, gateway *model.Gateway) {
 
 	jsonData, _ := json.Marshal(measurements)
 	resp, err := sendMeasurements(jsonData, gateway)
