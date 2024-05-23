@@ -15,7 +15,7 @@ func main() {
 		out.Log("Error loading Gateway settings. Use 'config --id <gateway-id>' and 'config --password <gateway-password>' to set the Gateway settings.")
 	}
 
-	//err = server.Init(sensors)
+	//err = server.Init(sensors, gateway)
 	//if err != nil {
 	//	out.Error(err)
 	//	panic("Error initializing server")
