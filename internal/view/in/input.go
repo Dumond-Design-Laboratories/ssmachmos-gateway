@@ -45,7 +45,7 @@ func handleInput(input string, sensors *[]model.Sensor, gateway *model.Gateway) 
 	case "view":
 		view(args, sensors)
 	case "pair":
-		pair()
+		pair(options, args)
 	case "forget":
 		forget(args, sensors)
 	case "config":

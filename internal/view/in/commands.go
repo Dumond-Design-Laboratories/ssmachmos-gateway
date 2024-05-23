@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jukuly/ss_mach_mo/internal/model"
+	"github.com/jukuly/ss_mach_mo/internal/model/server"
 	"github.com/jukuly/ss_mach_mo/internal/view/out"
 )
 
@@ -20,7 +21,7 @@ func help(args []string) {
 			"+---------+------------+---------------------------------+-----------------------------------+\n" +
 			"| view    | None       | <mac-address>                   | View a specific sensors' settings |\n" +
 			"+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| pair    | None       | None                            | Enter Bluetooth pariring mode     |\n" +
+			"| pair    | --accept   | <mac-address>                   | Accept a pairing request          |\n" +
 			"+---------+------------+---------------------------------+-----------------------------------+\n" +
 			"| forget  | None       | <mac-address>                   | Forget a sensor                   |\n" +
 			"+---------+------------+---------------------------------+-----------------------------------+\n" +
@@ -51,7 +52,7 @@ func help(args []string) {
 
 	case "pair":
 		fmt.Print("\n+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| pair    | None       | None                            | Enter Bluetooth pariring mode     |\n" +
+			"| pair    | --accept   | <mac-address>                   | Accept a pairing request          |\n" +
 			"+---------+------------+---------------------------------+-----------------------------------+\n")
 
 	case "forget":
@@ -89,8 +90,10 @@ func view(args []string, sensors *[]model.Sensor) {
 	fmt.Printf("Sensor with MAC address %s not found\n", args[0])
 }
 
-func pair() {
-
+// TODO: Implement the pair function correctly
+func pair(options []string, args []string) {
+	mac, _ := model.StringToMac(args[0])
+	server.Pair(mac)
 }
 
 func forget(args []string, sensors *[]model.Sensor) {

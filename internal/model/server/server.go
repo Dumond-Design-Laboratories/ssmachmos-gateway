@@ -1,13 +1,8 @@
 package server
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
 	"math"
-	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/jukuly/ss_mach_mo/internal/model"
@@ -32,16 +27,7 @@ var DATA_TYPES = map[byte]string{
 
 const UNSENT_DATA_PATH = "unsent_data/"
 
-type pairingRequest struct {
-	mac        [6]byte
-	expiration time.Time
-}
-
-type PairingState struct {
-	active    bool
-	requested []pairingRequest
-	pairing   [6]byte
-}
+var pairResponseCharacteristic bluetooth.Characteristic
 
 func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 	err := adapter.Enable()
@@ -66,7 +52,6 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 		return err
 	}
 
-	var pairResponse bluetooth.Characteristic
 	pairingService := bluetooth.Service{
 		UUID: PAIRING_SERVICE_UUID,
 		Characteristics: []bluetooth.CharacteristicConfig{
@@ -74,16 +59,16 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 				UUID:  PAIR_REQUEST_CHARACTERISTIC_UUID,
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					go pairRequest(value, nil) // TODO pass PairingState
+					pairRequest(value)
 				},
 			},
 			{
-				Handle: &pairResponse,
+				Handle: &pairResponseCharacteristic,
 				UUID:   PAIR_RESPONSE_CHARACTERISTIC_UUID,
 				Value:  []byte{}, // the mac address of the ACCEPTED sensor
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					go pairConfirmation(value, pairResponse, nil) // TODO pass PairingState
+					pairConfirmation(value)
 				},
 			},
 		},
@@ -219,43 +204,4 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 	}
 
 	sendUnsentMeasurements(gateway)
-}
-
-func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, error) {
-	json := fmt.Sprintf("{\"gateway_id\":\"%s\",\"gateway_password\":\"%s\",\"measurements\":%s}", gateway.Id, gateway.Password, jsonData)
-	return http.Post("https://openphm.org/gateway_data", "application/json", bytes.NewBuffer([]byte(json)))
-}
-
-func saveUnsentMeasurements(data []byte, timestamp int64) {
-	_, err := os.Stat(UNSENT_DATA_PATH)
-	if os.IsNotExist(err) {
-		os.MkdirAll(UNSENT_DATA_PATH, os.ModePerm)
-	}
-
-	path, _ := filepath.Abs(fmt.Sprintf("%s%d.json", UNSENT_DATA_PATH, timestamp))
-
-	os.WriteFile(path, data, 0644)
-}
-
-func sendUnsentMeasurements(gateway *model.Gateway) {
-	files, err := os.ReadDir(UNSENT_DATA_PATH)
-	if err != nil {
-		return
-	}
-
-	for _, file := range files {
-		data, err := os.ReadFile(UNSENT_DATA_PATH + file.Name())
-		if err != nil {
-			continue
-		}
-
-		resp, err := sendMeasurements(data, gateway)
-		if err != nil {
-			continue
-		}
-
-		if resp.StatusCode == 200 {
-			os.Remove(UNSENT_DATA_PATH + file.Name())
-		}
-	}
 }

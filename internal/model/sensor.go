@@ -42,12 +42,20 @@ func (s *Sensor) ToString() string {
 }
 
 func (s *Sensor) IsMacEqual(mac string) bool {
-	var m [6]byte
-	_, err := fmt.Sscanf(mac, "%02X:%02X:%02X:%02X:%02X:%02X", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5])
+	m, err := StringToMac(mac)
 	if err != nil {
 		return false
 	}
 	return s.Mac == m
+}
+
+func StringToMac(mac string) ([6]byte, error) {
+	var m [6]byte
+	_, err := fmt.Sscanf(mac, "%02X:%02X:%02X:%02X:%02X:%02X", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5])
+	if err != nil {
+		return [6]byte{}, err
+	}
+	return m, nil
 }
 
 func MacToString(mac [6]byte) string {
