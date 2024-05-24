@@ -1,20 +1,16 @@
 package server
 
 import (
+	"crypto/rsa"
 	"time"
 
 	"github.com/jukuly/ss_mach_mo/internal/model"
 	"github.com/jukuly/ss_mach_mo/internal/view/out"
 )
 
-type pairingRequest struct {
-	mac        [6]byte
-	expiration time.Time
-}
-
 type PairingState struct {
 	active    bool
-	requested []pairingRequest
+	requested map[[6]byte]*rsa.PublicKey
 	pairing   [6]byte
 }
 
@@ -31,73 +27,69 @@ func StopPairing() {
 }
 
 func pairRequest(value []byte) {
-	if len(value) != 6 || !pairingState.active {
+	if len(value) < 6 || !pairingState.active {
 		return
 	}
 	mac := [6]byte(value[:6])
-	if pairingState.pairing == mac {
+	publicKey, err := parsePublicKey(value[6:])
+	if err != nil {
 		return
 	}
-	existed := false
-	for _, p := range pairingState.requested {
-		if p.mac == mac {
-			if time.Now().Before(p.expiration) {
-				return
-			} else {
-				p.expiration = time.Now().Add(30 * time.Second)
-				existed = true
-				break
-			}
+	if _, exists := pairingState.requested[mac]; exists {
+		return
+	}
+
+	pairingState.requested[mac] = publicKey
+
+	go func() {
+		time.Sleep(30 * time.Second)
+		if _, exists := pairingState.requested[mac]; exists && pairingState.pairing != mac {
+			delete(pairingState.requested, mac)
+			out.Log("Pair request from " + model.MacToString(mac) + " has timed out")
 		}
-	}
-	if !existed {
-		pairingState.requested = append(pairingState.requested, pairingRequest{
-			mac:        mac,
-			expiration: time.Now().Add(30 * time.Second),
-		})
-	}
+	}()
 
 	out.Log("Pair request from " + model.MacToString(mac) + " | pair --accept <mac-address> to accept")
 }
 
-// TODO add data characteristic UUID to confirmation
-func pairConfirmation(value []byte) {
-	if len(value) != 6 || !pairingState.active {
+func pairConfirmation(value []byte, sensors *[]model.Sensor) {
+	if len(value) != 278 || !pairingState.active {
 		return
 	}
-	mac := [6]byte(value[:6])
-	if pairingState.pairing != mac {
+
+	data := value[:22]
+	mac := [6]byte(data[:6])
+	uuid := bytesToUuid([16]byte(data[6:22]))
+	signature := value[len(value)-256:]
+	if pairingState.pairing != mac || DATA_CHARACTERISTIC_UUID != uuid || !verifySignature(data, signature, pairingState.requested[mac]) {
 		return
 	}
 	pairingState.pairing = [6]byte{}
 	pairResponseCharacteristic.Write([]byte{})
+	model.AddSensor(mac, pairingState.requested[mac], sensors)
+	delete(pairingState.requested, mac)
 
 	out.Log(model.MacToString(mac) + " has been paired with the Gateway")
 }
 
-// TODO add data characteristic UUID to response
 func Pair(mac [6]byte) {
 	if !pairingState.active {
 		out.Log("Pairing is not active")
 		return
 	}
-	found := false
-	for _, p := range pairingState.requested {
-		if p.mac == mac && time.Now().Before(p.expiration) {
-			found = true
-			break
-		}
-	}
-	if !found {
+
+	if _, exists := pairingState.requested[mac]; !exists {
 		out.Log("Pair request from " + model.MacToString(mac) + " not found")
 		return
 	}
-	if pairingState.pairing != [6]byte{} {
+
+	if pairingState.pairing != [6]byte{} && pairingState.pairing != mac {
 		out.Log("Canceled pairing with " + model.MacToString(pairingState.pairing))
 	}
 	pairingState.pairing = mac
 
-	pairResponseCharacteristic.Write(mac[:])
+	uuid := uuidToBytes(DATA_CHARACTERISTIC_UUID)
+	pairResponseCharacteristic.Write(append(mac[:], uuid[:]...))
 	out.Log("Pairing with " + model.MacToString(mac))
 
 	go func() {
@@ -105,6 +97,7 @@ func Pair(mac [6]byte) {
 		if pairingState.pairing == mac {
 			pairingState.pairing = [6]byte{}
 			pairResponseCharacteristic.Write([]byte{})
+			delete(pairingState.requested, mac)
 			out.Log("Pairing with " + model.MacToString(mac) + " has timed out")
 		}
 	}()

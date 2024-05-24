@@ -12,11 +12,10 @@ import (
 
 var adapter = bluetooth.DefaultAdapter
 
-var DATA_SERVICE_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}                 // different for every gateway
+var SERVICE_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}                      // same for every gateway
 var DATA_CHARACTERISTIC_UUID = [4]uint32{0x51FF12BB, 0x3ED846E5, 0xB4F9D64E, 0x2FEC021B}          // different for every gateway
-var PAIRING_SERVICE_UUID = [4]uint32{0x0000FE59, 0x0000FE59, 0x0000FE59, 0x0000FE59}              // same uuid for every gateway
-var PAIR_REQUEST_CHARACTERISTIC_UUID = [4]uint32{0x0000FE55, 0x0000FE55, 0x0000FE55, 0x0000FE55}  // same uuid for every gateway
-var PAIR_RESPONSE_CHARACTERISTIC_UUID = [4]uint32{0x0000FE56, 0x0000FE56, 0x0000FE56, 0x0000FE56} // same uuid for every gateway
+var PAIR_REQUEST_CHARACTERISTIC_UUID = [4]uint32{0x0000FE55, 0x0000FE55, 0x0000FE55, 0x0000FE55}  // same for every gateway
+var PAIR_RESPONSE_CHARACTERISTIC_UUID = [4]uint32{0x0000FE56, 0x0000FE56, 0x0000FE56, 0x0000FE56} // same for every gateway
 
 var DATA_TYPES = map[byte]string{
 	0x00: "vibration",
@@ -35,8 +34,8 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 		return err
 	}
 
-	dataService := bluetooth.Service{
-		UUID: DATA_SERVICE_UUID,
+	service := bluetooth.Service{
+		UUID: SERVICE_UUID,
 		Characteristics: []bluetooth.CharacteristicConfig{
 			{
 				UUID:  DATA_CHARACTERISTIC_UUID,
@@ -45,16 +44,6 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 					handleData(client, offset, value, sensors, gateway)
 				},
 			},
-		},
-	}
-	err = adapter.AddService(&dataService)
-	if err != nil {
-		return err
-	}
-
-	pairingService := bluetooth.Service{
-		UUID: PAIRING_SERVICE_UUID,
-		Characteristics: []bluetooth.CharacteristicConfig{
 			{
 				UUID:  PAIR_REQUEST_CHARACTERISTIC_UUID,
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
@@ -68,22 +57,19 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 				Value:  []byte{}, // the mac address of the ACCEPTED sensor
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					pairConfirmation(value)
+					pairConfirmation(value, sensors)
 				},
 			},
 		},
 	}
-	err = adapter.AddService(&pairingService)
+	err = adapter.AddService(&service)
 	if err != nil {
 		return err
 	}
 
 	err = adapter.DefaultAdvertisement().Configure(bluetooth.AdvertisementOptions{
-		LocalName: "Gateway Server",
-		ServiceUUIDs: []bluetooth.UUID{
-			dataService.UUID,
-			pairingService.UUID,
-		},
+		LocalName:    "Gateway Server",
+		ServiceUUIDs: []bluetooth.UUID{service.UUID},
 	})
 	if err != nil {
 		return err
@@ -110,12 +96,15 @@ func StopAdvertising() error {
 }
 
 func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Sensor, gateway *model.Gateway) {
-	if len(value) < 8 {
+
+	if len(value) < 264 {
 		out.Log("Invalid data format received")
 		return
 	}
+	data := value[:len(value)-256]
+	signature := value[len(value)-256:]
 
-	macAddress := [6]byte(value[:6])
+	macAddress := [6]byte(data[:6])
 	var sensor *model.Sensor
 	for _, s := range *sensors {
 		if s.Mac == macAddress {
@@ -124,24 +113,29 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 		}
 	}
 	if sensor == nil {
-		out.Log("Device " + model.MacToString(macAddress) + " tried to send data but is not authorized")
+		out.Log("Device " + model.MacToString(macAddress) + " tried to send data, but it is not paired with this gateway")
 		return
 	}
 
-	dataType := DATA_TYPES[value[6]]
-	samplingFrequency := value[7]
+	if !verifySignature(data, signature, &sensor.PublicKey) {
+		out.Log("Invalid signature received from " + model.MacToString(macAddress))
+		return
+	}
+
+	dataType := DATA_TYPES[data[6]]
+	samplingFrequency := data[7]
 	timestamp := time.Now().Unix()
 
 	out.Log("Received data from " + model.MacToString(macAddress) + " (" + sensor.Name + "): " + dataType)
 
 	var measurements []map[string]interface{}
 	if dataType == "vibration" {
-		numberOfMeasurements := (len(value) - 8) / 12 // 3 axes, 4 bytes per axis => 12 bytes per measurement
+		numberOfMeasurements := (len(data) - 8) / 12 // 3 axes, 4 bytes per axis => 12 bytes per measurement
 		x, y, z := make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements)
 		for i := 0; i < numberOfMeasurements; i++ {
-			x[i] = math.Float32frombits(uint32(value[8+i*12]) | uint32(value[9+i*12])<<8 | uint32(value[10+i*12])<<16 | uint32(value[11+i*12])<<24)
-			y[i] = math.Float32frombits(uint32(value[12+i*12]) | uint32(value[13+i*12])<<8 | uint32(value[14+i*12])<<16 | uint32(value[15+i*12])<<24)
-			z[i] = math.Float32frombits(uint32(value[16+i*12]) | uint32(value[17+i*12])<<8 | uint32(value[18+i*12])<<16 | uint32(value[19+i*12])<<24)
+			x[i] = math.Float32frombits(uint32(data[8+i*12]) | uint32(data[9+i*12])<<8 | uint32(data[10+i*12])<<16 | uint32(data[11+i*12])<<24)
+			y[i] = math.Float32frombits(uint32(data[12+i*12]) | uint32(data[13+i*12])<<8 | uint32(data[14+i*12])<<16 | uint32(data[15+i*12])<<24)
+			z[i] = math.Float32frombits(uint32(data[16+i*12]) | uint32(data[17+i*12])<<8 | uint32(data[18+i*12])<<16 | uint32(data[19+i*12])<<24)
 		}
 
 		measurements = []map[string]interface{}{
@@ -177,7 +171,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 				"time":               timestamp,
 				"measurement_type":   dataType,
 				"sampling_frequency": samplingFrequency,
-				"raw_data":           value[8:],
+				"raw_data":           data[8:],
 			},
 		}
 	}
