@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/jukuly/ss_mach_mo/internal/model"
+	"github.com/jukuly/ss_mach_mo/internal/model/server"
 	"github.com/jukuly/ss_mach_mo/internal/view/in"
 	"github.com/jukuly/ss_mach_mo/internal/view/out"
 )
@@ -15,13 +16,13 @@ func main() {
 		out.Log("Error loading Gateway settings. Use 'config --id <gateway-id>' and 'config --password <gateway-password>' to set the Gateway settings.")
 	}
 
-	//err = server.Init(sensors, gateway)
-	//if err != nil {
-	//	out.Error(err)
-	//	panic("Error initializing server")
-	//}
+	err = server.Init(sensors, gateway)
+	if err != nil {
+		out.Error(err)
+		panic("Error initializing server")
+	}
 
-	//go server.StartAdvertising()
+	go server.StartAdvertising()
 
 	in.Start(sensors, gateway)
 
