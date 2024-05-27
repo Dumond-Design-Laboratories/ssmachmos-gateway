@@ -33,6 +33,9 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 		return err
 	}
 
+	a, _ := adapter.Address()
+	out.Log(a.String())
+
 	dataCharUUID, err := model.GetDataCharUUID(gateway)
 	if err != nil {
 		return err
