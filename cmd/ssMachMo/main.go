@@ -21,16 +21,7 @@ func main() {
 	//	panic("Error initializing server")
 	//}
 
-	/*go server.StartAdvertising()
-	go func() {
-		// delay for 25 seconds
-		for i := 0; i < 25; i++ {
-			view.Log(strconv.Itoa(25 - i))
-			time.Sleep(1 * time.Second)
-		}
-
-		server.StartPairing()
-	}()*/
+	//go server.StartAdvertising()
 
 	in.Start(sensors, gateway)
 

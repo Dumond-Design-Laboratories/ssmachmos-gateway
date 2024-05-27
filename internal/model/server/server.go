@@ -54,7 +54,7 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 			{
 				Handle: &pairResponseCharacteristic,
 				UUID:   PAIR_RESPONSE_CHARACTERISTIC_UUID,
-				Value:  []byte{}, // the mac address of the ACCEPTED sensor
+				Value:  []byte{},
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
 					pairConfirmation(value, sensors)
