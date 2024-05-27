@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"math"
 	"time"
@@ -31,6 +32,12 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 	err := adapter.Enable()
 	if err != nil {
 		return err
+	}
+
+	pairingState = PairingState{
+		active:    false,
+		requested: make(map[[6]byte]*rsa.PublicKey),
+		pairing:   [6]byte{},
 	}
 
 	a, _ := adapter.Address()

@@ -14,7 +14,7 @@ type PairingState struct {
 	pairing   [6]byte
 }
 
-var pairingState = PairingState{}
+var pairingState PairingState
 
 func EnablePairing() {
 	pairingState.active = true
