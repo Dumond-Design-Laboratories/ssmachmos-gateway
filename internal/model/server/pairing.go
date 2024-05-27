@@ -16,12 +16,12 @@ type PairingState struct {
 
 var pairingState = PairingState{}
 
-func StartPairing() {
+func EnablePairing() {
 	pairingState.active = true
 	out.Log("Pairing started")
 }
 
-func StopPairing() {
+func DisablePairing() {
 	pairingState.active = false
 	out.Log("Pairing stopped")
 }

@@ -37,6 +37,9 @@ func handleInput(input string, sensors *[]model.Sensor, gateway *model.Gateway) 
 		}
 	}
 
+	options = options[:j]
+	args = args[:k]
+
 	switch tokens[0] {
 	case "help":
 		help(args)

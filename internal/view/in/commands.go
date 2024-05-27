@@ -21,7 +21,9 @@ func help(args []string) {
 			"+---------+------------+---------------------------------+-----------------------------------+\n" +
 			"| view    | None       | <mac-address>                   | View a specific sensors' settings |\n" +
 			"+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| pair    | --accept   | <mac-address>                   | Accept a pairing request          |\n" +
+			"| pair    | --enable   | None                            | Enable pairing mode               |\n" +
+			"|         | --disable  | None                            | Disable pairing mode              |\n" +
+			"|         | --accept   | <mac-address>                   | Accept a pairing request          |\n" +
 			"+---------+------------+---------------------------------+-----------------------------------+\n" +
 			"| forget  | None       | <mac-address>                   | Forget a sensor                   |\n" +
 			"+---------+------------+---------------------------------+-----------------------------------+\n" +
@@ -52,7 +54,9 @@ func help(args []string) {
 
 	case "pair":
 		fmt.Print("\n+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| pair    | --accept   | <mac-address>                   | Accept a pairing request          |\n" +
+			"| pair    | --enable   | None                            | Enable pairing mode               |\n" +
+			"|         | --disable  | None                            | Disable pairing mode              |\n" +
+			"|         | --accept   | <mac-address>                   | Accept a pairing request          |\n" +
 			"+---------+------------+---------------------------------+-----------------------------------+\n")
 
 	case "forget":
@@ -90,10 +94,28 @@ func view(args []string, sensors *[]model.Sensor) {
 	fmt.Printf("Sensor with MAC address %s not found\n", args[0])
 }
 
-// TODO: Implement the pair function correctly
 func pair(options []string, args []string) {
-	mac, _ := model.StringToMac(args[0])
-	server.Pair(mac)
+	if len(options) == 0 {
+		fmt.Print("Usage: pair --enable\n" +
+			"            --disable\n" +
+			"            --accept <mac-address>\n")
+		return
+	}
+	switch options[0] {
+	case "--enable":
+		server.EnablePairing()
+	case "--disable":
+		server.DisablePairing()
+	case "--accept":
+		if len(args) == 0 {
+			fmt.Println("Usage: pair --accept <mac-address>")
+			return
+		}
+		mac, _ := model.StringToMac(args[0])
+		server.Pair(mac)
+	default:
+		fmt.Printf("Option %s does not exist for command pair\n", options[0])
+	}
 }
 
 func forget(args []string, sensors *[]model.Sensor) {
