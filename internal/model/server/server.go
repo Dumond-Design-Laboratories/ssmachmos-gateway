@@ -13,9 +13,8 @@ import (
 var adapter = bluetooth.DefaultAdapter
 
 var SERVICE_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}                      // same for every gateway
-var DATA_CHARACTERISTIC_UUID = [4]uint32{0x51FF12BB, 0x3ED846E5, 0xB4F9D64E, 0x2FEC021B}          // different for every gateway
-var PAIR_REQUEST_CHARACTERISTIC_UUID = [4]uint32{0x0000FE55, 0x0000FE55, 0x0000FE55, 0x0000FE55}  // same for every gateway
-var PAIR_RESPONSE_CHARACTERISTIC_UUID = [4]uint32{0x0000FE56, 0x0000FE56, 0x0000FE56, 0x0000FE56} // same for every gateway
+var PAIR_REQUEST_CHARACTERISTIC_UUID = [4]uint32{0x37ecbcb9, 0xe2514c40, 0xa1613de1, 0x1ea8c363}  // same for every gateway
+var PAIR_RESPONSE_CHARACTERISTIC_UUID = [4]uint32{0x0598acc3, 0x8564405a, 0xaf67823f, 0x029c79b6} // same for every gateway
 
 var DATA_TYPES = map[byte]string{
 	0x00: "vibration",
@@ -34,11 +33,16 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 		return err
 	}
 
+	dataCharUUID, err := model.GetDataCharUUID(gateway)
+	if err != nil {
+		return err
+	}
+
 	service := bluetooth.Service{
 		UUID: SERVICE_UUID,
 		Characteristics: []bluetooth.CharacteristicConfig{
 			{
-				UUID:  DATA_CHARACTERISTIC_UUID,
+				UUID:  dataCharUUID,
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
 					handleData(client, offset, value, sensors, gateway)
@@ -57,7 +61,7 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 				Value:  []byte{},
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					pairConfirmation(value, sensors)
+					pairConfirmation(value, sensors, gateway)
 				},
 			},
 		},
@@ -117,7 +121,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 		return
 	}
 
-	if !verifySignature(data, signature, &sensor.PublicKey) {
+	if !model.VerifySignature(data, signature, &sensor.PublicKey) {
 		out.Log("Invalid signature received from " + model.MacToString(macAddress))
 		return
 	}

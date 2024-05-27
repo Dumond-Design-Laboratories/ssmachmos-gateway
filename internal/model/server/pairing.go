@@ -31,7 +31,7 @@ func pairRequest(value []byte) {
 		return
 	}
 	mac := [6]byte(value[:6])
-	publicKey, err := parsePublicKey(value[6:])
+	publicKey, err := model.ParsePublicKey(value[6:])
 	if err != nil {
 		return
 	}
@@ -52,16 +52,18 @@ func pairRequest(value []byte) {
 	out.Log("Pair request from " + model.MacToString(mac) + " | pair --accept <mac-address> to accept")
 }
 
-func pairConfirmation(value []byte, sensors *[]model.Sensor) {
+func pairConfirmation(value []byte, sensors *[]model.Sensor, gateway *model.Gateway) {
 	if len(value) != 278 || !pairingState.active {
 		return
 	}
 
 	data := value[:22]
 	mac := [6]byte(data[:6])
-	uuid := bytesToUuid([16]byte(data[6:22]))
+	uuid := model.BytesToUuid([16]byte(data[6:22]))
 	signature := value[len(value)-256:]
-	if pairingState.pairing != mac || DATA_CHARACTERISTIC_UUID != uuid || !verifySignature(data, signature, pairingState.requested[mac]) {
+
+	dataCharUUID, err := model.GetDataCharUUID(gateway)
+	if err != nil || pairingState.pairing != mac || dataCharUUID != uuid || !model.VerifySignature(data, signature, pairingState.requested[mac]) {
 		return
 	}
 	pairingState.pairing = [6]byte{}
@@ -72,7 +74,7 @@ func pairConfirmation(value []byte, sensors *[]model.Sensor) {
 	out.Log(model.MacToString(mac) + " has been paired with the Gateway")
 }
 
-func Pair(mac [6]byte) {
+func Pair(mac [6]byte, gateway *model.Gateway) {
 	if !pairingState.active {
 		out.Log("Pairing is not active")
 		return
@@ -88,7 +90,8 @@ func Pair(mac [6]byte) {
 	}
 	pairingState.pairing = mac
 
-	uuid := uuidToBytes(DATA_CHARACTERISTIC_UUID)
+	dataCharUUID, _ := model.GetDataCharUUID(gateway)
+	uuid := model.UuidToBytes(dataCharUUID)
 	pairResponseCharacteristic.Write(append(mac[:], uuid[:]...))
 	out.Log("Pairing with " + model.MacToString(mac))
 

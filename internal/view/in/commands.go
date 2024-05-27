@@ -94,7 +94,7 @@ func view(args []string, sensors *[]model.Sensor) {
 	fmt.Printf("Sensor with MAC address %s not found\n", args[0])
 }
 
-func pair(options []string, args []string) {
+func pair(options []string, args []string, gateway *model.Gateway) {
 	if len(options) == 0 {
 		fmt.Print("Usage: pair --enable\n" +
 			"            --disable\n" +
@@ -112,7 +112,7 @@ func pair(options []string, args []string) {
 			return
 		}
 		mac, _ := model.StringToMac(args[0])
-		server.Pair(mac)
+		server.Pair(mac, gateway)
 	default:
 		fmt.Printf("Option %s does not exist for command pair\n", options[0])
 	}

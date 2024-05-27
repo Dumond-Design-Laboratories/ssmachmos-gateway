@@ -1,4 +1,4 @@
-package server
+package model
 
 import (
 	"crypto"
@@ -7,15 +7,17 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+
+	"github.com/google/uuid"
 )
 
-func verifySignature(data []byte, signature []byte, publicKey *rsa.PublicKey) bool {
+func VerifySignature(data []byte, signature []byte, publicKey *rsa.PublicKey) bool {
 	hash := sha256.Sum256(data)
 	err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hash[:], signature)
 	return err == nil
 }
 
-func parsePublicKey(value []byte) (*rsa.PublicKey, error) {
+func ParsePublicKey(value []byte) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode(value)
 	if block == nil {
 		return nil, errors.New("failed to parse public key")
@@ -34,7 +36,7 @@ func parsePublicKey(value []byte) (*rsa.PublicKey, error) {
 	return rsaPub, nil
 }
 
-func uuidToBytes(uuid [4]uint32) [16]byte {
+func UuidToBytes(uuid [4]uint32) [16]byte {
 	return [16]byte{
 		byte(uuid[0] >> 24),
 		byte(uuid[0] >> 16),
@@ -55,11 +57,19 @@ func uuidToBytes(uuid [4]uint32) [16]byte {
 	}
 }
 
-func bytesToUuid(value [16]byte) [4]uint32 {
+func BytesToUuid(value [16]byte) [4]uint32 {
 	return [4]uint32{
 		uint32(value[0])<<24 | uint32(value[1])<<16 | uint32(value[2])<<8 | uint32(value[3]),
 		uint32(value[4])<<24 | uint32(value[5])<<16 | uint32(value[6])<<8 | uint32(value[7]),
 		uint32(value[8])<<24 | uint32(value[9])<<16 | uint32(value[10])<<8 | uint32(value[11]),
 		uint32(value[12])<<24 | uint32(value[13])<<16 | uint32(value[14])<<8 | uint32(value[15]),
 	}
+}
+
+func GenerateUUID() ([4]uint32, error) {
+	u, err := uuid.New().MarshalBinary()
+	if len(u) != 16 || err != nil {
+		return [4]uint32{}, errors.New("failed to generate UUID")
+	}
+	return BytesToUuid([16]byte(u)), nil
 }
