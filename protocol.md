@@ -12,4 +12,4 @@ Uses RSA PKCS #1 v1.5 signatures
 ## Data transmission
 - The sensor sends the data with a couple of metadata and signs it => mac (6 bytes) | data type (1 byte) | sampling frequency (3 bytes) | data | signature (256 bytes)
 - Data type: 0x00 => vibration, 0x01 => audio, 0x02 => temperature, 0x03 => battery,
-- Sampling frequency must be present even if the data type doesn't have a sampling frequency (temperature and battery)
+- Sampling frequency must be present even if the data type doesn't have a sampling frequency (temperature and battery) (can be anything since it will not be used at all when decoding the data)
