@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/jukuly/ss_mach_mo/internal/cli/out"
 	"github.com/jukuly/ss_mach_mo/internal/model"
-	"github.com/jukuly/ss_mach_mo/internal/view/out"
 )
 
 func handleInput(input string, sensors *[]model.Sensor, gateway *model.Gateway) {

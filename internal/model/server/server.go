@@ -6,8 +6,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/jukuly/ss_mach_mo/internal/cli/out"
 	"github.com/jukuly/ss_mach_mo/internal/model"
-	"github.com/jukuly/ss_mach_mo/internal/view/out"
 	"tinygo.org/x/bluetooth"
 )
 

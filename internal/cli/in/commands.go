@@ -3,9 +3,9 @@ package in
 import (
 	"fmt"
 
+	"github.com/jukuly/ss_mach_mo/internal/cli/out"
 	"github.com/jukuly/ss_mach_mo/internal/model"
 	"github.com/jukuly/ss_mach_mo/internal/model/server"
-	"github.com/jukuly/ss_mach_mo/internal/view/out"
 )
 
 func help(args []string) {
