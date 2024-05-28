@@ -140,7 +140,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 	samplingFrequency := data[7]
 	timestamp := time.Now().Unix()
 
-	out.Log("Received data from " + model.MacToString(macAddress) + " (" + sensor.Name + "): " + dataType)
+	out.Log("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 
 	var measurements []map[string]interface{}
 	if dataType == "vibration" {
@@ -154,7 +154,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 
 		measurements = []map[string]interface{}{
 			{
-				"sensor_id":          sensor.Name,
+				"sensor_id":          sensor.Mac,
 				"time":               timestamp,
 				"measurement_type":   dataType,
 				"sampling_frequency": samplingFrequency,
@@ -162,7 +162,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 				"raw_data":           x,
 			},
 			{
-				"sensor_id":          sensor.Name,
+				"sensor_id":          sensor.Mac,
 				"time":               timestamp,
 				"measurement_type":   dataType,
 				"sampling_frequency": samplingFrequency,
@@ -170,7 +170,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 				"raw_data":           y,
 			},
 			{
-				"sensor_id":          sensor.Name,
+				"sensor_id":          sensor.Mac,
 				"time":               timestamp,
 				"measurement_type":   dataType,
 				"sampling_frequency": samplingFrequency,
@@ -181,7 +181,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 	} else {
 		measurements = []map[string]interface{}{
 			{
-				"sensor_id":          sensor.Name,
+				"sensor_id":          sensor.Mac,
 				"time":               timestamp,
 				"measurement_type":   dataType,
 				"sampling_frequency": samplingFrequency,
