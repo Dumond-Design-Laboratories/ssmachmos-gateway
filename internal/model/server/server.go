@@ -40,9 +40,6 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 		pairing:   [6]byte{},
 	}
 
-	a, _ := adapter.Address()
-	out.Log(a.String())
-
 	dataCharUUID, err := model.GetDataCharUUID(gateway)
 	if err != nil {
 		return err
@@ -96,16 +93,6 @@ func StartAdvertising() error {
 	if err != nil {
 		return err
 	}
-	out.Log("Advertising started")
-	return nil
-}
-
-func StopAdvertising() error {
-	err := adapter.DefaultAdvertisement().Stop()
-	if err != nil {
-		return err
-	}
-	out.Log("Advertising stopped")
 	return nil
 }
 

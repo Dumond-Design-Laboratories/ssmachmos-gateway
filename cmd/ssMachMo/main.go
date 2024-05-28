@@ -22,7 +22,11 @@ func main() {
 		panic("Error initializing server")
 	}
 
-	go server.StartAdvertising()
+	err = server.StartAdvertising()
+	if err != nil {
+		out.Error(err)
+		panic("Error starting advertising")
+	}
 
 	in.Start(sensors, gateway)
 
