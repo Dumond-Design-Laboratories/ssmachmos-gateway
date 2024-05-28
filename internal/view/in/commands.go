@@ -10,66 +10,74 @@ import (
 
 func help(args []string) {
 	if len(args) == 0 {
-		fmt.Print("\n+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| Command | Options    | Arguments                       | Description                       |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| help    | None       | None                            | View this table                   |\n" +
-			"|         |            | <command>                       | View usage and description        |\n" +
-			"|         |            |                                 | of a specific command             |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| list    | None       | None                            | List all sensors                  |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| view    | None       | <mac-address>                   | View a specific sensors' settings |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| pair    | --enable   | None                            | Enable pairing mode               |\n" +
-			"|         | --disable  | None                            | Disable pairing mode              |\n" +
-			"|         | --accept   | <mac-address>                   | Accept a pairing request          |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| forget  | None       | <mac-address>                   | Forget a sensor                   |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| config  | --id       | <gateway-id>                    | Set the Gateway Id                |\n" +
-			"|         | --password | <gateway-password>              | Set the Gateway Password          |\n" +
-			"|         | --sensor   | <mac-address> <setting> <value> | Set a setting of a sensor         |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n")
+		fmt.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| Command | Options    | Arguments                       | Description                        |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| help    | None       | None                            | View this table                    |\n" +
+			"|         |            | <command>                       | View usage and description         |\n" +
+			"|         |            |                                 | of a specific command              |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| list    | None       | None                            | List all sensors                   |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| view    | None       | <mac-address>                   | View a specific sensors' settings  |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| pair    | --enable   | None                            | Enable pairing mode                |\n" +
+			"|         | --disable  | None                            | Disable pairing mode               |\n" +
+			"|         | --accept   | <mac-address>                   | Accept a pairing request           |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| forget  | None       | <mac-address>                   | Forget a sensor                    |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| config  | --id       | <gateway-id>                    | Set the Gateway Id                 |\n" +
+			"|         | --password | <gateway-password>              | Set the Gateway Password           |\n" +
+			"|         | --sensor   | <mac-address> <setting> <value> | Set a setting of a sensor          |\n" +
+			"|         |            |                                 |   Type \"help config\"               |\n" +
+			"|         |            |                                 |   for more information             |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n")
 		return
 	}
 
 	switch args[0] {
 	case "help":
-		fmt.Print("\n+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| help    | None       | None                            | View all commands and their usage |\n" +
-			"|         |            | <command>                       | View usage and description        |\n" +
-			"|         |            | <command>                       | of a specific command             |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n")
+		fmt.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| help    | None       | None                            | View all commands and their usage  |\n" +
+			"|         |            | <command>                       | View usage and description         |\n" +
+			"|         |            | <command>                       | of a specific command              |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "list":
-		fmt.Print("\n+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| list    | None       | None                            | List all sensors                  |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n")
+		fmt.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| list    | None       | None                            | List all sensors                   |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "view":
-		fmt.Print("\n+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| view    | None       | <mac-address>                   | View a specific sensors' settings |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n")
+		fmt.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| view    | None       | <mac-address>                   | View a specific sensors' settings  |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "pair":
-		fmt.Print("\n+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| pair    | --enable   | None                            | Enable pairing mode               |\n" +
-			"|         | --disable  | None                            | Disable pairing mode              |\n" +
-			"|         | --accept   | <mac-address>                   | Accept a pairing request          |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n")
+		fmt.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| pair    | --enable   | None                            | Enable pairing mode                |\n" +
+			"|         | --disable  | None                            | Disable pairing mode               |\n" +
+			"|         | --accept   | <mac-address>                   | Accept a pairing request           |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "forget":
-		fmt.Print("\n+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| forget  | None       | <mac-address>                   | Forget a sensor                   |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n")
+		fmt.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| forget  | None       | <mac-address>                   | Forget a sensor                    |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "config":
-		fmt.Print("\n+---------+------------+---------------------------------+-----------------------------------+\n" +
-			"| config  | --id       | <gateway-id>                    | Set the Gateway Id                |\n" +
-			"|         | --password | <gateway-password>              | Set the Gateway Password          |\n" +
-			"|         | --sensor   | <mac-address> <setting> <value> | Set a setting of a sensor         |\n" +
-			"+---------+------------+---------------------------------+-----------------------------------+\n")
+		fmt.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| config  | --id       | <gateway-id>                    | Set the Gateway Id                 |\n" +
+			"|         | --password | <gateway-password>              | Set the Gateway Password           |\n" +
+			"|         |            |                                 |                                    |\n" +
+			"|         | --sensor   | <mac-address> <setting> <value> | Set a setting of a sensor          |\n" +
+			"|         |            | <setting> can be \"name\",        |                                    |\n" +
+			"|         |            | \"description\" or composed of    |                                    |\n" +
+			"|         |            | the measurement type and the    |                                    |\n" +
+			"|         |            | setting separated by an \"_\"     |                                    |\n" +
+			"|         |            | eg.: \"acoustic_next_wake_up\"    |                                    |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	default:
 		fmt.Printf("Unknown command: %s\n", args[0])
