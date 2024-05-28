@@ -1,6 +1,7 @@
 package model
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ type Sensor struct {
 	WakeUpInterval int                          `json:"wake_up_interval"`
 	BatteryLevel   int                          `json:"battery_level"`
 	Settings       map[string]map[string]string `json:"settings"`
+	PublicKey      rsa.PublicKey                `json:"key"`
 }
 
 func (s *Sensor) ToString() string {
@@ -30,7 +32,12 @@ func (s *Sensor) ToString() string {
 		}
 	}
 	str += "Wake Up Interval: " + strconv.Itoa(s.WakeUpInterval) + " seconds\n"
-	str += "Battery Level: " + strconv.Itoa(s.BatteryLevel) + " mV\n"
+	str += "Battery Level: "
+	if s.BatteryLevel == -1 {
+		str += "Unknown\n"
+	} else {
+		str += strconv.Itoa(s.BatteryLevel) + " mV\n"
+	}
 	str += "Settings:\n"
 	for setting, value := range s.Settings {
 		str += "\t" + setting + ":\n"
@@ -42,12 +49,20 @@ func (s *Sensor) ToString() string {
 }
 
 func (s *Sensor) IsMacEqual(mac string) bool {
-	var m [6]byte
-	_, err := fmt.Sscanf(mac, "%02X:%02X:%02X:%02X:%02X:%02X", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5])
+	m, err := StringToMac(mac)
 	if err != nil {
 		return false
 	}
 	return s.Mac == m
+}
+
+func StringToMac(mac string) ([6]byte, error) {
+	var m [6]byte
+	_, err := fmt.Sscanf(mac, "%02X:%02X:%02X:%02X:%02X:%02X", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5])
+	if err != nil {
+		return [6]byte{}, err
+	}
+	return m, nil
 }
 
 func MacToString(mac [6]byte) string {
@@ -80,6 +95,38 @@ func RemoveSensor(mac string, sensors *[]Sensor) error {
 		}
 	}
 	return nil
+}
+
+func AddSensor(mac [6]byte, publicKey *rsa.PublicKey, sensors *[]Sensor) error {
+	if sensors == nil {
+		return errors.New("sensors is nil")
+	}
+	// Default settings
+	sensor := Sensor{
+		Mac:            mac,
+		Name:           "Sensor " + MacToString(mac),
+		Types:          []string{"vibration", "temperature", "acoustic"},
+		WakeUpInterval: 3600,
+		BatteryLevel:   -1,
+		Settings: map[string]map[string]string{
+			"vibration": {
+				"active":             "true",
+				"sampling_frequency": "1000",
+			},
+			"temperature": {
+				"active": "true",
+			},
+			"acoustic": {
+				"active":             "true",
+				"sampling_frequency": "44100",
+			},
+		},
+		PublicKey: *publicKey,
+	}
+
+	*sensors = append(*sensors, sensor)
+	err := saveSensors(SENSORS_FILE, sensors)
+	return err
 }
 
 func saveSensors(path string, sensors *[]Sensor) error {

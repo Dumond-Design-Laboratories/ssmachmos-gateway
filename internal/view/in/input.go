@@ -1,16 +1,16 @@
-package view
+package in
 
 import (
 	"bufio"
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/jukuly/ss_mach_mo/internal/model"
+	"github.com/jukuly/ss_mach_mo/internal/view/out"
 )
 
-func handleInput(input string, sensors *[]model.Sensor) {
+func handleInput(input string, sensors *[]model.Sensor, gateway *model.Gateway) {
 	input = strings.TrimSpace(input)
 	tokens := strings.Split(input, " ")
 	if len(tokens) == 0 || tokens[0] == "" {
@@ -19,17 +19,26 @@ func handleInput(input string, sensors *[]model.Sensor) {
 	options := make([]string, len(tokens)-1)
 	args := make([]string, len(tokens)-1)
 
+	var (
+		j int
+		k int
+	)
 	for i, token := range tokens {
 		if i == 0 {
 			continue
 		}
 
 		if strings.HasPrefix(token, "--") {
-			options[i-1] = token
+			options[j] = token
+			j++
 		} else {
-			args[i-1] = token
+			args[k] = token
+			k++
 		}
 	}
+
+	options = options[:j]
+	args = args[:k]
 
 	switch tokens[0] {
 	case "help":
@@ -39,31 +48,23 @@ func handleInput(input string, sensors *[]model.Sensor) {
 	case "view":
 		view(args, sensors)
 	case "pair":
-		pair()
+		pair(options, args, gateway)
 	case "forget":
 		forget(args, sensors)
 	case "config":
-		config(options, args, sensors)
+		config(options, args, sensors, gateway)
 	default:
 		fmt.Printf("Unknown command: %s\n", tokens[0])
 	}
 }
 
-func Error(err error) {
-	Log(err.Error())
-}
-
-func Log(msg string) {
-	fmt.Printf("[%s] %s\n", time.Now().Format(time.RFC3339), msg)
-}
-
-func Start(sensors *[]model.Sensor) {
+func Start(sensors *[]model.Sensor, gateway *model.Gateway) {
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		text, err := reader.ReadString('\n')
 		if err != nil {
-			Error(err)
+			out.Error(err)
 		}
-		handleInput(text, sensors)
+		handleInput(text, sensors, gateway)
 	}
 }
