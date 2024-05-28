@@ -13,9 +13,9 @@ import (
 
 var adapter = bluetooth.DefaultAdapter
 
-var SERVICE_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}                      // same for every gateway
-var PAIR_REQUEST_CHARACTERISTIC_UUID = [4]uint32{0x37ecbcb9, 0xe2514c40, 0xa1613de1, 0x1ea8c363}  // same for every gateway
-var PAIR_RESPONSE_CHARACTERISTIC_UUID = [4]uint32{0x0598acc3, 0x8564405a, 0xaf67823f, 0x029c79b6} // same for every gateway
+var SERVICE_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}                      // same for every gateway fbe7e8cd-940d-16f1-ad5b-474ea07498ca
+var PAIR_REQUEST_CHARACTERISTIC_UUID = [4]uint32{0x37ecbcb9, 0xe2514c40, 0xa1613de1, 0x1ea8c363}  // same for every gateway 1ea8c363-a161-3de1-e251-4c4037ecbcb9
+var PAIR_RESPONSE_CHARACTERISTIC_UUID = [4]uint32{0x0598acc3, 0x8564405a, 0xaf67823f, 0x029c79b6} // same for every gateway 029c79b6-af67-823f-8564-405a0598acc3
 
 var DATA_TYPES = map[byte]string{
 	0x00: "vibration",
@@ -111,7 +111,7 @@ func StopAdvertising() error {
 
 func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Sensor, gateway *model.Gateway) {
 
-	if len(value) < 264 {
+	if len(value) < 266 {
 		out.Log("Invalid data format received")
 		return
 	}
@@ -137,7 +137,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 	}
 
 	dataType := DATA_TYPES[data[6]]
-	samplingFrequency := data[7]
+	samplingFrequency := data[7:10]
 	timestamp := time.Now().Unix()
 
 	out.Log("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
@@ -147,9 +147,9 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 		numberOfMeasurements := (len(data) - 8) / 12 // 3 axes, 4 bytes per axis => 12 bytes per measurement
 		x, y, z := make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements)
 		for i := 0; i < numberOfMeasurements; i++ {
-			x[i] = math.Float32frombits(uint32(data[8+i*12]) | uint32(data[9+i*12])<<8 | uint32(data[10+i*12])<<16 | uint32(data[11+i*12])<<24)
-			y[i] = math.Float32frombits(uint32(data[12+i*12]) | uint32(data[13+i*12])<<8 | uint32(data[14+i*12])<<16 | uint32(data[15+i*12])<<24)
-			z[i] = math.Float32frombits(uint32(data[16+i*12]) | uint32(data[17+i*12])<<8 | uint32(data[18+i*12])<<16 | uint32(data[19+i*12])<<24)
+			x[i] = math.Float32frombits(uint32(data[10+i*12]) | uint32(data[11+i*12])<<8 | uint32(data[12+i*12])<<16 | uint32(data[13+i*12])<<24)
+			y[i] = math.Float32frombits(uint32(data[14+i*12]) | uint32(data[15+i*12])<<8 | uint32(data[16+i*12])<<16 | uint32(data[17+i*12])<<24)
+			z[i] = math.Float32frombits(uint32(data[18+i*12]) | uint32(data[19+i*12])<<8 | uint32(data[20+i*12])<<16 | uint32(data[21+i*12])<<24)
 		}
 
 		measurements = []map[string]interface{}{
@@ -185,7 +185,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 				"time":               timestamp,
 				"measurement_type":   dataType,
 				"sampling_frequency": samplingFrequency,
-				"raw_data":           data[8:],
+				"raw_data":           data[10:],
 			},
 		}
 	}
