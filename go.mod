@@ -34,6 +34,7 @@ require (
 )
 
 require (
+	fyne.io/fyne v1.4.3
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/google/uuid v1.6.0

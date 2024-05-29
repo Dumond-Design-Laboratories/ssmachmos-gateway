@@ -2,7 +2,6 @@ package in
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"strings"
 
@@ -54,7 +53,7 @@ func handleInput(input string, sensors *[]model.Sensor, gateway *model.Gateway) 
 	case "config":
 		config(options, args, sensors, gateway)
 	default:
-		fmt.Printf("Unknown command: %s\n", tokens[0])
+		out.Logger.Printf("Unknown command: %s\n", tokens[0])
 	}
 }
 

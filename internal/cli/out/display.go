@@ -2,6 +2,7 @@ package out
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jukuly/ss_mach_mo/internal/model"
@@ -9,15 +10,20 @@ import (
 
 // var LOG_PATH = "log/"
 
+var Logger *log.Logger = log.Default()
+
+func SetLogger(logger *log.Logger) {
+	Logger = logger
+}
+
 func DisplaySensors(sensors []model.Sensor) {
-	fmt.Print("\n")
 	for _, sensor := range sensors {
-		fmt.Println(sensor.Name + " - " + model.MacToString(sensor.Mac))
+		Logger.Println(sensor.Name + " - " + model.MacToString(sensor.Mac))
 	}
 }
 
 func DisplaySensor(sensor model.Sensor) {
-	fmt.Print("\n" + sensor.ToString())
+	Logger.Print(sensor.ToString())
 }
 
 func Error(err error) {
@@ -26,7 +32,7 @@ func Error(err error) {
 
 func Log(msg string) {
 	str := fmt.Sprintf("[%s] %s\n", time.Now().Format(time.RFC3339), msg)
-	fmt.Print(str)
+	Logger.Print(str)
 
 	/*_, err := os.Stat(LOG_PATH)
 	if os.IsNotExist(err) {
@@ -37,7 +43,7 @@ func Log(msg string) {
 
 	logFile, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		fmt.Printf("[%s] %s\n", time.Now().Format(time.RFC3339), err.Error())
+		Logger.Print("[%s] %s\n", time.Now().Format(time.RFC3339), err.Error())
 	}
 	logFile.WriteString(str)*/
 }
