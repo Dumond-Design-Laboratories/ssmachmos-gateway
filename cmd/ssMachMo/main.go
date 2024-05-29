@@ -19,13 +19,13 @@ func main() {
 	err = server.Init(sensors, gateway)
 	if err != nil {
 		out.Error(err)
-		panic("Error initializing server")
+		//panic("Error initializing server")
 	}
 
 	err = server.StartAdvertising()
 	if err != nil {
 		out.Error(err)
-		panic("Error starting advertising")
+		//panic("Error starting advertising")
 	}
 
 	in.Start(sensors, gateway)
