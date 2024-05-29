@@ -19,6 +19,7 @@ type Console struct {
 
 func (c *Console) Write(p []byte) (n int, err error) {
 	c.output.Content.(*widget.TextGrid).SetText(c.output.Content.(*widget.TextGrid).Text() + string(p))
+	c.output.ScrollToBottom()
 	return len(p), nil
 }
 
@@ -51,7 +52,6 @@ func NewConsole(sensors *[]model.Sensor, gateway *model.Gateway) *Console {
 	console.input.OnSubmitted = func(s string) {
 		in.HandleInput(s, sensors, gateway)
 		console.input.SetText("")
-		console.output.ScrollToBottom()
 	}
 
 	out.SetLogger(log.New(console, "", log.LstdFlags))
