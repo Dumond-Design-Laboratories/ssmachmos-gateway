@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/jukuly/ss_mach_mo/internal/cli/in"
 	"github.com/jukuly/ss_mach_mo/internal/cli/out"
+	"github.com/jukuly/ss_mach_mo/internal/gui"
 	"github.com/jukuly/ss_mach_mo/internal/model"
 )
 
@@ -13,7 +13,7 @@ const GUI = true
 
 func main() {
 	if GUI {
-		out.SetLogger(log.New(os.Stdout, "", 0))
+		out.SetLogger(log.New(&gui.Console{}, "", 0))
 	} else {
 		out.SetLogger(log.New(os.Stdout, "", 0))
 	}
@@ -38,7 +38,7 @@ func main() {
 		//panic("Error starting advertising")
 	}
 
-	in.Start(sensors, gateway)
+	//in.Start(sensors, gateway)
 
-	//gui.Start()
+	gui.Start()
 }

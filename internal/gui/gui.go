@@ -6,6 +6,13 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+type Console struct {
+}
+
+func (c *Console) Write(p []byte) (n int, err error) {
+	return len(p), nil
+}
+
 func Start() {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("SSMachMos")
