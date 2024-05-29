@@ -8,7 +8,7 @@ import (
 
 func help(args []string) {
 	if len(args) == 0 {
-		out.Logger.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
+		out.Logger.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| Command | Options    | Arguments                       | Description                        |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| help    | None       | None                            | View this table                    |\n" +
@@ -36,36 +36,36 @@ func help(args []string) {
 
 	switch args[0] {
 	case "help":
-		out.Logger.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
+		out.Logger.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| help    | None       | None                            | View all commands and their usage  |\n" +
 			"|         |            | <command>                       | View usage and description         |\n" +
 			"|         |            | <command>                       | of a specific command              |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "list":
-		out.Logger.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
+		out.Logger.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| list    | None       | None                            | List all sensors                   |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "view":
-		out.Logger.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
+		out.Logger.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| view    | None       | <mac-address>                   | View a specific sensors' settings  |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "pair":
-		out.Logger.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
+		out.Logger.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| pair    | --enable   | None                            | Enable pairing mode                |\n" +
 			"|         | --disable  | None                            | Disable pairing mode               |\n" +
 			"|         | --accept   | <mac-address>                   | Accept a pairing request           |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "forget":
-		out.Logger.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
+		out.Logger.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| forget  | None       | <mac-address>                   | Forget a sensor                    |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "config":
-		out.Logger.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
+		out.Logger.Print("\n+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| config  | --id       | <gateway-id>                    | Set the Gateway Id                 |\n" +
 			"|         | --password | <gateway-password>              | Set the Gateway Password           |\n" +
 			"|         |            |                                 |                                    |\n" +
@@ -102,7 +102,7 @@ func view(args []string, sensors *[]model.Sensor) {
 
 func pair(options []string, args []string, gateway *model.Gateway) {
 	if len(options) == 0 {
-		out.Logger.Print("Usage: pair --enable\n" +
+		out.Logger.Print("\nUsage: pair --enable\n" +
 			"            --disable\n" +
 			"            --accept <mac-address>\n")
 		return
@@ -138,7 +138,7 @@ func forget(args []string, sensors *[]model.Sensor) {
 
 func config(options []string, args []string, sensors *[]model.Sensor, gateway *model.Gateway) {
 	if len(options) == 0 {
-		out.Logger.Print("Usage: config --id <gateway-id>\n" +
+		out.Logger.Print("\nUsage: config --id <gateway-id>\n" +
 			"              --password <gateway-password>\n" +
 			"              --sensor <mac-address> <setting> <value>\n")
 		return

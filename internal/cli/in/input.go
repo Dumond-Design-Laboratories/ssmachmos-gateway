@@ -9,7 +9,7 @@ import (
 	"github.com/jukuly/ss_mach_mo/internal/model"
 )
 
-func handleInput(input string, sensors *[]model.Sensor, gateway *model.Gateway) {
+func HandleInput(input string, sensors *[]model.Sensor, gateway *model.Gateway) {
 	input = strings.TrimSpace(input)
 	tokens := strings.Split(input, " ")
 	if len(tokens) == 0 || tokens[0] == "" {
@@ -64,6 +64,6 @@ func Start(sensors *[]model.Sensor, gateway *model.Gateway) {
 		if err != nil {
 			out.Error(err)
 		}
-		handleInput(text, sensors, gateway)
+		HandleInput(text, sensors, gateway)
 	}
 }

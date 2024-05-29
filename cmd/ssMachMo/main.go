@@ -1,9 +1,7 @@
 package main
 
 import (
-	"log"
-	"os"
-
+	"github.com/jukuly/ss_mach_mo/internal/cli/in"
 	"github.com/jukuly/ss_mach_mo/internal/cli/out"
 	"github.com/jukuly/ss_mach_mo/internal/gui"
 	"github.com/jukuly/ss_mach_mo/internal/model"
@@ -12,12 +10,6 @@ import (
 const GUI = true
 
 func main() {
-	if GUI {
-		out.SetLogger(log.New(&gui.Console{}, "", 0))
-	} else {
-		out.SetLogger(log.New(os.Stdout, "", 0))
-	}
-
 	var sensors *[]model.Sensor = &[]model.Sensor{}
 	var gateway *model.Gateway = &model.Gateway{}
 	model.LoadSensors(model.SENSORS_FILE, sensors)
@@ -38,7 +30,9 @@ func main() {
 		//panic("Error starting advertising")
 	}
 
-	//in.Start(sensors, gateway)
-
-	gui.Start()
+	if GUI {
+		gui.Start(sensors, gateway)
+	} else {
+		in.Start(sensors, gateway)
+	}
 }

@@ -1,49 +1,41 @@
 package out
 
 import (
-	"fmt"
 	"log"
-	"time"
+	"strings"
 
 	"github.com/jukuly/ss_mach_mo/internal/model"
 )
 
 // var LOG_PATH = "log/"
 
-var Logger *log.Logger = log.Default()
+var Logger *log.Logger = log.New(log.Writer(), "", log.LstdFlags)
 
 func SetLogger(logger *log.Logger) {
 	Logger = logger
 }
 
 func DisplaySensors(sensors []model.Sensor) {
-	for _, sensor := range sensors {
-		Logger.Println(sensor.Name + " - " + model.MacToString(sensor.Mac))
+	if len(sensors) == 0 {
+		Logger.Println("No sensors currently paired with the Gateway")
+	} else {
+		Logger.Print("\n")
+		for _, sensor := range sensors {
+			Logger.Println(sensor.Name + " - " + model.MacToString(sensor.Mac))
+		}
 	}
 }
 
 func DisplaySensor(sensor model.Sensor) {
-	Logger.Print(sensor.ToString())
+	Logger.Print("\n" + sensor.ToString())
 }
 
 func Error(err error) {
-	Log(err.Error())
+	Logger.Print(err.Error())
 }
 
 func Log(msg string) {
-	str := fmt.Sprintf("[%s] %s\n", time.Now().Format(time.RFC3339), msg)
-	Logger.Print(str)
-
-	/*_, err := os.Stat(LOG_PATH)
-	if os.IsNotExist(err) {
-		os.MkdirAll(LOG_PATH, os.ModePerm)
+	for _, line := range strings.Split(msg, "\n") {
+		Logger.Print(line)
 	}
-
-	path, _ := filepath.Abs(LOG_PATH + time.Now().Format(time.DateOnly) + ".txt")
-
-	logFile, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		Logger.Print("[%s] %s\n", time.Now().Format(time.RFC3339), err.Error())
-	}
-	logFile.WriteString(str)*/
 }
