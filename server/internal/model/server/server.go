@@ -3,8 +3,10 @@ package server
 import (
 	"crypto/rsa"
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/jukuly/ss_mach_mo/server/internal/model"
@@ -95,6 +97,23 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 }
 
 func StartAdvertising() error {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			if sig == os.Interrupt {
+				err := adapter.DefaultAdvertisement().Stop()
+				if err != nil {
+					fmt.Println("Error:", err)
+					os.Exit(0)
+					return
+				}
+				fmt.Println("Stopping server")
+				os.Exit(0)
+				return
+			}
+		}
+	}()
 	return adapter.DefaultAdvertisement().Start()
 }
 

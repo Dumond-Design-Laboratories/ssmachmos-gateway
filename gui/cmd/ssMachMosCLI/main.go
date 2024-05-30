@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jukuly/ss_mach_mo/cli/internal/commands"
+	"github.com/jukuly/ss_mach_mo/gui/internal/commands"
 )
 
 func main() {

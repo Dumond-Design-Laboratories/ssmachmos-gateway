@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 )
 
 const SENSORS_FILE = "sensors.json"
@@ -18,6 +19,33 @@ type Sensor struct {
 	BatteryLevel   int                          `json:"battery_level"`
 	Settings       map[string]map[string]string `json:"settings"`
 	PublicKey      rsa.PublicKey                `json:"key"`
+}
+
+func (s *Sensor) ToString() string {
+	str := s.Name + " - " + MacToString(s.Mac) + "\n"
+	str += "Sensor Types: "
+	for i, t := range s.Types {
+		if i < len(s.Types)-1 {
+			str += t + ", "
+		} else {
+			str += t + "\n"
+		}
+	}
+	str += "Wake Up Interval: " + strconv.Itoa(s.WakeUpInterval) + " seconds\n"
+	str += "Battery Level: "
+	if s.BatteryLevel == -1 {
+		str += "Unknown\n"
+	} else {
+		str += strconv.Itoa(s.BatteryLevel) + " mV\n"
+	}
+	str += "Settings:\n"
+	for setting, value := range s.Settings {
+		str += "\t" + setting + ":\n"
+		for k, v := range value {
+			str += "\t\t" + k + ": " + v + "\n"
+		}
+	}
+	return str
 }
 
 func (s *Sensor) IsMacEqual(mac string) bool {
