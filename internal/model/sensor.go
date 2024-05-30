@@ -83,12 +83,12 @@ func LoadSensors(path string, sensors *[]Sensor) error {
 	return nil
 }
 
-func RemoveSensor(mac string, sensors *[]Sensor) error {
+func RemoveSensor(mac [6]byte, sensors *[]Sensor) error {
 	if sensors == nil {
 		return errors.New("sensors is nil")
 	}
 	for i, s := range *sensors {
-		if s.IsMacEqual(mac) {
+		if s.Mac == mac {
 			*sensors = append((*sensors)[:i], (*sensors)[i+1:]...)
 			err := saveSensors(SENSORS_FILE, sensors)
 			return err

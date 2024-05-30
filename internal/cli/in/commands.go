@@ -129,7 +129,12 @@ func forget(args []string, sensors *[]model.Sensor) {
 		out.Logger.Println("Usage: forget <mac-address>")
 		return
 	}
-	err := model.RemoveSensor(args[0], sensors)
+	mac, err := model.StringToMac(args[0])
+	if err != nil {
+		out.Error(err)
+		return
+	}
+	err = model.RemoveSensor(mac, sensors)
 	if err != nil {
 		out.Error(err)
 		return
