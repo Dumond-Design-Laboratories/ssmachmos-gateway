@@ -13,10 +13,16 @@ import (
 )
 
 func serve() {
+	conn, err := cli.OpenConnection()
+	if err == nil {
+		conn.Write([]byte("STOP"))
+		conn.Close()
+	}
+
 	var sensors *[]model.Sensor = &[]model.Sensor{}
 	var gateway *model.Gateway = &model.Gateway{}
 	model.LoadSensors(model.SENSORS_FILE, sensors)
-	err := model.LoadSettings(gateway, model.GATEWAY_FILE)
+	err = model.LoadSettings(gateway, model.GATEWAY_FILE)
 	if err != nil {
 		out.Log("Error loading Gateway settings. Run 'ssmachmos config --id <gateway-id>' and 'ssmachmos config --password <gateway-password>' to set the Gateway settings.")
 	}
