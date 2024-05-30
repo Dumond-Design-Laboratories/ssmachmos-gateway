@@ -149,7 +149,7 @@ func config(options []string, args []string, sensors *[]model.Sensor, gateway *m
 			out.Logger.Println("Usage: config --id <gateway-id>")
 			return
 		}
-		err := model.SetGatewayId(args[0], gateway)
+		err := model.SetGatewayId(gateway, args[0])
 		if err != nil {
 			out.Error(err)
 		}
@@ -158,7 +158,7 @@ func config(options []string, args []string, sensors *[]model.Sensor, gateway *m
 			out.Logger.Println("Usage: config --password <gateway-password>")
 			return
 		}
-		err := model.SetGatewayPassword(args[0], gateway)
+		err := model.SetGatewayPassword(gateway, args[0])
 		if err != nil {
 			out.Error(err)
 		}

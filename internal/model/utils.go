@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -64,6 +65,10 @@ func BytesToUuid(value [16]byte) [4]uint32 {
 		uint32(value[8])<<24 | uint32(value[9])<<16 | uint32(value[10])<<8 | uint32(value[11]),
 		uint32(value[12])<<24 | uint32(value[13])<<16 | uint32(value[14])<<8 | uint32(value[15]),
 	}
+}
+
+func UuidToString(uuid [4]uint32) string {
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%04x%08x", uuid[3], uuid[2]>>16, uuid[2]&0xffff, uuid[1]>>16, uuid[1]&0xffff, uuid[0])
 }
 
 func GenerateUUID() ([4]uint32, error) {

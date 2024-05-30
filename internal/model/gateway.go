@@ -14,7 +14,7 @@ type Gateway struct {
 	DataCharUUID [4]uint32 `json:"data_char_uuid"`
 }
 
-func LoadSettings(path string, gateway *Gateway) error {
+func LoadSettings(gateway *Gateway, path string) error {
 	jsonStr, err := os.ReadFile(path)
 	if err != nil {
 		gateway = &Gateway{}
@@ -28,14 +28,14 @@ func LoadSettings(path string, gateway *Gateway) error {
 	return nil
 }
 
-func SetGatewayId(id string, gateway *Gateway) error {
+func SetGatewayId(gateway *Gateway, id string) error {
 	gateway.Id = id
-	return saveSettings(GATEWAY_FILE, gateway)
+	return saveSettings(gateway, GATEWAY_FILE)
 }
 
-func SetGatewayPassword(password string, gateway *Gateway) error {
+func SetGatewayPassword(gateway *Gateway, password string) error {
 	gateway.Password = password
-	return saveSettings(GATEWAY_FILE, gateway)
+	return saveSettings(gateway, GATEWAY_FILE)
 }
 
 func GetDataCharUUID(gateway *Gateway) ([4]uint32, error) {
@@ -48,7 +48,7 @@ func GetDataCharUUID(gateway *Gateway) ([4]uint32, error) {
 		if err != nil {
 			return [4]uint32{}, err
 		}
-		err = saveSettings(GATEWAY_FILE, gateway)
+		err = saveSettings(gateway, GATEWAY_FILE)
 		if err != nil {
 			return [4]uint32{}, err
 		}
@@ -56,7 +56,7 @@ func GetDataCharUUID(gateway *Gateway) ([4]uint32, error) {
 	return gateway.DataCharUUID, nil
 }
 
-func saveSettings(path string, gateway *Gateway) error {
+func saveSettings(gateway *Gateway, path string) error {
 	if gateway == nil {
 		return errors.New("gateway is nil")
 	}

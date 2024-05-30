@@ -29,12 +29,13 @@ func Start(sensors *[]model.Sensor, gateway *model.Gateway) {
 
 	myWindow.Resize(fyne.NewSize(800, 600))
 
-	console := NewConsole(sensors, gateway)
+	gatewayTab := NewGatewayTab(gateway)
+	consoleTab := NewConsoleTab(sensors, gateway)
 
 	tabs := container.NewAppTabs(
 		container.NewTabItem("Sensors", widget.NewLabel("Hello")),
-		container.NewTabItem("Gateway", widget.NewLabel("World!")),
-		container.NewTabItem("Console", container.NewBorder(nil, console.input, nil, nil, console.output)),
+		container.NewTabItem("Gateway", gatewayTab),
+		container.NewTabItem("Console", consoleTab),
 	)
 
 	tabs.SetTabLocation(container.TabLocationTop)
@@ -43,7 +44,7 @@ func Start(sensors *[]model.Sensor, gateway *model.Gateway) {
 	myWindow.ShowAndRun()
 }
 
-func NewConsole(sensors *[]model.Sensor, gateway *model.Gateway) *Console {
+func NewConsoleTab(sensors *[]model.Sensor, gateway *model.Gateway) *fyne.Container {
 	console := &Console{}
 	textGrid := widget.NewTextGrid()
 	console.output = container.NewScroll(textGrid)
@@ -55,5 +56,34 @@ func NewConsole(sensors *[]model.Sensor, gateway *model.Gateway) *Console {
 	}
 
 	out.SetLogger(log.New(console, "", log.LstdFlags))
-	return console
+	return container.NewBorder(nil, console.input, nil, nil, console.output)
+}
+
+func NewGatewayTab(gateway *model.Gateway) *fyne.Container {
+	idEntry := widget.NewEntry()
+	passwordEntry := widget.NewPasswordEntry()
+
+	idEntry.SetText(gateway.Id)
+	passwordEntry.SetText(gateway.Password)
+
+	form := widget.NewForm(
+		widget.NewFormItem("Gateway ID:", idEntry),
+		widget.NewFormItem("Gateway Password:", passwordEntry),
+		widget.NewFormItem("Data Characteristic UUID:", widget.NewLabel(model.UuidToString(gateway.DataCharUUID))),
+	)
+	form.SubmitText = "Save"
+	form.Disable()
+	form.OnSubmit = func() {
+		model.SetGatewayId(gateway, idEntry.Text)
+		model.SetGatewayPassword(gateway, passwordEntry.Text)
+		form.Disable()
+	}
+	idEntry.OnChanged = func(s string) {
+		form.Enable()
+	}
+	passwordEntry.OnChanged = func(s string) {
+		form.Enable()
+	}
+
+	return container.NewCenter(form)
 }
