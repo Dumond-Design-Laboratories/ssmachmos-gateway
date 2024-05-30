@@ -15,15 +15,18 @@ func main() {
 		out.Log("Error loading Gateway settings. Run 'ssmachmos config --id <gateway-id>' and 'ssmachmos config --password <gateway-password>' to set the Gateway settings.")
 	}
 
-	err = server.Init(sensors, gateway)
+	stopChannel := make(chan bool)
+	err = server.Init(sensors, gateway, stopChannel)
 	if err != nil {
 		out.Error(err)
-		//panic("Error initializing server")
+		panic("Error initializing server")
 	}
 
 	err = server.StartAdvertising()
 	if err != nil {
 		out.Error(err)
-		//panic("Error starting advertising")
+		panic("Error starting advertising")
 	}
+
+	<-stopChannel
 }

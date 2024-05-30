@@ -85,6 +85,12 @@ func handleCommand(command string, conn *net.Conn) string {
 		return "OK"
 	case "SET-SENSOR-SETTING":
 		return "ERR:unimplemented"
+	case "STOP":
+		err := stop()
+		if err != nil {
+			return "ERR:" + err.Error()
+		}
+		return "OK"
 	default:
 		return "ERR:invalid command"
 	}

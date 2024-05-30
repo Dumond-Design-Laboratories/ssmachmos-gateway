@@ -29,10 +29,12 @@ const UNSENT_DATA_PATH = "unsent_data/"
 var pairResponseCharacteristic bluetooth.Characteristic
 var Gateway *model.Gateway
 var Sensors *[]model.Sensor
+var stopChannel chan<- bool
 
-func Init(ss *[]model.Sensor, g *model.Gateway) error {
+func Init(ss *[]model.Sensor, g *model.Gateway, sc chan<- bool) error {
 	Gateway = g
 	Sensors = ss
+	stopChannel = sc
 
 	err := adapter.Enable()
 	if err != nil {
@@ -94,11 +96,12 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 }
 
 func StartAdvertising() error {
-	err := adapter.DefaultAdvertisement().Start()
-	if err != nil {
-		return err
-	}
-	return nil
+	return adapter.DefaultAdvertisement().Start()
+}
+
+func StopAdvertising() error {
+	stopChannel <- true
+	return adapter.DefaultAdvertisement().Stop()
 }
 
 func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Sensor) {
