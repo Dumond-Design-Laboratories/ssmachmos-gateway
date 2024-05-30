@@ -8,14 +8,12 @@ import (
 	"github.com/jukuly/ss_mach_mo/server/internal/model/server"
 )
 
-func pairEnable() error {
+func pairEnable() {
 	server.EnablePairing()
-	return nil
 }
 
-func pairDisable() error {
+func pairDisable() {
 	server.DisablePairing()
-	return nil
 }
 
 func pairAccept(mac string) error {

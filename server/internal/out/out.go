@@ -6,7 +6,7 @@ import (
 )
 
 var Logger *log.Logger = log.New(log.Writer(), "", log.LstdFlags)
-var PairingConnections map[*net.Conn]bool
+var PairingConnections map[*net.Conn]bool = make(map[*net.Conn]bool)
 
 func SetLogger(logger *log.Logger) {
 	Logger = logger
@@ -22,7 +22,7 @@ func Log(msg string) {
 
 func PairingLog(msg string) {
 	for conn := range PairingConnections {
-		_, err := (*conn).Write([]byte(msg))
+		_, err := (*conn).Write([]byte("MSG:" + msg))
 		if err != nil {
 			Error(err)
 		}

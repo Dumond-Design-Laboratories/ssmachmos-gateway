@@ -47,7 +47,7 @@ func pairRequest(value []byte) {
 		}
 	}()
 
-	out.PairingLog("Pair request from " + model.MacToString(mac) + " | pair --accept <mac-address> to accept")
+	out.PairingLog("Pair request from " + model.MacToString(mac) + " | accept <mac-address> to accept")
 }
 
 func pairConfirmation(value []byte) {

@@ -39,21 +39,28 @@ func main() {
 	options = options[:j]
 	args = args[:k]
 
+	conn, err := commands.OpenConnection()
+	if err != nil {
+		fmt.Println("Error: ", err)
+		return
+	}
+	defer conn.Close()
+
 	switch as[0] {
 	case "help":
-		commands.Help(args)
+		commands.Help(args, conn)
 	case "list":
-		commands.List()
+		commands.List(conn)
 	case "view":
-		commands.View(args)
+		commands.View(args, conn)
 	case "pair":
-		commands.Pair(args)
+		commands.Pair(args, conn)
 	case "forget":
-		commands.Forget(args)
+		commands.Forget(args, conn)
 	case "config":
-		commands.Config(options, args)
+		commands.Config(options, args, conn)
 	case "stop":
-		commands.Stop()
+		commands.Stop(conn)
 	default:
 		fmt.Printf("Unknown command: %s\n", as[0])
 	}

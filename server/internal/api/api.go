@@ -34,20 +34,14 @@ func handleCommand(command string, conn *net.Conn) string {
 		return "OK:" + res
 	case "PAIR-ENABLE":
 		out.PairingConnections[conn] = true
-		err := pairEnable()
-		if err != nil {
-			return "ERR:" + err.Error()
-		}
+		pairEnable()
 		return "OK"
 	case "PAIR-DISABLE":
 		delete(out.PairingConnections, conn)
 		if len(out.PairingConnections) == 0 {
-			err := pairDisable()
-			if err != nil {
-				return "ERR:" + err.Error()
-			}
-			return "OK"
+			pairDisable()
 		}
+		return "OK"
 	case "PAIR-ACCEPT":
 		if len(parts) < 2 {
 			return "ERR:not enough arguments"
@@ -96,10 +90,15 @@ func handleCommand(command string, conn *net.Conn) string {
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
-	var buf [512]byte
-	n, _ := conn.Read(buf[:])
-	response := handleCommand(string(buf[:n]), &conn)
-	conn.Write([]byte(response))
+	for {
+		var buf [512]byte
+		n, err := conn.Read(buf[:])
+		if err != nil {
+			return
+		}
+		response := handleCommand(string(buf[:n]), &conn)
+		conn.Write([]byte(response))
+	}
 }
 
 func Start() error {
