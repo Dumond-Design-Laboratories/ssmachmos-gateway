@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jukuly/ss_mach_mo/internal/model"
-	"github.com/jukuly/ss_mach_mo/internal/model/server"
-	"github.com/jukuly/ss_mach_mo/internal/out"
+	"github.com/jukuly/ss_mach_mo/server/internal/model"
+	"github.com/jukuly/ss_mach_mo/server/internal/model/server"
+	"github.com/jukuly/ss_mach_mo/server/internal/out"
 )
 
 func handleCommand(command string, conn *net.Conn) string {

@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jukuly/ss_mach_mo/internal/model"
+	"github.com/jukuly/ss_mach_mo/server/internal/model"
 )
 
 func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, error) {

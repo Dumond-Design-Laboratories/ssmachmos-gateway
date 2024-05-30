@@ -1,4 +1,4 @@
-module github.com/jukuly/ss_mach_mo
+module github.com/jukuly/ss_mach_mo/server
 
 go 1.20
 
