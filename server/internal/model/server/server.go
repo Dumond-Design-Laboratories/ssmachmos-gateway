@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"math"
+	"os"
 	"time"
 
 	"github.com/jukuly/ss_mach_mo/server/internal/model"
@@ -29,12 +30,10 @@ const UNSENT_DATA_PATH = "unsent_data/"
 var pairResponseCharacteristic bluetooth.Characteristic
 var Gateway *model.Gateway
 var Sensors *[]model.Sensor
-var stopChannel chan<- bool
 
-func Init(ss *[]model.Sensor, g *model.Gateway, sc chan<- bool) error {
+func Init(ss *[]model.Sensor, g *model.Gateway) error {
 	Gateway = g
 	Sensors = ss
-	stopChannel = sc
 
 	err := adapter.Enable()
 	if err != nil {
@@ -99,9 +98,10 @@ func StartAdvertising() error {
 	return adapter.DefaultAdvertisement().Start()
 }
 
-func StopAdvertising() error {
-	stopChannel <- true
-	return adapter.DefaultAdvertisement().Stop()
+func StopAdvertising() {
+	adapter.DefaultAdvertisement().Stop()
+	out.Log("Stopping server")
+	os.Exit(0)
 }
 
 func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Sensor) {

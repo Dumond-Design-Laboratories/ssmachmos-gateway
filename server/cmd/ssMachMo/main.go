@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/jukuly/ss_mach_mo/server/internal/api"
 	"github.com/jukuly/ss_mach_mo/server/internal/model"
 	"github.com/jukuly/ss_mach_mo/server/internal/model/server"
 	"github.com/jukuly/ss_mach_mo/server/internal/out"
@@ -15,18 +16,17 @@ func main() {
 		out.Log("Error loading Gateway settings. Run 'ssmachmos config --id <gateway-id>' and 'ssmachmos config --password <gateway-password>' to set the Gateway settings.")
 	}
 
-	stopChannel := make(chan bool)
-	err = server.Init(sensors, gateway, stopChannel)
+	err = server.Init(sensors, gateway)
 	if err != nil {
 		out.Error(err)
-		panic("Error initializing server")
+		//panic("Error initializing server")
 	}
 
 	err = server.StartAdvertising()
 	if err != nil {
 		out.Error(err)
-		panic("Error starting advertising")
+		//panic("Error starting advertising")
 	}
 
-	<-stopChannel
+	api.Start()
 }

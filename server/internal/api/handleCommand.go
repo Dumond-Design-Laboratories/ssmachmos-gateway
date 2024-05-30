@@ -54,7 +54,6 @@ func forget(mac string) error {
 	return nil
 }
 
-func stop() error {
-	err := server.StopAdvertising()
-	return err
+func stop() {
+	server.StopAdvertising()
 }

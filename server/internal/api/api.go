@@ -12,6 +12,7 @@ import (
 
 func handleCommand(command string, conn *net.Conn) string {
 	parts := strings.Split(command, " ")
+
 	if len(parts) == 0 {
 		return "ERR:empty command"
 	}
@@ -86,11 +87,7 @@ func handleCommand(command string, conn *net.Conn) string {
 	case "SET-SENSOR-SETTING":
 		return "ERR:unimplemented"
 	case "STOP":
-		err := stop()
-		if err != nil {
-			return "ERR:" + err.Error()
-		}
-		return "OK"
+		stop()
 	default:
 		return "ERR:invalid command"
 	}
@@ -99,9 +96,9 @@ func handleCommand(command string, conn *net.Conn) string {
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
-	var buf []byte
-	conn.Read(buf)
-	response := handleCommand(string(buf), &conn)
+	var buf [512]byte
+	n, _ := conn.Read(buf[:])
+	response := handleCommand(string(buf[:n]), &conn)
 	conn.Write([]byte(response))
 }
 
