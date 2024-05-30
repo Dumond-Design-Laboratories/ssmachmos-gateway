@@ -1,14 +1,10 @@
 package main
 
 import (
-	"github.com/jukuly/ss_mach_mo/internal/cli/in"
-	"github.com/jukuly/ss_mach_mo/internal/cli/out"
-	"github.com/jukuly/ss_mach_mo/internal/gui"
 	"github.com/jukuly/ss_mach_mo/internal/model"
 	"github.com/jukuly/ss_mach_mo/internal/model/server"
+	"github.com/jukuly/ss_mach_mo/internal/out"
 )
-
-const GUI = true
 
 func main() {
 	var sensors *[]model.Sensor = &[]model.Sensor{}
@@ -16,7 +12,7 @@ func main() {
 	model.LoadSensors(model.SENSORS_FILE, sensors)
 	err := model.LoadSettings(gateway, model.GATEWAY_FILE)
 	if err != nil {
-		out.Log("Error loading Gateway settings. Use 'config --id <gateway-id>' and 'config --password <gateway-password>' to set the Gateway settings.")
+		out.Log("Error loading Gateway settings. Run 'ssmachmos config --id <gateway-id>' and 'ssmachmos config --password <gateway-password>' to set the Gateway settings.")
 	}
 
 	err = server.Init(sensors, gateway)
@@ -29,11 +25,5 @@ func main() {
 	if err != nil {
 		out.Error(err)
 		//panic("Error starting advertising")
-	}
-
-	if GUI {
-		gui.Start(sensors, gateway)
-	} else {
-		in.Start(sensors, gateway)
 	}
 }

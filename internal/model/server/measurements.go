@@ -26,7 +26,7 @@ func saveUnsentMeasurements(data []byte, timestamp int64) {
 	os.WriteFile(path, data, 0644)
 }
 
-func sendUnsentMeasurements(gateway *model.Gateway) {
+func sendUnsentMeasurements() {
 	files, err := os.ReadDir(UNSENT_DATA_PATH)
 	if err != nil {
 		return
@@ -38,7 +38,7 @@ func sendUnsentMeasurements(gateway *model.Gateway) {
 			continue
 		}
 
-		resp, err := sendMeasurements(data, gateway)
+		resp, err := sendMeasurements(data, Gateway)
 		if err != nil {
 			continue
 		}

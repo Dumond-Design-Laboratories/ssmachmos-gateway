@@ -6,8 +6,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/jukuly/ss_mach_mo/internal/cli/out"
 	"github.com/jukuly/ss_mach_mo/internal/model"
+	"github.com/jukuly/ss_mach_mo/internal/out"
 	"tinygo.org/x/bluetooth"
 )
 
@@ -27,8 +27,13 @@ var DATA_TYPES = map[byte]string{
 const UNSENT_DATA_PATH = "unsent_data/"
 
 var pairResponseCharacteristic bluetooth.Characteristic
+var Gateway *model.Gateway
+var Sensors *[]model.Sensor
 
-func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
+func Init(ss *[]model.Sensor, g *model.Gateway) error {
+	Gateway = g
+	Sensors = ss
+
 	err := adapter.Enable()
 	if err != nil {
 		return err
@@ -40,7 +45,7 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 		pairing:   [6]byte{},
 	}
 
-	dataCharUUID, err := model.GetDataCharUUID(gateway)
+	dataCharUUID, err := model.GetDataCharUUID(Gateway)
 	if err != nil {
 		return err
 	}
@@ -52,7 +57,7 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 				UUID:  dataCharUUID,
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					handleData(client, offset, value, sensors, gateway)
+					handleData(client, offset, value, Sensors)
 				},
 			},
 			{
@@ -68,7 +73,7 @@ func Init(sensors *[]model.Sensor, gateway *model.Gateway) error {
 				Value:  []byte{},
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					pairConfirmation(value, sensors, gateway)
+					pairConfirmation(value)
 				},
 			},
 		},
@@ -96,7 +101,7 @@ func StartAdvertising() error {
 	return nil
 }
 
-func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Sensor, gateway *model.Gateway) {
+func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Sensor) {
 
 	if len(value) < 266 {
 		out.Log("Invalid data format received")
@@ -178,7 +183,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 	}
 
 	jsonData, _ := json.Marshal(measurements)
-	resp, err := sendMeasurements(jsonData, gateway)
+	resp, err := sendMeasurements(jsonData, Gateway)
 
 	if err != nil {
 		out.Log("Error sending data to server")
@@ -198,5 +203,5 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 		return
 	}
 
-	sendUnsentMeasurements(gateway)
+	sendUnsentMeasurements()
 }
