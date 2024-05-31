@@ -12,6 +12,17 @@ import (
 	"github.com/jukuly/ss_mach_mo/server/internal/model"
 )
 
+var messagesToPrint = map[string]string{
+	"REQUEST-TIMEOUT-":   "Pairing request timed out for sensor ",
+	"REQUEST-NEW-":       "New pairing request from sensor ",
+	"PAIR-SUCCESS-":      "Pairing successful with sensor ",
+	"PAIRING-DISABLED":   "Error: Pairing mode disabled",
+	"REQUEST-NOT-FOUND-": "Error: Pairing request not found for sensor ",
+	"PAIRING-CANCELED-":  "Pairing canceled with sensor ",
+	"PAIRING-WITH-":      "Pairing with sensor ",
+	"PAIRING-TIMEOUT-":   "Pairing timed out with sensor ",
+}
+
 var waitingFor = map[string]chan<- bool{}
 
 func waitFor(prefix ...string) {
@@ -303,7 +314,11 @@ func parseResponse(res string) string {
 		}
 		return "Error: " + strings.Join(parts[2:], ":")
 	} else if parts[0] == "MSG" {
-		return strings.Join(parts[1:], ":")
+		for prefix, msg := range messagesToPrint {
+			if strings.HasPrefix(parts[1], prefix) {
+				return msg + strings.Join(parts[1:], ":")[len(prefix):]
+			}
+		}
 	}
 	return ""
 }

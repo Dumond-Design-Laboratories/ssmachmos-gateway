@@ -74,24 +74,24 @@ func pairConfirmation(value []byte) {
 
 func Pair(mac [6]byte) {
 	if !pairingState.active {
-		out.PairingLog("Pairing is not active")
+		out.PairingLog("PAIRING-DISABLED")
 		return
 	}
 
 	if _, exists := pairingState.requested[mac]; !exists {
-		out.PairingLog("Pair request from " + model.MacToString(mac) + " not found")
+		out.PairingLog("REQUEST-NOT-FOUND-" + model.MacToString(mac))
 		return
 	}
 
 	if pairingState.pairing != [6]byte{} && pairingState.pairing != mac {
-		out.PairingLog("Canceled pairing with " + model.MacToString(pairingState.pairing))
+		out.PairingLog("PAIRING-CANCELED-" + model.MacToString(pairingState.pairing))
 	}
 	pairingState.pairing = mac
 
 	dataCharUUID, _ := model.GetDataCharUUID(Gateway)
 	uuid := model.UuidToBytes(dataCharUUID)
 	pairResponseCharacteristic.Write(append(mac[:], uuid[:]...))
-	out.PairingLog("Pairing with " + model.MacToString(mac))
+	out.PairingLog("PAIRING-WITH-" + model.MacToString(mac))
 
 	go func() {
 		time.Sleep(30 * time.Second)
@@ -99,7 +99,7 @@ func Pair(mac [6]byte) {
 			pairingState.pairing = [6]byte{}
 			pairResponseCharacteristic.Write([]byte{})
 			delete(pairingState.requested, mac)
-			out.PairingLog("PAIR-TIMEOUT-" + model.MacToString(mac))
+			out.PairingLog("PAIRING-TIMEOUT-" + model.MacToString(mac))
 		}
 	}()
 }
