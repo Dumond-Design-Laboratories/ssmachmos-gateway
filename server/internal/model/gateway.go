@@ -9,9 +9,10 @@ import (
 const GATEWAY_FILE = "gateway.json"
 
 type Gateway struct {
-	Id           string    `json:"id"`
-	Password     string    `json:"password"`
-	DataCharUUID [4]uint32 `json:"data_char_uuid"`
+	Id               string    `json:"id"`
+	Password         string    `json:"password"`
+	DataCharUUID     [4]uint32 `json:"data_char_uuid"`
+	SettingsCharUUID [4]uint32 `json:"settings_char_uuid"`
 }
 
 func LoadSettings(gateway *Gateway, path string) error {
@@ -54,6 +55,24 @@ func GetDataCharUUID(gateway *Gateway) ([4]uint32, error) {
 		}
 	}
 	return gateway.DataCharUUID, nil
+}
+
+func GetSettingsCharUUID(gateway *Gateway) ([4]uint32, error) {
+	if gateway == nil {
+		return [4]uint32{}, errors.New("gateway is nil")
+	}
+	if gateway.DataCharUUID == [4]uint32{0, 0, 0, 0} {
+		var err error
+		gateway.SettingsCharUUID, err = GenerateUUID()
+		if err != nil {
+			return [4]uint32{}, err
+		}
+		err = saveSettings(gateway, GATEWAY_FILE)
+		if err != nil {
+			return [4]uint32{}, err
+		}
+	}
+	return gateway.SettingsCharUUID, nil
 }
 
 func saveSettings(gateway *Gateway, path string) error {

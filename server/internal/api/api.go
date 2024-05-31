@@ -79,7 +79,18 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		return "OK:SET-GATEWAY-PASSWORD:"
 	case "SET-SENSOR-SETTING":
-		return "ERR:SET-SENSOR-SETTING:unimplemented"
+		if len(parts) < 4 {
+			return "ERR:SET-SENSOR-SETTING:not enough arguments"
+		}
+		mac, err := model.StringToMac(parts[1])
+		if err != nil {
+			return "ERR:SET-SENSOR-SETTING:" + err.Error()
+		}
+		err = model.UpdateSensorSetting(mac, parts[2], parts[3], server.Sensors)
+		if err != nil {
+			return "ERR:SET-SENSOR-SETTING:" + err.Error()
+		}
+		return "OK:SET-SENSOR-SETTING:"
 	case "STOP":
 		stop()
 	default:

@@ -30,6 +30,7 @@ var DATA_TYPES = map[byte]string{
 const UNSENT_DATA_PATH = "unsent_data/"
 
 var pairResponseCharacteristic bluetooth.Characteristic
+var settingsCharacteristic bluetooth.Characteristic
 var Gateway *model.Gateway
 var Sensors *[]model.Sensor
 
@@ -52,6 +53,10 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 	if err != nil {
 		return err
 	}
+	settingsCharUUID, err := model.GetSettingsCharUUID(Gateway)
+	if err != nil {
+		return err
+	}
 
 	service := bluetooth.Service{
 		UUID: SERVICE_UUID,
@@ -61,6 +66,14 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
 					handleData(client, offset, value, Sensors)
+				},
+			},
+			{
+				Handle: &settingsCharacteristic,
+				UUID:   settingsCharUUID,
+				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+					sendSettings(value)
 				},
 			},
 			{

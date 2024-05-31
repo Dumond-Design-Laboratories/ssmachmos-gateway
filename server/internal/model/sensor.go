@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 const SENSORS_FILE = "sensors.json"
@@ -127,6 +128,63 @@ func AddSensor(mac [6]byte, publicKey *rsa.PublicKey, sensors *[]Sensor) error {
 	*sensors = append(*sensors, sensor)
 	err := saveSensors(SENSORS_FILE, sensors)
 	return err
+}
+
+func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]Sensor) error {
+	if sensors == nil {
+		return errors.New("sensors is nil")
+	}
+	for _, s := range *sensors {
+		if s.Mac != mac {
+			continue
+		}
+
+		if setting == "name" {
+			s.Name = value
+			err := saveSensors(SENSORS_FILE, sensors)
+			return err
+		}
+
+		settingParts := strings.Split(setting, "_")
+		if len(settingParts) < 2 {
+			return errors.New("invalid setting format")
+		}
+
+		dataType := settingParts[0]
+		if dataType != "vibration" && dataType != "temperature" && dataType != "acoustic" {
+			return errors.New("invalid setting data type")
+		}
+		setting = strings.Join(settingParts[1:], "_")
+
+		switch setting {
+		case "active":
+			if value != "true" && value != "false" {
+				return errors.New("invalid value for active setting")
+			}
+			s.Settings[dataType][setting] = value
+		case "sampling_frequency":
+			_, err := strconv.Atoi(value)
+			if err != nil {
+				return errors.New("invalid value for sampling_frequency setting")
+			}
+			s.Settings[dataType][setting] = value
+		case "sampling_duration":
+			return errors.New("unimplemented setting")
+		case "wake_up_interval":
+			intValue, err := strconv.Atoi(value)
+			if err != nil {
+				return errors.New("invalid value for wake_up_interval setting")
+			}
+			s.WakeUpInterval = intValue
+		case "next_wake_up":
+			return errors.New("unimplemented setting")
+		}
+
+		err := saveSensors(SENSORS_FILE, sensors)
+		return err
+
+	}
+	return nil
 }
 
 func saveSensors(path string, sensors *[]Sensor) error {

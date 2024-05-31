@@ -23,7 +23,6 @@ Uses RSA PKCS #1 v1.5 signatures
 - Instead of having the battery be a separate measurement, add a battery level reading to each measurement sent to the server
 
 ## Settings changes
-- Whenever a sensor wakes up he sends a request to the server to fetch different settings
-- Server response: mac of sensor (6 bytes) | for each data type: { type (1 byte) | active (1 byte) | sampling frequency (3 bytes) | sampling duration (2 bytes) | time until next wake up in milliseconds (4 bytes => max 50 days) }
+- Whenever a sensor wakes up he sends a request to the server to fetch his settings
+- Server response: mac of sensor (6 bytes) | for each data type: { type (1 byte) | active (1 byte) | sampling frequency (4 bytes) | // sampling duration (2 bytes) | time until next wake up in milliseconds (4 bytes => max 50 days) // }
 - Data type: 0x00 => vibration, 0x01 => audio, 0x02 => temperature
-- Server response is encrypted with public key of the sensor. Important because the advertisement is public (not only to this sensor). The sensor can then verify if these settings changes are addressed to it by decrypting using its private key and checking if the mac address in the response  is the same as its mac address
