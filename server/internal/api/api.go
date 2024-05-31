@@ -20,66 +20,66 @@ func handleCommand(command string, conn *net.Conn) string {
 	case "LIST":
 		res, err := list()
 		if err != nil {
-			return "ERR:" + err.Error()
+			return "ERR:LIST:" + err.Error()
 		}
-		return "OK:" + res
+		return "OK:LIST:" + res
 	case "VIEW":
 		if len(parts) < 2 {
 			return "ERR:not enough arguments"
 		}
 		res, err := view(parts[1])
 		if err != nil {
-			return "ERR:" + err.Error()
+			return "ERR:VIEW:" + err.Error()
 		}
-		return "OK:" + res
+		return "OK:VIEW:" + res
 	case "PAIR-ENABLE":
 		out.PairingConnections[conn] = true
 		pairEnable()
-		return "OK"
+		return "OK:PAIR-ENABLE:"
 	case "PAIR-DISABLE":
 		delete(out.PairingConnections, conn)
 		if len(out.PairingConnections) == 0 {
 			pairDisable()
 		}
-		return "OK"
+		return "OK:PAIR-DISABLE:"
 	case "PAIR-ACCEPT":
 		if len(parts) < 2 {
-			return "ERR:not enough arguments"
+			return "ERR:PAIR-ACCEPT:not enough arguments"
 		}
 		err := pairAccept(parts[1])
 		if err != nil {
-			return "ERR:" + err.Error()
+			return "ERR:PAIR-ACCEPT:" + err.Error()
 		}
-		return "OK"
+		return "OK:PAIR-ACCEPT:"
 	case "FORGET":
 		if len(parts) < 2 {
-			return "ERR:not enough arguments"
+			return "ERR:FORGET:not enough arguments"
 		}
 		err := forget(parts[1])
 		if err != nil {
-			return "ERR:" + err.Error()
+			return "ERR:FORGET:" + err.Error()
 		}
-		return "OK"
+		return "OK:FORGET:"
 	case "SET-GATEWAY-ID":
 		if len(parts) < 2 {
-			return "ERR:not enough arguments"
+			return "ERR:SET-GATEWAY-ID:not enough arguments"
 		}
 		err := model.SetGatewayId(server.Gateway, strings.ReplaceAll(parts[1], "\"", ""))
 		if err != nil {
-			return "ERR:" + err.Error()
+			return "ERR:SET-GATEWAY-ID:" + err.Error()
 		}
-		return "OK"
+		return "OK:SET-GATEWAY-ID:"
 	case "SET-GATEWAY-PASSWORD":
 		if len(parts) < 2 {
 			return "ERR:not enough arguments"
 		}
 		err := model.SetGatewayPassword(server.Gateway, strings.ReplaceAll(parts[1], "\"", ""))
 		if err != nil {
-			return "ERR:" + err.Error()
+			return "ERR:SET-GATEWAY-PASSWORD:" + err.Error()
 		}
-		return "OK"
+		return "OK:SET-GATEWAY-PASSWORD:"
 	case "SET-SENSOR-SETTING":
-		return "ERR:unimplemented"
+		return "ERR:SET-SENSOR-SETTING:unimplemented"
 	case "STOP":
 		stop()
 	default:

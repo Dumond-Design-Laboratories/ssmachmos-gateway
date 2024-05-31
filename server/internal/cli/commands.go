@@ -12,6 +12,16 @@ import (
 	"github.com/jukuly/ss_mach_mo/server/internal/model"
 )
 
+var waitingFor = map[string]chan<- bool{}
+
+func waitFor(prefix ...string) {
+	done := make(chan bool)
+	for _, p := range prefix {
+		waitingFor[p] = done
+	}
+	<-done
+}
+
 func OpenConnection() (net.Conn, error) {
 	socketPath := "/tmp/ss_mach_mos.sock"
 
@@ -30,32 +40,27 @@ func Listen(conn net.Conn) {
 		if err != nil {
 			return
 		}
-		if msg := parseResponse(string(buf[:n]), nil); msg != "" {
+		res := string(buf[:n])
+		for prefix, done := range waitingFor {
+			if strings.HasPrefix(res, prefix) {
+				done <- true
+				delete(waitingFor, prefix)
+			}
+		}
+		if msg := parseResponse(res); msg != "" {
 			fmt.Println(msg)
 		}
 	}
 }
 
-// response should always be false if Listen is running at the same time
-func sendCommand(command string, conn net.Conn, response bool) (string, error) {
+func sendCommand(command string, conn net.Conn) error {
 	_, err := conn.Write([]byte(command))
 
 	if err != nil {
-		return "", fmt.Errorf("failed to send command: %w", err)
+		return fmt.Errorf("failed to send command: %w", err)
 	}
 
-	if !response {
-		return "", nil
-	}
-
-	var buf [512]byte
-	n, err := conn.Read(buf[:])
-
-	if err != nil {
-		return "", fmt.Errorf("failed to read response: %w", err)
-	}
-
-	return string(buf[:n]), nil
+	return nil
 }
 
 func Help(args []string, conn net.Conn) {
@@ -131,58 +136,37 @@ func Help(args []string, conn net.Conn) {
 }
 
 func List(conn net.Conn) {
-	res, err := sendCommand("LIST", conn, true)
+	err := sendCommand("LIST", conn)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
-	fmt.Println(parseResponse(res, func(s string) string {
-		sensors := []model.Sensor{}
-		err := json.Unmarshal([]byte(s), &sensors)
-		if err != nil {
-			return "Error: " + err.Error()
-		}
-		if len(sensors) == 0 {
-			return "No sensors currently paired with the Gateway"
-		} else {
-			str := ""
-			for _, sensor := range sensors {
-				str += sensor.Name + " - " + model.MacToString(sensor.Mac) + "\n"
-			}
-			return str
-		}
-	}))
+	waitFor("OK:LIST", "ERR:LIST")
 }
 
 func View(args []string, conn net.Conn) {
-	res, err := sendCommand("VIEW "+args[0], conn, true)
+	err := sendCommand("VIEW "+args[0], conn)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
-	fmt.Println(parseResponse(res, func(s string) string {
-		str, err := sensorJSONToString([]byte(s))
-		if err != nil {
-			return "Error: " + err.Error()
-		}
-		return str
-	}))
+	waitFor("OK:VIEW", "ERR:VIEW")
 }
 
 func Pair(args []string, conn net.Conn) {
-	_, err := sendCommand("PAIR-ENABLE", conn, true)
+	err := sendCommand("PAIR-ENABLE", conn)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
+	waitFor("OK:PAIR-ENABLE", "ERR:PAIR-ENABLE")
 	fmt.Println("Entering pairing mode. Press Ctrl+C to exit pairing mode.")
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-	go Listen(conn)
 	go func() {
 		for sig := range c {
 			if sig == os.Interrupt {
-				_, err := sendCommand("PAIR-DISABLE", conn, false)
+				err := sendCommand("PAIR-DISABLE", conn)
 				if err != nil {
 					fmt.Println("Error:", err)
 					os.Exit(0)
@@ -208,7 +192,7 @@ func Pair(args []string, conn net.Conn) {
 				fmt.Println("Usage: accept <mac-address>")
 				continue
 			}
-			_, err := sendCommand("PAIR-ACCEPT "+parts[1], conn, false)
+			err := sendCommand("PAIR-ACCEPT "+parts[1], conn)
 			if err != nil {
 				fmt.Println("Error:", err)
 				return
@@ -218,12 +202,12 @@ func Pair(args []string, conn net.Conn) {
 }
 
 func Forget(args []string, conn net.Conn) {
-	res, err := sendCommand("FORGET "+args[0], conn, true)
+	err := sendCommand("FORGET "+args[0], conn)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
-	parseResponse(res, nil)
+	waitFor("OK:FORGET", "ERR:FORGET")
 }
 
 func Config(options []string, args []string, conn net.Conn) {
@@ -239,59 +223,85 @@ func Config(options []string, args []string, conn net.Conn) {
 			fmt.Println("Usage: config --id <gateway-id>")
 			return
 		}
-		res, err := sendCommand("SET-GATEWAY-ID "+args[0], conn, true)
+		err := sendCommand("SET-GATEWAY-ID "+args[0], conn)
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
 		}
-		parseResponse(res, nil)
+		waitFor("OK:SET-GATEWAY-ID", "ERR:SET-GATEWAY-ID")
 	case "--password":
 		if len(args) == 0 {
 			fmt.Println("Usage: config --password <gateway-password>")
 			return
 		}
-		res, err := sendCommand("SET-GATEWAY-PASSWORD "+args[0], conn, true)
+		err := sendCommand("SET-GATEWAY-PASSWORD "+args[0], conn)
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
 		}
-		parseResponse(res, nil)
+		waitFor("OK:SET-GATEWAY-PASSWORD", "ERR:SET-GATEWAY-PASSWORD")
 	case "--sensor":
 		if len(args) < 3 {
 			fmt.Println("Usage: config --sensor <mac-address> <setting> <value>")
 			return
 		}
-		res, err := sendCommand("SET-SENSOR-SETTING "+args[0]+" "+args[1]+" "+args[2], conn, true)
+		err := sendCommand("SET-SENSOR-SETTING "+args[0]+" "+args[1]+" "+args[2], conn)
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
 		}
-		parseResponse(res, nil)
+		waitFor("OK:SET-SENSOR-SETTING", "ERR:SET-SENSOR-SETTING")
 	default:
 		fmt.Printf("Option %s does not exist for command config\n", options[0])
 	}
 }
 
 func Stop(conn net.Conn) {
-	_, err := sendCommand("STOP", conn, false)
+	err := sendCommand("STOP", conn)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
 }
 
-func parseResponse(res string, read func(string) string) string {
+func parseResponse(res string) string {
 	parts := strings.Split(res, ":")
 	if len(parts) == 0 || len(parts) == 1 {
 		return ""
 	}
 	if parts[0] == "OK" {
-		if read == nil {
-			return parts[1]
+		if len(parts) < 3 {
+			return strings.Join(parts[1:], ":")
 		}
-		return read(parts[1])
+		parts[2] = strings.Join(parts[2:], ":")
+		switch parts[1] {
+		case "LIST":
+			sensors := []model.Sensor{}
+			err := json.Unmarshal([]byte(parts[2]), &sensors)
+			if err != nil {
+				return "Error: " + err.Error()
+			}
+			if len(sensors) == 0 {
+				return "No sensors currently paired with the Gateway"
+			} else {
+				str := ""
+				for _, sensor := range sensors {
+					str += sensor.Name + " - " + model.MacToString(sensor.Mac) + "\n"
+				}
+				return str
+			}
+		case "VIEW":
+			str, err := sensorJSONToString([]byte(parts[2]))
+			if err != nil {
+				return "Error: " + err.Error()
+			}
+			return str
+		}
 	} else if parts[0] == "ERR" {
-		return "Error: " + strings.Join(parts[1:], ":")
+		if len(parts) < 3 {
+			return "Error: " + strings.Join(parts[1:], ":")
+		}
+		return "Error: " + strings.Join(parts[2:], ":")
 	} else if parts[0] == "MSG" {
 		return strings.Join(parts[1:], ":")
 	}

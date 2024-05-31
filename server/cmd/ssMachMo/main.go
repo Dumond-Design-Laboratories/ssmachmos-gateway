@@ -79,6 +79,7 @@ func main() {
 	args = args[:k]
 
 	conn, err := cli.OpenConnection()
+	go cli.Listen(conn)
 	if err != nil {
 		fmt.Println("Error: ", err)
 		return
