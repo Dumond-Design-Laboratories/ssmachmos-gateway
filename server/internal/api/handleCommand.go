@@ -16,12 +16,13 @@ func pairDisable() {
 	server.DisablePairing()
 }
 
-func pairAccept(mac string) (string, error) {
+func pairAccept(mac string) error {
 	m, err := model.StringToMac(mac)
 	if err != nil {
-		return "", err
+		return err
 	}
-	return server.Pair(m)
+	server.Pair(m)
+	return nil
 }
 
 func list() (string, error) {

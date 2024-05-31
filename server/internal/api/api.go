@@ -46,11 +46,11 @@ func handleCommand(command string, conn *net.Conn) string {
 		if len(parts) < 2 {
 			return "ERR:not enough arguments"
 		}
-		res, err := pairAccept(parts[1])
+		err := pairAccept(parts[1])
 		if err != nil {
 			return "ERR:" + err.Error()
 		}
-		return "OK:" + res
+		return "OK"
 	case "FORGET":
 		if len(parts) < 2 {
 			return "ERR:not enough arguments"
@@ -64,7 +64,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		if len(parts) < 2 {
 			return "ERR:not enough arguments"
 		}
-		err := model.SetGatewayId(server.Gateway, parts[1])
+		err := model.SetGatewayId(server.Gateway, strings.ReplaceAll(parts[1], "\"", ""))
 		if err != nil {
 			return "ERR:" + err.Error()
 		}
@@ -73,7 +73,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		if len(parts) < 2 {
 			return "ERR:not enough arguments"
 		}
-		err := model.SetGatewayPassword(server.Gateway, parts[1])
+		err := model.SetGatewayPassword(server.Gateway, strings.ReplaceAll(parts[1], "\"", ""))
 		if err != nil {
 			return "ERR:" + err.Error()
 		}

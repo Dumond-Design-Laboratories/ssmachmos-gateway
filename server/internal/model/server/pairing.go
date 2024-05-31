@@ -2,7 +2,6 @@ package server
 
 import (
 	"crypto/rsa"
-	"errors"
 	"time"
 
 	"github.com/jukuly/ss_mach_mo/server/internal/model"
@@ -73,25 +72,26 @@ func pairConfirmation(value []byte) {
 	out.PairingLog("PAIR-SUCCESS-" + model.MacToString(mac))
 }
 
-func Pair(mac [6]byte) (string, error) {
+func Pair(mac [6]byte) {
 	if !pairingState.active {
-		return "", errors.New("Pairing is not active")
+		out.PairingLog("Pairing is not active")
+		return
 	}
 
 	if _, exists := pairingState.requested[mac]; !exists {
-		return "", errors.New("Pair request from " + model.MacToString(mac) + " not found")
+		out.PairingLog("Pair request from " + model.MacToString(mac) + " not found")
+		return
 	}
 
-	res := ""
 	if pairingState.pairing != [6]byte{} && pairingState.pairing != mac {
-		res += "Canceled pairing with " + model.MacToString(pairingState.pairing) + ", "
+		out.PairingLog("Canceled pairing with " + model.MacToString(pairingState.pairing))
 	}
 	pairingState.pairing = mac
 
 	dataCharUUID, _ := model.GetDataCharUUID(Gateway)
 	uuid := model.UuidToBytes(dataCharUUID)
 	pairResponseCharacteristic.Write(append(mac[:], uuid[:]...))
-	res += "Pairing with " + model.MacToString(mac)
+	out.PairingLog("Pairing with " + model.MacToString(mac))
 
 	go func() {
 		time.Sleep(30 * time.Second)
@@ -102,6 +102,4 @@ func Pair(mac [6]byte) (string, error) {
 			out.PairingLog("PAIR-TIMEOUT-" + model.MacToString(mac))
 		}
 	}()
-
-	return res, nil
 }
