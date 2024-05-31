@@ -22,7 +22,7 @@ func Log(msg string) {
 
 func PairingLog(msg string) {
 	for conn := range PairingConnections {
-		_, err := (*conn).Write([]byte("MSG:" + msg))
+		_, err := (*conn).Write([]byte("MSG:" + msg + "\n"))
 		if err != nil {
 			Error(err)
 			Log("Removing connection from PairingConnections")

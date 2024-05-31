@@ -108,7 +108,7 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 		response := handleCommand(string(buf[:n]), &conn)
-		conn.Write([]byte(response))
+		conn.Write([]byte(response + "\n"))
 	}
 }
 

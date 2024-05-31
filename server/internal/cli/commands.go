@@ -51,19 +51,21 @@ func Listen(conn net.Conn) {
 		if err != nil {
 			return
 		}
-		res := string(buf[:n])
-		found := []string{}
-		for prefix, done := range waitingFor {
-			if strings.HasPrefix(res, prefix) {
-				done <- true
-				found = append(found, prefix)
+		ress := strings.Split(string(buf[:n]), "\n")
+		for _, res := range ress {
+			found := []string{}
+			for prefix, done := range waitingFor {
+				if strings.HasPrefix(res, prefix) {
+					done <- true
+					found = append(found, prefix)
+				}
 			}
-		}
-		for _, f := range found {
-			delete(waitingFor, f)
-		}
-		if msg := parseResponse(res); msg != "" {
-			fmt.Println(msg)
+			for _, f := range found {
+				delete(waitingFor, f)
+			}
+			if msg := parseResponse(res); msg != "" {
+				fmt.Println(msg)
+			}
 		}
 	}
 }
