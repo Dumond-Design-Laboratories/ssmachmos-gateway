@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/rsa"
+	"errors"
 	"time"
 
 	"github.com/jukuly/ss_mach_mo/server/internal/model"
@@ -43,11 +44,11 @@ func pairRequest(value []byte) {
 		time.Sleep(30 * time.Second)
 		if _, exists := pairingState.requested[mac]; exists && pairingState.pairing != mac {
 			delete(pairingState.requested, mac)
-			out.PairingLog("Pair request from " + model.MacToString(mac) + " has timed out")
+			out.PairingLog("REQUEST-TIMEOUT-" + model.MacToString(mac))
 		}
 	}()
 
-	out.PairingLog("Pair request from " + model.MacToString(mac) + " | accept <mac-address> to accept")
+	out.PairingLog("REQUEST-NEW-" + model.MacToString(mac))
 }
 
 func pairConfirmation(value []byte) {
@@ -69,29 +70,28 @@ func pairConfirmation(value []byte) {
 	model.AddSensor(mac, pairingState.requested[mac], Sensors)
 	delete(pairingState.requested, mac)
 
-	out.PairingLog(model.MacToString(mac) + " has been paired with the Gateway")
+	out.PairingLog("PAIR-SUCCESS-" + model.MacToString(mac))
 }
 
-func Pair(mac [6]byte) {
+func Pair(mac [6]byte) (string, error) {
 	if !pairingState.active {
-		out.PairingLog("Pairing is not active")
-		return
+		return "", errors.New("Pairing is not active")
 	}
 
 	if _, exists := pairingState.requested[mac]; !exists {
-		out.PairingLog("Pair request from " + model.MacToString(mac) + " not found")
-		return
+		return "", errors.New("Pair request from " + model.MacToString(mac) + " not found")
 	}
 
+	res := ""
 	if pairingState.pairing != [6]byte{} && pairingState.pairing != mac {
-		out.PairingLog("Canceled pairing with " + model.MacToString(pairingState.pairing))
+		res += "Canceled pairing with " + model.MacToString(pairingState.pairing) + ", "
 	}
 	pairingState.pairing = mac
 
 	dataCharUUID, _ := model.GetDataCharUUID(Gateway)
 	uuid := model.UuidToBytes(dataCharUUID)
 	pairResponseCharacteristic.Write(append(mac[:], uuid[:]...))
-	out.PairingLog("Pairing with " + model.MacToString(mac))
+	res += "Pairing with " + model.MacToString(mac)
 
 	go func() {
 		time.Sleep(30 * time.Second)
@@ -99,7 +99,9 @@ func Pair(mac [6]byte) {
 			pairingState.pairing = [6]byte{}
 			pairResponseCharacteristic.Write([]byte{})
 			delete(pairingState.requested, mac)
-			out.PairingLog("Pairing with " + model.MacToString(mac) + " has timed out")
+			out.PairingLog("PAIR-TIMEOUT-" + model.MacToString(mac))
 		}
 	}()
+
+	return res, nil
 }

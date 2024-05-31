@@ -170,11 +170,25 @@ func View(args []string, conn net.Conn) {
 }
 
 func Pair(args []string, conn net.Conn) {
-	_, err := sendCommand("PAIR-ENABLE", conn, true)
+	res, err := sendCommand("PAIR-ENABLE", conn, true)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
+	fmt.Println(parseResponse(res, func(s string) string {
+		switch {
+		case strings.HasPrefix(s, "REQUEST-TIMEOUT-"):
+			return "Pair request from " + strings.Replace(s, "REQUEST-TIMEOUT-", "", 1) + " has timed out"
+		case strings.HasPrefix(s, "REQUEST-NEW-"):
+			return "Pair request from " + strings.Replace(s, "REQUEST-NEW-", "", 1) + " | accept <mac-address> to accept"
+		case strings.HasPrefix(s, "PAIR-SUCCESS-"):
+			return strings.Replace(s, "PAIR-SUCCESS-", "", 1) + " has been paired with the Gateway"
+		case strings.HasPrefix(s, "PAIR-TIMEOUT-"):
+			return "Pairing with " + strings.Replace(s, "PAIR-TIMEOUT-", "", 1) + " has timed out"
+		default:
+			return s
+		}
+	}))
 	fmt.Println("Entering pairing mode. Press Ctrl+C to exit pairing mode.")
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
@@ -287,7 +301,7 @@ func parseResponse(res string, read func(string) string) string {
 	}
 	if parts[0] == "OK" {
 		if read == nil {
-			return ""
+			return parts[1]
 		}
 		return read(parts[1])
 	} else if parts[0] == "ERR" {
