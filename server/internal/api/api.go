@@ -107,8 +107,14 @@ func handleConnection(conn net.Conn) {
 		if err != nil {
 			return
 		}
-		response := handleCommand(string(buf[:n]), &conn)
-		conn.Write([]byte(response + "\n"))
+		cs := strings.Split(string(buf[:n]), "\n")
+		for _, c := range cs {
+			if c == "" {
+				continue
+			}
+			response := handleCommand(c, &conn)
+			conn.Write([]byte(response + "\n"))
+		}
 	}
 }
 

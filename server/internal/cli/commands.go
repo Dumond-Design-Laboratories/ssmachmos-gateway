@@ -71,7 +71,7 @@ func Listen(conn net.Conn) {
 }
 
 func sendCommand(command string, conn net.Conn) error {
-	_, err := conn.Write([]byte(command))
+	_, err := conn.Write([]byte("\n" + command + "\n"))
 
 	if err != nil {
 		return fmt.Errorf("failed to send command: %w", err)
