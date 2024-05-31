@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:ss_machmos_gui/connection.dart';
 
 class Gateway extends StatefulWidget {
-  const Gateway({super.key});
+  final Connection connection;
+
+  const Gateway({super.key, required this.connection});
 
   @override
   State<Gateway> createState() => _GatewayState();
@@ -48,7 +51,26 @@ class _GatewayState extends State<Gateway> {
           ],
         ),
         TextButton(
-          onPressed: () {},
+          onPressed: () async {
+            await widget.connection
+                .send("SET-GATEWAY-ID ${_idController.text}");
+            await widget.connection
+                .send("SET-GATEWAY-PASSWORD ${_passwordController.text}");
+            widget.connection.on("OK:SET-GATEWAY-ID", () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Gateway ID saved."),
+                ),
+              );
+            });
+            widget.connection.on("OK:SET-GATEWAY-PASSWORD", () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Gateway password saved."),
+                ),
+              );
+            });
+          },
           child: const Text("Save"),
         ),
       ],

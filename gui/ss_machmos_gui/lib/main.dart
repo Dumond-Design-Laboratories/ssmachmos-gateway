@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:ss_machmos_gui/bluetooth.dart';
+import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/gateway.dart';
 import 'package:ss_machmos_gui/sensors.dart';
 
@@ -44,41 +45,44 @@ class Root extends StatefulWidget {
 }
 
 class _RootState extends State<Root> {
-  bool _connectedToServer = false;
   bool _pairing = false;
-  Socket? _socket;
+  late Connection _connection;
 
   @override
   void initState() {
     super.initState();
-    openConnection().then((socket) async {
-      if (socket == null) {
-        // launch the server
-      } else {
-        setState(() {
-          _socket = socket;
-          _connectedToServer = true;
-        });
-      }
+    setState(() {
+      _connection = Connection();
     });
+    _connection
+        .openConnection()
+        .then((_) => _connection.listen())
+        .then((_) => setState(() {
+              _connection = _connection;
+            }));
   }
 
-  Future<Socket?> openConnection() async {
-    String socketPath = "/tmp/ss_mach_mos.sock";
-    try {
-      final socket = await Socket.connect(
-          InternetAddress(socketPath, type: InternetAddressType.unix), 0);
-      return socket;
-    } catch (e) {
-      return null;
-    }
+  @override
+  void dispose() async {
+    await _connection.close();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_connectedToServer) {
+    if (_connection.state == 0) {
       return const Center(child: CircularProgressIndicator());
-    } else {
+    } else if (_connection.state == 1) {
+      return Column(
+        children: [
+          const Center(child: Text("Failed to connect to server.")),
+          ElevatedButton(
+            onPressed: () => _connection.openConnection(),
+            child: const Text("Retry"),
+          ),
+        ],
+      );
+    } else if (_connection.state == 2) {
       return TabBarView(
         children: [
           Row(
@@ -91,13 +95,28 @@ class _RootState extends State<Root> {
               Expanded(
                   child: Bluetooth(
                 pairing: _pairing,
-                onPairing: (p) => setState(() => _pairing = p),
+                onPairing: (p) async => {
+                  if (p)
+                    {
+                      await _connection.send("PAIR-ENABLE"),
+                      _connection.on(
+                          "OK:PAIR-ENABLE", () => setState(() => _pairing = p)),
+                    }
+                  else
+                    {
+                      await _connection.send("PAIR-DISABLE"),
+                      _connection.on("OK:PAIR-DISABLE",
+                          () => setState(() => _pairing = p)),
+                    }
+                },
               )),
             ],
           ),
-          const Gateway(),
+          Gateway(connection: _connection),
         ],
       );
+    } else {
+      return const Center(child: Text("Error"));
     }
   }
 }

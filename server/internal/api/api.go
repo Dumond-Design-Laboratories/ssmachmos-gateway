@@ -64,7 +64,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		if len(parts) < 2 {
 			return "ERR:SET-GATEWAY-ID:not enough arguments"
 		}
-		err := model.SetGatewayId(server.Gateway, strings.ReplaceAll(parts[1], "\"", ""))
+		err := model.SetGatewayId(server.Gateway, strings.Join(parts[1:], " "))
 		if err != nil {
 			return "ERR:SET-GATEWAY-ID:" + err.Error()
 		}
@@ -73,7 +73,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		if len(parts) < 2 {
 			return "ERR:not enough arguments"
 		}
-		err := model.SetGatewayPassword(server.Gateway, strings.ReplaceAll(parts[1], "\"", ""))
+		err := model.SetGatewayPassword(server.Gateway, strings.Join(parts[1:], " "))
 		if err != nil {
 			return "ERR:SET-GATEWAY-PASSWORD:" + err.Error()
 		}

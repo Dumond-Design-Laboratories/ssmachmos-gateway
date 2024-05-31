@@ -52,11 +52,15 @@ func Listen(conn net.Conn) {
 			return
 		}
 		res := string(buf[:n])
+		found := []string{}
 		for prefix, done := range waitingFor {
 			if strings.HasPrefix(res, prefix) {
 				done <- true
-				delete(waitingFor, prefix)
+				found = append(found, prefix)
 			}
+		}
+		for _, f := range found {
+			delete(waitingFor, f)
 		}
 		if msg := parseResponse(res); msg != "" {
 			fmt.Println(msg)
