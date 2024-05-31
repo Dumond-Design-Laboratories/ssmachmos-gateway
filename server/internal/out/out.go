@@ -25,6 +25,8 @@ func PairingLog(msg string) {
 		_, err := (*conn).Write([]byte("MSG:" + msg))
 		if err != nil {
 			Error(err)
+			Log("Removing connection from PairingConnections")
+			delete(PairingConnections, conn)
 		}
 	}
 	Log(msg)

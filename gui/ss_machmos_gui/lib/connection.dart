@@ -4,7 +4,7 @@ import 'dart:io';
 class Connection {
   late int _state; // 0: connecting, 1: failed, 2: connected
   Socket? _socket;
-  late Map<String, void Function()> _waitingFor;
+  late Map<String, bool Function(String)> _waitingFor;
 
   Connection() {
     _state = 1;
@@ -39,28 +39,90 @@ class Connection {
   Future<void> listen() async {
     if (_socket != null) {
       _socket!.listen((event) {
-        String message = String.fromCharCodes(event);
-        List<String> found = [];
-        for (String prefix in _waitingFor.keys) {
-          if (message.startsWith(prefix)) {
-            _waitingFor[prefix]!();
-            found.add(prefix);
+        List<String> messages = String.fromCharCodes(event).split("\n");
+        for (String message in messages) {
+          if (message.isEmpty) {
+            continue;
           }
-        }
-        for (String prefix in found) {
-          _waitingFor.remove(prefix);
+          List<String> found = [];
+          for (String prefix in _waitingFor.keys) {
+            if (message.startsWith(prefix)) {
+              if (_waitingFor[prefix]!(message)) {
+                found.add(prefix);
+              }
+            }
+          }
+          for (String prefix in found) {
+            _waitingFor.remove(prefix);
+          }
         }
       });
     }
   }
 
-  void on(String prefix, void Function() callback) {
+  void on(String prefix, bool Function(String) callback) {
     _waitingFor[prefix] = callback;
+  }
+
+  void off(String prefix) {
+    _waitingFor.remove(prefix);
   }
 
   Future<void> close() async {
     if (_socket != null) {
       await _socket!.close();
     }
+  }
+
+  void setUpPairingResponses(void Function(String) print) {
+    on("MSG:REQUEST-TIMEOUT-", (msg) {
+      print(
+          "Pairing request timed out for sensor ${msg.substring("MSG:REQUEST-TIMEOUT-".length)}");
+      return false;
+    });
+    on("MSG:REQUEST-NEW-", (msg) {
+      print(
+          "New pairing request from sensor ${msg.substring("MSG:REQUEST-NEW-".length)}");
+      return false;
+    });
+    on("MSG:PAIR-SUCCESS-", (msg) {
+      print(
+          "Pairing successful with sensor ${msg.substring("MSG:PAIR-SUCCESS-".length)}");
+      return false;
+    });
+    on("MSG:PAIRING-DISABLED", (_) {
+      print("Error: Pairing mode disabled");
+      return false;
+    });
+    on("MSG:REQUEST-NOT-FOUND-", (msg) {
+      print(
+          "Error: Pairing request not found for sensor ${msg.substring("MSG:REQUEST-NOT-FOUND-".length)}");
+      return false;
+    });
+    on("MSG:PAIRING-CANCELED-", (msg) {
+      print(
+          "Pairing canceled with sensor ${msg.substring("MSG:PAIRING-CANCELED-".length)}");
+      return false;
+    });
+    on("MSG:PAIRING-WITH-", (msg) {
+      print("Pairing with sensor ${msg.substring("MSG:PAIRING-WITH-".length)}");
+      return false;
+    });
+    on("MSG:PAIRING-TIMEOUT-", (msg) {
+      print(
+          "Pairing timed out with sensor ${msg.substring("MSG:PAIRING-TIMEOUT-".length)}");
+      return false;
+    });
+  }
+
+  void takeDownPairingResponses() {
+    off("MSG:REQUEST-TIMEOUT-");
+    off("MSG:REQUEST-NEW-");
+    off("MSG:PAIR-SUCCESS-");
+    off("MSG:PAIRING-DISABLED");
+    off("MSG:REQUEST-NOT-FOUND-");
+    off("MSG:PAIRING-CANCELED-");
+    off("MSG:PAIRING-WITH-");
+    off("MSG:PAIRING-TIMEOUT-");
   }
 }

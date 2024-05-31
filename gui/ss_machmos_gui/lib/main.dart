@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:ss_machmos_gui/bluetooth.dart';
 import 'package:ss_machmos_gui/connection.dart';
@@ -45,7 +43,15 @@ class Root extends StatefulWidget {
 }
 
 class _RootState extends State<Root> {
-  bool _pairing = false;
+  bool _pairingEnabled = false;
+  List<String> _sensors = [
+    "AA:BB:CC:DD:EE:FF",
+    "00:11:22:33:44:55",
+    "CC:DD:AA:00:11:22"
+  ];
+
+  String? _pairingWith;
+
   late Connection _connection;
 
   @override
@@ -94,20 +100,41 @@ class _RootState extends State<Root> {
               ),
               Expanded(
                   child: Bluetooth(
-                pairing: _pairing,
-                onPairing: (p) async => {
+                pairingEnabled: _pairingEnabled,
+                onPairingToggle: (p) async => {
                   if (p)
                     {
                       await _connection.send("PAIR-ENABLE"),
-                      _connection.on(
-                          "OK:PAIR-ENABLE", () => setState(() => _pairing = p)),
+                      _connection.on("OK:PAIR-ENABLE", (_) {
+                        setState(() => _pairingEnabled = p);
+                        return true;
+                      }),
+                      _connection.setUpPairingResponses((str) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(str),
+                          ),
+                        );
+                      }),
                     }
                   else
                     {
                       await _connection.send("PAIR-DISABLE"),
-                      _connection.on("OK:PAIR-DISABLE",
-                          () => setState(() => _pairing = p)),
+                      _connection.on("OK:PAIR-DISABLE", (_) {
+                        setState(() => _pairingEnabled = p);
+                        return true;
+                      }),
+                      _connection.takeDownPairingResponses(),
                     }
+                },
+                sensorsNearby: _sensors,
+                pairingWith: _pairingWith,
+                onPairingSelected: (mac) async => {
+                  await _connection.send("PAIR-ACCEPT $mac"),
+                  _connection.on("OK:PAIR-ACCEPT", (_) {
+                    setState(() => _pairingWith = mac);
+                    return true;
+                  }),
                 },
               )),
             ],

@@ -56,19 +56,21 @@ class _GatewayState extends State<Gateway> {
                 .send("SET-GATEWAY-ID ${_idController.text}");
             await widget.connection
                 .send("SET-GATEWAY-PASSWORD ${_passwordController.text}");
-            widget.connection.on("OK:SET-GATEWAY-ID", () {
+            widget.connection.on("OK:SET-GATEWAY-ID", (_) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text("Gateway ID saved."),
                 ),
               );
+              return true;
             });
-            widget.connection.on("OK:SET-GATEWAY-PASSWORD", () {
+            widget.connection.on("OK:SET-GATEWAY-PASSWORD", (_) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text("Gateway password saved."),
                 ),
               );
+              return true;
             });
           },
           child: const Text("Save"),

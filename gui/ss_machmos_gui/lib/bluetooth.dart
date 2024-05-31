@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
 
 class Bluetooth extends StatefulWidget {
-  final bool pairing;
-  final void Function(bool) onPairing;
+  final bool pairingEnabled;
+  final void Function(bool) onPairingToggle;
 
-  const Bluetooth({super.key, required this.pairing, required this.onPairing});
+  final List<String> sensorsNearby;
+  final String? pairingWith;
+  final void Function(String) onPairingSelected;
+
+  const Bluetooth(
+      {super.key,
+      required this.pairingEnabled,
+      required this.onPairingToggle,
+      required this.sensorsNearby,
+      required this.pairingWith,
+      required this.onPairingSelected});
 
   @override
   State<Bluetooth> createState() => _BluetoothState();
 }
 
 class _BluetoothState extends State<Bluetooth> {
-  List<String> _sensors = [
-    "AA:BB:CC:DD:EE:FF",
-    "00:11:22:33:44:55",
-    "CC:DD:AA:00:11:22"
-  ];
-
-  String? _pairingWith;
-
   @override
   void initState() {
     super.initState();
@@ -34,19 +36,19 @@ class _BluetoothState extends State<Bluetooth> {
             const Text("Discover Sensors"),
             const Spacer(),
             Switch(
-              value: widget.pairing,
-              onChanged: widget.onPairing,
+              value: widget.pairingEnabled,
+              onChanged: widget.onPairingToggle,
             ),
           ],
         ),
-        if (widget.pairing)
+        if (widget.pairingEnabled)
           Expanded(
             child: ListView.separated(
-              itemCount: _sensors.length + 1,
+              itemCount: widget.sensorsNearby.length + 1,
               separatorBuilder: (_, __) => const Divider(
                   color: Colors.grey, height: 0.5, thickness: 0.5),
               itemBuilder: (BuildContext context, int index) {
-                if (index == _sensors.length) {
+                if (index == widget.sensorsNearby.length) {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 50),
@@ -55,13 +57,10 @@ class _BluetoothState extends State<Bluetooth> {
                   );
                 }
                 return SensorListItem(
-                  mac: _sensors[index],
-                  pairing: _pairingWith == _sensors[index],
-                  onPairing: () {
-                    setState(() {
-                      _pairingWith = _sensors[index];
-                    });
-                  },
+                  mac: widget.sensorsNearby[index],
+                  pairing: widget.pairingWith == widget.sensorsNearby[index],
+                  onPairing: () =>
+                      widget.onPairingSelected(widget.sensorsNearby[index]),
                 );
               },
             ),
