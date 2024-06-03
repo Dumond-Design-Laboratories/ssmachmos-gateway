@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bufio"
 	"net"
 	"os"
 	"strings"
@@ -101,13 +102,13 @@ func handleCommand(command string, conn *net.Conn) string {
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
+	reader := bufio.NewReader(conn)
 	for {
-		var buf [512]byte
-		n, err := conn.Read(buf[:])
+		str, err := reader.ReadString('\n')
 		if err != nil {
 			return
 		}
-		cs := strings.Split(string(buf[:n]), "\n")
+		cs := strings.Split(str, "\n")
 		for _, c := range cs {
 			if c == "" {
 				continue

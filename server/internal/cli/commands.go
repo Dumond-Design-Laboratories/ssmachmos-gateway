@@ -45,13 +45,14 @@ func OpenConnection() (net.Conn, error) {
 }
 
 func Listen(conn net.Conn) {
+	reader := bufio.NewReader(conn)
 	for {
-		var buf [512]byte
-		n, err := conn.Read(buf[:])
+		str, err := reader.ReadString('\n')
+
 		if err != nil {
 			return
 		}
-		ress := strings.Split(string(buf[:n]), "\n")
+		ress := strings.Split(str, "\n")
 		for _, res := range ress {
 			found := []string{}
 			if msg := parseResponse(res); msg != "" {

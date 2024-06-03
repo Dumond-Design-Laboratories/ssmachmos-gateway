@@ -15,7 +15,7 @@ import (
 func serve() {
 	conn, err := cli.OpenConnection()
 	if err == nil {
-		conn.Write([]byte("STOP"))
+		conn.Write([]byte("STOP\n"))
 		conn.Close()
 	}
 
