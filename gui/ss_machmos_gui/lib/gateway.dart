@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ss_machmos_gui/connection.dart';
+import 'package:ss_machmos_gui/utils.dart';
 
 class Gateway extends StatefulWidget {
   final Connection connection;
@@ -57,19 +58,11 @@ class _GatewayState extends State<Gateway> {
             await widget.connection
                 .send("SET-GATEWAY-PASSWORD ${_passwordController.text}");
             widget.connection.on("OK:SET-GATEWAY-ID", (_) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Gateway ID saved."),
-                ),
-              );
+              showMessage("Gateway ID saved", context);
               return true;
             });
             widget.connection.on("OK:SET-GATEWAY-PASSWORD", (_) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Gateway password saved."),
-                ),
-              );
+              showMessage("Gateway Password saved", context);
               return true;
             });
           },
