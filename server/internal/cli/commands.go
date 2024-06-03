@@ -54,6 +54,9 @@ func Listen(conn net.Conn) {
 		ress := strings.Split(string(buf[:n]), "\n")
 		for _, res := range ress {
 			found := []string{}
+			if msg := parseResponse(res); msg != "" {
+				fmt.Println(msg)
+			}
 			for prefix, done := range waitingFor {
 				if strings.HasPrefix(res, prefix) {
 					done <- true
@@ -62,9 +65,6 @@ func Listen(conn net.Conn) {
 			}
 			for _, f := range found {
 				delete(waitingFor, f)
-			}
-			if msg := parseResponse(res); msg != "" {
-				fmt.Println(msg)
 			}
 		}
 	}
