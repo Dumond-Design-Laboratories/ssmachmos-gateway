@@ -1,34 +1,76 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:ss_machmos_gui/sensor_details.dart';
 
 class Sensors extends StatefulWidget {
-  const Sensors({super.key});
+  final List<Sensor> sensors;
+  final Future<void> Function() loadSensors;
+
+  const Sensors({super.key, required this.sensors, required this.loadSensors});
 
   @override
   State<Sensors> createState() => _SensorsState();
 }
 
 class _SensorsState extends State<Sensors> {
-  String? _selectedSensor;
+  Sensor? _selectedSensor;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.loadSensors();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        DropdownMenu(
-          hintText: "Select Sensor",
-          onSelected: (value) {
-            setState(() {
-              _selectedSensor = value;
-            });
-          },
-          dropdownMenuEntries: const [
-            DropdownMenuEntry(value: "AA:BB:CC:DD:EE:FF", label: "Sensor 1"),
-            DropdownMenuEntry(value: "00:11:22:33:44:55", label: "Sensor 2"),
-            DropdownMenuEntry(value: "CC:DD:AA:00:11:22", label: "Sensor 3"),
-          ],
-        ),
-        const Text("Details"),
+        if (widget.sensors.isEmpty)
+          const Text("No sensors currently paired with the Gateway"),
+        if (widget.sensors.isNotEmpty)
+          DropdownMenu(
+            hintText: "Select Sensor",
+            onSelected: (value) {
+              setState(() {
+                _selectedSensor = value;
+              });
+            },
+            dropdownMenuEntries: widget.sensors
+                .map((s) => DropdownMenuEntry(value: s, label: s.name))
+                .toList(),
+          ),
+        if (_selectedSensor != null) SensorDetails(sensor: _selectedSensor!),
       ],
+    );
+  }
+}
+
+class Sensor {
+  final Uint8List mac;
+  final String name;
+  final List<String> types;
+  final int wakeUpInterval;
+  final int batteryLevel;
+  final Map<String, Map<String, String>> settings;
+
+  Sensor({
+    required this.mac,
+    required this.name,
+    required this.types,
+    required this.wakeUpInterval,
+    required this.batteryLevel,
+    required this.settings,
+  });
+
+  factory Sensor.fromJson(Map<String, dynamic> json) {
+    return Sensor(
+      mac: Uint8List.fromList(json["mac"]),
+      name: json["name"],
+      types: List<String>.from(json["types"]),
+      wakeUpInterval: json["wakeUpInterval"],
+      batteryLevel: json["battery_level"],
+      settings: Map<String, Map<String, String>>.from(json["settings"]),
     );
   }
 }

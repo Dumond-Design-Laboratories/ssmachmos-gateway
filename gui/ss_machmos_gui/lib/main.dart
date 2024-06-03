@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:ss_machmos_gui/bluetooth.dart';
 import 'package:ss_machmos_gui/connection.dart';
@@ -44,13 +46,11 @@ class Root extends StatefulWidget {
 }
 
 class _RootState extends State<Root> {
-  bool _pairingEnabled = false;
-  List<String> _sensorsNearby = [
-    "AA:BB:CC:DD:EE:FF",
-    "00:11:22:33:44:55",
-    "CC:DD:AA:00:11:22"
-  ];
-  String? _pairingWith;
+  late bool _pairingEnabled;
+  late List<String> _sensorsNearby;
+  late String? _pairingWith;
+
+  late List<Sensor> _sensorsPaired;
 
   late Connection _connection;
 
@@ -59,6 +59,10 @@ class _RootState extends State<Root> {
     super.initState();
     setState(() {
       _connection = Connection();
+      _sensorsNearby = [];
+      _pairingWith = null;
+      _pairingEnabled = false;
+      _sensorsPaired = [];
     });
     _connection
         .openConnection()
@@ -74,82 +78,99 @@ class _RootState extends State<Root> {
     super.dispose();
   }
 
-  void onPairingToggle(bool p) async {
+  Future<void> onPairingToggle(bool p) async {
     if (p) {
       await _connection.send("PAIR-ENABLE");
-      _connection.on("OK:PAIR-ENABLE", (_) {
+      _connection.on("PAIR-ENABLE", (_, __) {
         setState(() => _pairingEnabled = p);
         return true;
       });
-      _connection.on("MSG:REQUEST-TIMEOUT-", (msg) {
-        if (_pairingWith != msg.substring("MSG:REQUEST-TIMEOUT-".length)) {
+      _connection.on("REQUEST-TIMEOUT", (mac, _) {
+        if (_pairingWith != mac) {
           setState(() {
-            _sensorsNearby.remove(msg.substring("MSG:REQUEST-TIMEOUT-".length));
+            _sensorsNearby.remove(mac);
           });
         }
         return false;
       });
-      _connection.on("MSG:REQUEST-NEW-", (msg) {
+      _connection.on("REQUEST-NEW", (mac, _) {
         setState(() {
-          _sensorsNearby.add(msg.substring("MSG:REQUEST-NEW-".length));
+          _sensorsNearby.add(mac);
         });
         return false;
       });
-      _connection.on("MSG:PAIR-SUCCESS-", (msg) {
-        _sensorsNearby.remove(msg.substring("MSG:PAIR-SUCCESS-".length));
-        if (_pairingWith == msg.substring("MSG:PAIR-SUCCESS-".length)) {
+      _connection.on("PAIR-SUCCESS", (mac, _) {
+        _sensorsNearby.remove(mac);
+        if (_pairingWith == mac) {
           setState(() => _pairingWith = null);
         }
-        showMessage(
-            "Sensor ${msg.substring("MSG:PAIR-SUCCESS-".length)} has been paired with the gateway",
-            context);
+        showMessage("Sensor $mac has been paired with the gateway", context);
+        loadSensors();
         return false;
       });
-      _connection.on("MSG:PAIRING-DISABLED", (_) {
+      _connection.on("PAIRING-DISABLED", (_, __) {
         setState(() => _pairingEnabled = false);
         return false;
       });
-      _connection.on("MSG:REQUEST-NOT-FOUND-", (msg) {
+      _connection.on("REQUEST-NOT-FOUND", (mac, _) {
         setState(() {
-          _sensorsNearby.remove(msg.substring("MSG:REQUEST-NOT-FOUND-".length));
+          _sensorsNearby.remove(mac);
         });
         return false;
       });
-      _connection.on("MSG:PAIRING-CANCELED-", (msg) {
-        if (_pairingWith == msg.substring("MSG:PAIRING-CANCELED-".length)) {
+      _connection.on("PAIRING-CANCELED", (mac, _) {
+        if (_pairingWith == mac) {
           setState(() => _pairingWith = null);
         }
         return false;
       });
-      _connection.on("MSG:PAIRING-WITH-", (msg) {
-        setState(
-            () => _pairingWith = msg.substring("MSG:PAIRING-WITH-".length));
+      _connection.on("PAIRING-WITH", (mac, _) {
+        setState(() => _pairingWith = mac);
         return false;
       });
-      _connection.on("MSG:PAIRING-TIMEOUT-", (msg) {
-        if (_pairingWith == msg.substring("MSG:PAIRING-TIMEOUT-".length)) {
+      _connection.on("PAIRING-TIMEOUT", (mac, _) {
+        if (_pairingWith == mac) {
           setState(() => _pairingWith = null);
         }
-        showMessage(
-            "Pairing timed out with sensor ${msg.substring("MSG:PAIRING-TIMEOUT-".length)}",
-            context);
+        showMessage("Pairing timed out with sensor $mac", context);
         return false;
       });
     } else {
       await _connection.send("PAIR-DISABLE");
-      _connection.on("OK:PAIR-DISABLE", (_) {
+      _connection.on("PAIR-DISABLE", (_, __) {
         setState(() => _pairingEnabled = p);
         return true;
       });
-      _connection.off("MSG:REQUEST-TIMEOUT-");
-      _connection.off("MSG:REQUEST-NEW-");
-      _connection.off("MSG:PAIR-SUCCESS-");
-      _connection.off("MSG:PAIRING-DISABLED");
-      _connection.off("MSG:REQUEST-NOT-FOUND-");
-      _connection.off("MSG:PAIRING-CANCELED-");
-      _connection.off("MSG:PAIRING-WITH-");
-      _connection.off("MSG:PAIRING-TIMEOUT-");
+      _connection.off("REQUEST-TIMEOUT-");
+      _connection.off("REQUEST-NEW-");
+      _connection.off("PAIR-SUCCESS-");
+      _connection.off("PAIRING-DISABLED");
+      _connection.off("REQUEST-NOT-FOUND-");
+      _connection.off("PAIRING-CANCELED-");
+      _connection.off("PAIRING-WITH-");
+      _connection.off("PAIRING-TIMEOUT-");
     }
+  }
+
+  Future<void> loadSensors() async {
+    await _connection.send("LIST");
+    _connection.on("LIST", (json, err) {
+      if (err != null) {
+        showMessage("Failed to load sensors", context);
+        return true;
+      }
+      try {
+        List<Sensor> sensors =
+            jsonDecode(json).map<Sensor>((s) => Sensor.fromJson(s)).toList();
+        setState(() {
+          _sensorsPaired = sensors;
+        });
+        return true;
+      } catch (e) {
+        showMessage("Failed to load sensors", context);
+        return true;
+      }
+    });
   }
 
   @override
@@ -173,7 +194,11 @@ class _RootState extends State<Root> {
         children: [
           Row(
             children: [
-              const Expanded(child: Sensors()),
+              Expanded(
+                  child: Sensors(
+                sensors: _sensorsPaired,
+                loadSensors: loadSensors,
+              )),
               Container(
                 width: 0.5,
                 color: Colors.grey,
@@ -186,7 +211,10 @@ class _RootState extends State<Root> {
                 pairingWith: _pairingWith,
                 onPairingSelected: (mac) async => {
                   await _connection.send("PAIR-ACCEPT $mac"),
-                  _connection.on("OK:PAIR-ACCEPT", (_) {
+                  _connection.on("PAIR-ACCEPT", (_, err) {
+                    if (err != null) {
+                      return true;
+                    }
                     setState(() => _pairingWith = mac);
                     return true;
                   }),

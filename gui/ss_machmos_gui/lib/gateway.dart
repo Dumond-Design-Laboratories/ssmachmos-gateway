@@ -57,12 +57,20 @@ class _GatewayState extends State<Gateway> {
                 .send("SET-GATEWAY-ID ${_idController.text}");
             await widget.connection
                 .send("SET-GATEWAY-PASSWORD ${_passwordController.text}");
-            widget.connection.on("OK:SET-GATEWAY-ID", (_) {
-              showMessage("Gateway ID saved", context);
+            widget.connection.on("SET-GATEWAY-ID", (_, err) {
+              if (err != null) {
+                showMessage("Failed to save Gateway ID", context);
+              } else {
+                showMessage("Gateway ID saved", context);
+              }
               return true;
             });
-            widget.connection.on("OK:SET-GATEWAY-PASSWORD", (_) {
-              showMessage("Gateway Password saved", context);
+            widget.connection.on("SET-GATEWAY-PASSWORD", (_, err) {
+              if (err != null) {
+                showMessage("Failed to save Gateway Password", context);
+              } else {
+                showMessage("Gateway Password saved", context);
+              }
               return true;
             });
           },

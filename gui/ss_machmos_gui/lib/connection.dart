@@ -4,7 +4,8 @@ import 'dart:io';
 class Connection {
   late int _state; // 0: connecting, 1: failed, 2: connected
   Socket? _socket;
-  late Map<String, bool Function(String)> _waitingFor;
+  late Map<String, bool Function(String, String?)>
+      _waitingFor; // callback should return if we should remove the callback
 
   Connection() {
     _state = 1;
@@ -45,27 +46,30 @@ class Connection {
             continue;
           }
           List<String> found = [];
-          for (String prefix in _waitingFor.keys) {
-            if (message.startsWith(prefix)) {
-              if (_waitingFor[prefix]!(message)) {
-                found.add(prefix);
+          List<String> parts = message.split(":");
+          if (parts.length > 1) {
+            String command = parts[1];
+            if (_waitingFor.containsKey(command)) {
+              if (_waitingFor[command]!(parts.length > 2 ? parts[2] : "",
+                  parts[0] == "ERR" ? "Error: ${parts[1]}" : null)) {
+                found.add(command);
               }
             }
           }
-          for (String prefix in found) {
-            _waitingFor.remove(prefix);
+          for (String command in found) {
+            _waitingFor.remove(command);
           }
         }
       });
     }
   }
 
-  void on(String prefix, bool Function(String) callback) {
-    _waitingFor[prefix] = callback;
+  void on(String command, bool Function(String, String?) callback) {
+    _waitingFor[command] = callback;
   }
 
-  void off(String prefix) {
-    _waitingFor.remove(prefix);
+  void off(String command) {
+    _waitingFor.remove(command);
   }
 
   Future<void> close() async {
