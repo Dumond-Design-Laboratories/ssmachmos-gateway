@@ -27,18 +27,24 @@ class _SensorsState extends State<Sensors> {
     return Column(
       children: [
         if (widget.sensors.isEmpty)
-          const Text("No sensors currently paired with the Gateway"),
+          const Padding(
+            padding: EdgeInsets.only(top: 100.0),
+            child: Text("No sensors currently paired with the Gateway"),
+          ),
         if (widget.sensors.isNotEmpty)
-          DropdownMenu(
-            hintText: "Select Sensor",
-            onSelected: (value) {
-              setState(() {
-                _selectedSensor = value;
-              });
-            },
-            dropdownMenuEntries: widget.sensors
-                .map((s) => DropdownMenuEntry(value: s, label: s.name))
-                .toList(),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: DropdownMenu(
+              hintText: "Select Sensor",
+              onSelected: (value) {
+                setState(() {
+                  _selectedSensor = value;
+                });
+              },
+              dropdownMenuEntries: widget.sensors
+                  .map((s) => DropdownMenuEntry(value: s, label: s.name))
+                  .toList(),
+            ),
           ),
         if (_selectedSensor != null) SensorDetails(sensor: _selectedSensor!),
       ],
@@ -47,12 +53,12 @@ class _SensorsState extends State<Sensors> {
 }
 
 class Sensor {
-  final Uint8List mac;
-  final String name;
-  final List<String> types;
-  final int wakeUpInterval;
-  final int batteryLevel;
-  final Map<String, Map<String, String>> settings;
+  Uint8List mac;
+  String name;
+  List<String> types;
+  int wakeUpInterval;
+  int batteryLevel;
+  Map<String, Map<String, String>> settings;
 
   Sensor({
     required this.mac,
@@ -62,15 +68,8 @@ class Sensor {
     required this.batteryLevel,
     required this.settings,
   });
+}
 
-  factory Sensor.fromJson(Map<String, dynamic> json) {
-    return Sensor(
-      mac: Uint8List.fromList(json["mac"]),
-      name: json["name"],
-      types: List<String>.from(json["types"]),
-      wakeUpInterval: json["wakeUpInterval"],
-      batteryLevel: json["battery_level"],
-      settings: Map<String, Map<String, String>>.from(json["settings"]),
-    );
-  }
+String macToString(Uint8List mac) {
+  return mac.map((b) => b.toRadixString(16).padLeft(2, "0")).join(":");
 }

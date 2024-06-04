@@ -12,5 +12,3 @@
 
 ## openPHM
 - Change the name of the sensor
-- Change the description of the sensor
-

@@ -17,8 +17,15 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: DefaultTabController(
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        fontFamily: "OpenSans",
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF326496),
+        ),
+      ),
+      home: const DefaultTabController(
         length: 2,
         child: Scaffold(
           appBar: TabBar(
@@ -188,11 +195,14 @@ class _RootState extends State<Root> {
       return const Center(child: CircularProgressIndicator());
     } else if (_connection.state == 1) {
       return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Center(
-              child: Text(
-                  "Error: Could not connect to server. Type \"ssmachmos serve\" in the terminal and try again.")),
-          ElevatedButton(
+            child: Text(
+                "Error: Could not connect to server. Type \"ssmachmos serve\" in the terminal and try again."),
+          ),
+          const SizedBox(height: 20),
+          TextButton(
             onPressed: () => _connection.openConnection(),
             child: const Text("Try Again"),
           ),
@@ -204,31 +214,33 @@ class _RootState extends State<Root> {
           Row(
             children: [
               Expanded(
+                  flex: 3,
                   child: Sensors(
-                sensors: _sensorsPaired,
-                loadSensors: loadSensors,
-              )),
+                    sensors: _sensorsPaired,
+                    loadSensors: loadSensors,
+                  )),
               Container(
                 width: 0.5,
                 color: Colors.grey,
               ),
               Expanded(
+                  flex: 2,
                   child: Bluetooth(
-                pairingEnabled: _pairingEnabled,
-                onPairingToggle: onPairingToggle,
-                sensorsNearby: _sensorsNearby,
-                pairingWith: _pairingWith,
-                onPairingSelected: (mac) async => {
-                  await _connection.send("PAIR-ACCEPT $mac"),
-                  _connection.on("PAIR-ACCEPT", (_, err) {
-                    if (err != null) {
-                      return true;
-                    }
-                    setState(() => _pairingWith = mac);
-                    return true;
-                  }),
-                },
-              )),
+                    pairingEnabled: _pairingEnabled,
+                    onPairingToggle: onPairingToggle,
+                    sensorsNearby: _sensorsNearby,
+                    pairingWith: _pairingWith,
+                    onPairingSelected: (mac) async => {
+                      await _connection.send("PAIR-ACCEPT $mac"),
+                      _connection.on("PAIR-ACCEPT", (_, err) {
+                        if (err != null) {
+                          return true;
+                        }
+                        setState(() => _pairingWith = mac);
+                        return true;
+                      }),
+                    },
+                  )),
             ],
           ),
           Gateway(connection: _connection),

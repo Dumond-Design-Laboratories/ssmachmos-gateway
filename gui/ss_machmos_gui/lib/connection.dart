@@ -52,7 +52,9 @@ class Connection {
             if (_waitingFor.containsKey(command)) {
               if (_waitingFor[command]!(
                   parts.length > 2 ? parts.sublist(2).join(":") : "",
-                  parts[0] == "ERR" ? "Error: ${parts[1]}" : null)) {
+                  parts[0] == "ERR"
+                      ? "Error: ${parts.sublist(1).join(":")}"
+                      : null)) {
                 found.add(command);
               }
             }
