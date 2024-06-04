@@ -20,7 +20,19 @@ class _SensorDetailsState extends State<SensorDetails> {
         Text("Types: ${widget.sensor.types.join(", ")}"),
         Text("Wake-up Interval: ${widget.sensor.wakeUpInterval}"),
         Text("Battery Level: ${widget.sensor.batteryLevel}"),
-        Text("Settings: ${widget.sensor.settings}"),
+        const Text("Settings: "),
+        for (String key in widget.sensor.settings.keys)
+          Column(
+            children: [
+              Text(key),
+              for (String subKey in (widget.sensor.settings
+                      .cast<String, dynamic>()[key]!
+                      .cast<String, String>())
+                  .keys)
+                Text(
+                    "  $subKey: ${widget.sensor.settings.cast<String, dynamic>()[key]!.cast<String, String>()[subKey]}"),
+            ],
+          ),
       ],
     );
   }

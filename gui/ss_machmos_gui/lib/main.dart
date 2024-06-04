@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:ss_machmos_gui/bluetooth.dart';
@@ -160,8 +161,16 @@ class _RootState extends State<Root> {
         return true;
       }
       try {
-        List<Sensor> sensors =
-            jsonDecode(json).map<Sensor>((s) => Sensor.fromJson(s)).toList();
+        List<Sensor> sensors = jsonDecode(json)
+            .map<Sensor>((s) => Sensor(
+                  mac: Uint8List.fromList(s["mac"].cast<int>()),
+                  name: s["name"],
+                  types: s["types"].cast<String>(),
+                  wakeUpInterval: s["wake_up_interval"],
+                  batteryLevel: s["battery_level"],
+                  settings: s["settings"].cast<String, Map<String, String>>(),
+                ))
+            .toList();
         setState(() {
           _sensorsPaired = sensors;
         });

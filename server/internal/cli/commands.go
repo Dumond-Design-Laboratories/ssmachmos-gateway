@@ -163,6 +163,10 @@ func List(conn net.Conn) {
 }
 
 func View(args []string, conn net.Conn) {
+	if len(args) == 0 {
+		fmt.Println("Usage: view <mac-address>")
+		return
+	}
 	err := sendCommand("VIEW "+args[0], conn)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -220,6 +224,10 @@ func Pair(args []string, conn net.Conn) {
 }
 
 func Forget(args []string, conn net.Conn) {
+	if len(args) == 0 {
+		fmt.Println("Usage: forget <mac-address>")
+		return
+	}
 	err := sendCommand("FORGET "+args[0], conn)
 	if err != nil {
 		fmt.Println("Error:", err)

@@ -24,59 +24,71 @@ class _GatewayState extends State<Gateway> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
+    return Center(
+      child: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text("Gateway ID:"),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                controller: _idController,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Gateway ID:"),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _idController,
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Gateway Password:"),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    obscureText: true,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    controller: _passwordController,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () async {
+                  await widget.connection
+                      .send("SET-GATEWAY-ID ${_idController.text}");
+                  await widget.connection
+                      .send("SET-GATEWAY-PASSWORD ${_passwordController.text}");
+                  widget.connection.on("SET-GATEWAY-ID", (_, err) {
+                    if (err != null) {
+                      showMessage("Failed to save Gateway ID", context);
+                    } else {
+                      showMessage("Gateway ID saved", context);
+                    }
+                    return true;
+                  });
+                  widget.connection.on("SET-GATEWAY-PASSWORD", (_, err) {
+                    if (err != null) {
+                      showMessage("Failed to save Gateway Password", context);
+                    } else {
+                      showMessage("Gateway Password saved", context);
+                    }
+                    return true;
+                  });
+                },
+                child: const Text("Save"),
               ),
             ),
           ],
         ),
-        Row(
-          children: [
-            const Text("Gateway Password:"),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                obscureText: true,
-                enableSuggestions: false,
-                autocorrect: false,
-                controller: _passwordController,
-              ),
-            ),
-          ],
-        ),
-        TextButton(
-          onPressed: () async {
-            await widget.connection
-                .send("SET-GATEWAY-ID ${_idController.text}");
-            await widget.connection
-                .send("SET-GATEWAY-PASSWORD ${_passwordController.text}");
-            widget.connection.on("SET-GATEWAY-ID", (_, err) {
-              if (err != null) {
-                showMessage("Failed to save Gateway ID", context);
-              } else {
-                showMessage("Gateway ID saved", context);
-              }
-              return true;
-            });
-            widget.connection.on("SET-GATEWAY-PASSWORD", (_, err) {
-              if (err != null) {
-                showMessage("Failed to save Gateway Password", context);
-              } else {
-                showMessage("Gateway Password saved", context);
-              }
-              return true;
-            });
-          },
-          child: const Text("Save"),
-        ),
-      ],
+      ),
     );
   }
 }
