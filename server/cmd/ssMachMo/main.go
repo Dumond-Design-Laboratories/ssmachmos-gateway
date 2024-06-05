@@ -33,7 +33,7 @@ func serve() {
 		//panic("Error initializing server")
 	}
 
-	err = server.StartAdvertising()
+	//err = server.StartAdvertising()
 	if err != nil {
 		out.Error(err)
 		//panic("Error starting advertising")

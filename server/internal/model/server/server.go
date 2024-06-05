@@ -99,7 +99,11 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 		return err
 	}
 
-	err = adapter.DefaultAdvertisement().Configure(bluetooth.AdvertisementOptions{
+	adv := adapter.DefaultAdvertisement()
+	if adv == nil {
+		return fmt.Errorf("advertisement is nil")
+	}
+	err = adv.Configure(bluetooth.AdvertisementOptions{
 		LocalName:    "Gateway Server",
 		ServiceUUIDs: []bluetooth.UUID{service.UUID},
 	})
@@ -127,7 +131,11 @@ func StartAdvertising() error {
 			}
 		}
 	}()
-	return adapter.DefaultAdvertisement().Start()
+	adv := adapter.DefaultAdvertisement()
+	if adv == nil {
+		return fmt.Errorf("advertisement is nil")
+	}
+	return adv.Start()
 }
 
 func StopAdvertising() {
