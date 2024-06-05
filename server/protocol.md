@@ -9,7 +9,7 @@ Uses RSA PKCS #1 v1.5 signatures
 - Data types: b(0 0 0 0 0 vibration temperature acoustic) 
 - The user has 30 seconds to accept the pairing request
 - The server writes to the "pairing response" characteristic with the UUID of the data transmission characteristic, the UUID of the settings characteristic and the mac address of the sender (to tell the sensor which one has been accepted) => mac (6 bytes) | data characteristic uuid (16 bytes) | settings characteristic uuid (16 bytes)
-- The sensor sends an ACK to tell the server he indeed received the UUID. From now on, every communication will be signed by the sensor. If the ACK is not received in a delay of 30 seconds by the server, the pairing is cancelled. => mac (6 bytes) | uuid (16 bytes) | signature (256 bytes)
+- The sensor sends an ACK to tell the server he indeed received the UUIDs. From now on, every communication will be signed by the sensor. If the ACK is not received in a delay of 30 seconds by the server, the pairing is cancelled. => mac (6 bytes) | data characteristic uuid (16 bytes) | settings characteristic uuid (16 bytes) | signature (256 bytes)
 
 ## Data transmission
 

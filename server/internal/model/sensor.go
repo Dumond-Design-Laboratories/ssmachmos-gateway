@@ -13,13 +13,14 @@ import (
 const SENSORS_FILE = "sensors.json"
 
 type Sensor struct {
-	Mac            [6]byte                      `json:"mac"`
-	Name           string                       `json:"name"`
-	Types          []string                     `json:"types"`
-	WakeUpInterval int                          `json:"wake_up_interval"`
-	BatteryLevel   int                          `json:"battery_level"`
-	Settings       map[string]map[string]string `json:"settings"`
-	PublicKey      rsa.PublicKey                `json:"key"`
+	Mac                [6]byte                      `json:"mac"`
+	Name               string                       `json:"name"`
+	Types              []string                     `json:"types"`
+	WakeUpInterval     int                          `json:"wake_up_interval"`
+	BatteryLevel       int                          `json:"battery_level"`
+	CollectionCapacity int                          `json:"collection_capacity"`
+	Settings           map[string]map[string]string `json:"settings"`
+	PublicKey          rsa.PublicKey                `json:"key"`
 }
 
 func (s *Sensor) ToString() string {
@@ -37,8 +38,9 @@ func (s *Sensor) ToString() string {
 	if s.BatteryLevel == -1 {
 		str += "Unknown\n"
 	} else {
-		str += strconv.Itoa(s.BatteryLevel) + " mV\n"
+		str += strconv.Itoa(s.BatteryLevel) + " %\n"
 	}
+	str += "Collection Capacity: " + strconv.Itoa(s.CollectionCapacity) + " bytes\n"
 	str += "Settings:\n"
 	for setting, value := range s.Settings {
 		str += "\t" + setting + ":\n"
@@ -104,11 +106,12 @@ func AddSensor(mac [6]byte, publicKey *rsa.PublicKey, sensors *[]Sensor) error {
 	}
 	// Default settings
 	sensor := Sensor{
-		Mac:            mac,
-		Name:           "Sensor " + MacToString(mac),
-		Types:          []string{"vibration", "temperature", "acoustic"},
-		WakeUpInterval: 3600,
-		BatteryLevel:   -1,
+		Mac:                mac,
+		Name:               "Sensor " + MacToString(mac),
+		Types:              []string{"vibration", "temperature", "acoustic"},
+		WakeUpInterval:     3600,
+		BatteryLevel:       -1,
+		CollectionCapacity: 100000,
 		Settings: map[string]map[string]string{
 			"vibration": {
 				"active":             "true",

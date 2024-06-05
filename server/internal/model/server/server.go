@@ -1,7 +1,6 @@
 package server
 
 import (
-	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -43,9 +42,9 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 		return err
 	}
 
-	pairingState = PairingState{
+	state = pairingState{
 		active:    false,
-		requested: make(map[[6]byte]*rsa.PublicKey),
+		requested: make(map[[6]byte]request),
 		pairing:   [6]byte{},
 	}
 
