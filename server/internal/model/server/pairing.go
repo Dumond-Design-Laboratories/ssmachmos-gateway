@@ -117,6 +117,7 @@ func Pair(mac [6]byte) {
 
 	if state.pairing != [6]byte{} && state.pairing != mac {
 		out.PairingLog("PAIRING-CANCELED:" + model.MacToString(state.pairing))
+		delete(state.requested, mac)
 	}
 	state.pairing = mac
 
