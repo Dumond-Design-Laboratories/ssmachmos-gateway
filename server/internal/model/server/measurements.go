@@ -15,15 +15,19 @@ func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, 
 	return http.Post("https://openphm.org/gateway_data", "application/json", bytes.NewBuffer([]byte(json)))
 }
 
-func saveUnsentMeasurements(data []byte, timestamp int64) {
+func saveUnsentMeasurements(data []byte, timestamp int64) error {
 	_, err := os.Stat(UNSENT_DATA_PATH)
 	if os.IsNotExist(err) {
 		os.MkdirAll(UNSENT_DATA_PATH, os.ModePerm)
 	}
 
-	path, _ := filepath.Abs(fmt.Sprintf("%s%d.json", UNSENT_DATA_PATH, timestamp))
+	path, err := filepath.Abs(fmt.Sprintf("%s%d.json", UNSENT_DATA_PATH, timestamp))
+	if err != nil {
+		return err
+	}
 
 	os.WriteFile(path, data, 0644)
+	return nil
 }
 
 func sendUnsentMeasurements() {

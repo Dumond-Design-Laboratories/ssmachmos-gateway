@@ -231,7 +231,9 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 	if err != nil {
 		out.Log("Error sending data to server")
 		out.Error(err)
-		saveUnsentMeasurements(jsonData, timestamp)
+		if err := saveUnsentMeasurements(jsonData, timestamp); err != nil {
+			out.Error(err)
+		}
 		return
 	}
 
@@ -242,7 +244,9 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 		defer resp.Body.Close()
 		resp.Body.Read(body)
 		out.Log(string(body))
-		saveUnsentMeasurements(jsonData, timestamp)
+		if err := saveUnsentMeasurements(jsonData, timestamp); err != nil {
+			out.Error(err)
+		}
 		return
 	}
 
