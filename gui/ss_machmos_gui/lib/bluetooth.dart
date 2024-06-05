@@ -29,7 +29,7 @@ class _BluetoothState extends State<Bluetooth> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
       child: Column(
         children: [
           Row(
@@ -46,7 +46,7 @@ class _BluetoothState extends State<Bluetooth> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           if (widget.pairingEnabled)
             Expanded(
               child: DecoratedBox(

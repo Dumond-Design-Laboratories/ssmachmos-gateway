@@ -21,12 +21,18 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: "OpenSans",
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(fontSize: 14),
+        ),
+        dropdownMenuTheme: const DropdownMenuThemeData(
+          textStyle: TextStyle(fontSize: 14),
+        ),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF326496),
         ),
       ),
       home: const DefaultTabController(
-        length: 2,
+        length: 3,
         child: Scaffold(
           appBar: TabBar(
             isScrollable: true,
@@ -35,6 +41,7 @@ class MainApp extends StatelessWidget {
             tabs: [
               Tab(text: "Sensors"),
               Tab(text: "Gateway"),
+              Tab(text: "Server Logs"),
             ],
           ),
           body: Root(),
@@ -244,6 +251,9 @@ class _RootState extends State<Root> {
             ],
           ),
           Gateway(connection: _connection),
+          const Center(
+              child: Text(
+                  "Here will be a view of the server logs (the console output of \"ssmachmos serve\")")),
         ],
       );
     } else {

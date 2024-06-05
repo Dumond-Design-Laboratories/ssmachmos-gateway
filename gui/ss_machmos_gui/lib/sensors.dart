@@ -46,6 +46,11 @@ class _SensorsState extends State<Sensors> {
                   .toList(),
             ),
           ),
+        if (widget.sensors.isNotEmpty)
+          Container(
+            height: 0.5,
+            color: Colors.grey,
+          ),
         if (_selectedSensor != null) SensorDetails(sensor: _selectedSensor!),
       ],
     );
