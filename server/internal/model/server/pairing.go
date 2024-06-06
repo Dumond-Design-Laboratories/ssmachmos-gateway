@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/rsa"
+	"encoding/binary"
 	"time"
 
 	"github.com/jukuly/ss_mach_mo/server/internal/model"
@@ -47,7 +48,7 @@ func pairRequest(value []byte) {
 		dataTypes = append(dataTypes, "vibration")
 	}
 
-	collectionCapacity := int(value[7])<<24 | int(value[8])<<16 | int(value[9])<<8 | int(value[10])
+	collectionCapacity := int(binary.LittleEndian.Uint32(value[7:11]))
 	publicKey, err := model.ParsePublicKey(value[11:])
 	if err != nil {
 		return
