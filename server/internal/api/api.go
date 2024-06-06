@@ -21,6 +21,7 @@ func handleCommand(command string, conn *net.Conn) string {
 	case "LIST":
 		res, err := list()
 		if err != nil {
+			out.Logger.Print(err)
 			return "ERR:LIST:" + err.Error()
 		}
 		return "OK:LIST:" + res
@@ -30,6 +31,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		res, err := view(parts[1])
 		if err != nil {
+			out.Logger.Print(err)
 			return "ERR:VIEW:" + err.Error()
 		}
 		return "OK:VIEW:" + res
@@ -49,6 +51,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := pairAccept(parts[1])
 		if err != nil {
+			out.Logger.Print(err)
 			return "ERR:PAIR-ACCEPT:" + err.Error()
 		}
 		return "OK:PAIR-ACCEPT:"
@@ -58,6 +61,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := forget(parts[1])
 		if err != nil {
+			out.Logger.Print(err)
 			return "ERR:FORGET:" + err.Error()
 		}
 		return "OK:FORGET:"
@@ -67,6 +71,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := model.SetGatewayId(server.Gateway, strings.Join(parts[1:], " "))
 		if err != nil {
+			out.Logger.Print(err)
 			return "ERR:SET-GATEWAY-ID:" + err.Error()
 		}
 		return "OK:SET-GATEWAY-ID:"
@@ -76,6 +81,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := model.SetGatewayPassword(server.Gateway, strings.Join(parts[1:], " "))
 		if err != nil {
+			out.Logger.Print(err)
 			return "ERR:SET-GATEWAY-PASSWORD:" + err.Error()
 		}
 		return "OK:SET-GATEWAY-PASSWORD:"
@@ -85,10 +91,12 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		mac, err := model.StringToMac(parts[1])
 		if err != nil {
+			out.Logger.Print(err)
 			return "ERR:SET-SENSOR-SETTING:" + err.Error()
 		}
 		err = model.UpdateSensorSetting(mac, parts[2], parts[3], server.Sensors)
 		if err != nil {
+			out.Logger.Print(err)
 			return "ERR:SET-SENSOR-SETTING:" + err.Error()
 		}
 		return "OK:SET-SENSOR-SETTING:"
@@ -106,6 +114,7 @@ func handleConnection(conn net.Conn) {
 	for {
 		str, err := reader.ReadString('\n')
 		if err != nil {
+			out.Logger.Print(err)
 			return
 		}
 		cs := strings.Split(str, "\n")
@@ -122,11 +131,13 @@ func handleConnection(conn net.Conn) {
 func Start() error {
 	socketPath := "/tmp/ss_mach_mos.sock"
 	if err := os.RemoveAll(socketPath); err != nil {
+		out.Logger.Print(err)
 		return err
 	}
 
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
+		out.Logger.Print(err)
 		return err
 	}
 	defer listener.Close()
@@ -134,6 +145,7 @@ func Start() error {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
+			out.Logger.Print(err)
 			return err
 		}
 		go handleConnection(conn)

@@ -140,14 +140,14 @@ func StartAdvertising() error {
 
 func StopAdvertising() {
 	adapter.DefaultAdvertisement().Stop()
-	out.Log("Stopping server")
+	out.Logger.Print("Stopping server")
 	os.Exit(0)
 }
 
 func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Sensor) {
 
 	if len(value) < 263 {
-		out.Log("Invalid data format received")
+		out.Logger.Print("Invalid data format received")
 		return
 	}
 	data := value[:len(value)-256]
@@ -162,12 +162,12 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 		}
 	}
 	if sensor == nil {
-		out.Log("Device " + model.MacToString(macAddress) + " tried to send data, but it is not paired with this gateway")
+		out.Logger.Print("Device " + model.MacToString(macAddress) + " tried to send data, but it is not paired with this gateway")
 		return
 	}
 
 	if !model.VerifySignature(data, signature, &sensor.PublicKey) {
-		out.Log("Invalid signature received from " + model.MacToString(macAddress))
+		out.Logger.Print("Invalid signature received from " + model.MacToString(macAddress))
 		return
 	}
 
@@ -177,7 +177,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 	measurements := []map[string]interface{}{}
 
 	if batteryLevel != -1 {
-		out.Log("Received battery data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
+		out.Logger.Print("Received battery data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 		measurements = []map[string]interface{}{
 			{
 				"sensor_id":          sensor.Mac,
@@ -254,23 +254,23 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 	resp, err := sendMeasurements(jsonData, Gateway)
 
 	if err != nil {
-		out.Log("Error sending data to server")
-		out.Error(err)
+		out.Logger.Print("Error sending data to server")
+		out.Logger.Print(err)
 		if err := saveUnsentMeasurements(jsonData, timestamp); err != nil {
-			out.Error(err)
+			out.Logger.Print(err)
 		}
 		return
 	}
 
 	if resp.StatusCode != 200 {
-		out.Log("Error sending data to server")
+		out.Logger.Print("Error sending data to server")
 
 		body := make([]byte, resp.ContentLength)
 		defer resp.Body.Close()
 		resp.Body.Read(body)
-		out.Log(string(body))
+		out.Logger.Print(string(body))
 		if err := saveUnsentMeasurements(jsonData, timestamp); err != nil {
-			out.Error(err)
+			out.Logger.Print(err)
 		}
 		return
 	}
