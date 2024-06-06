@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -145,7 +146,7 @@ func StopAdvertising() {
 
 func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Sensor) {
 
-	if len(value) < 266 {
+	if len(value) < 263 {
 		out.Log("Invalid data format received")
 		return
 	}
@@ -170,57 +171,82 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 		return
 	}
 
-	dataType := DATA_TYPES[data[6]]
-	samplingFrequency := data[7:10]
+	batteryLevel := float32(data[6])
 	timestamp := time.Now().Unix()
 
-	out.Log("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
+	measurements := []map[string]interface{}{}
 
-	var measurements []map[string]interface{}
-	if dataType == "vibration" {
-		numberOfMeasurements := (len(data) - 8) / 12 // 3 axes, 4 bytes per axis => 12 bytes per measurement
-		x, y, z := make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements)
-		for i := 0; i < numberOfMeasurements; i++ {
-			x[i] = math.Float32frombits(uint32(data[10+i*12]) | uint32(data[11+i*12])<<8 | uint32(data[12+i*12])<<16 | uint32(data[13+i*12])<<24)
-			y[i] = math.Float32frombits(uint32(data[14+i*12]) | uint32(data[15+i*12])<<8 | uint32(data[16+i*12])<<16 | uint32(data[17+i*12])<<24)
-			z[i] = math.Float32frombits(uint32(data[18+i*12]) | uint32(data[19+i*12])<<8 | uint32(data[20+i*12])<<16 | uint32(data[21+i*12])<<24)
-		}
-
+	if batteryLevel != -1 {
+		out.Log("Received battery data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 		measurements = []map[string]interface{}{
 			{
 				"sensor_id":          sensor.Mac,
 				"time":               timestamp,
-				"measurement_type":   dataType,
-				"sampling_frequency": samplingFrequency,
-				"axis":               "x",
-				"raw_data":           x,
-			},
-			{
-				"sensor_id":          sensor.Mac,
-				"time":               timestamp,
-				"measurement_type":   dataType,
-				"sampling_frequency": samplingFrequency,
-				"axis":               "y",
-				"raw_data":           y,
-			},
-			{
-				"sensor_id":          sensor.Mac,
-				"time":               timestamp,
-				"measurement_type":   dataType,
-				"sampling_frequency": samplingFrequency,
-				"axis":               "z",
-				"raw_data":           z,
+				"measurement_type":   "battery",
+				"sampling_frequency": 0,
+				"raw_data":           [1]float32{batteryLevel},
 			},
 		}
-	} else {
-		measurements = []map[string]interface{}{
-			{
-				"sensor_id":          sensor.Mac,
-				"time":               timestamp,
-				"measurement_type":   dataType,
-				"sampling_frequency": samplingFrequency,
-				"raw_data":           data[10:],
-			},
+	}
+	if len(data) > 16 {
+		measurementData := data[7:]
+		var i int32 = 0
+		for i <= int32(len(measurementData))-9 {
+			dataType := DATA_TYPES[measurementData[i]]
+			samplingFrequency := int32(binary.LittleEndian.Uint32(measurementData[i+1 : i+5]))
+			lengthOfData := int32(binary.LittleEndian.Uint32(measurementData[i+5 : i+9]))
+			if i+9+lengthOfData > int32(len(measurementData)) || lengthOfData == 0 {
+				break
+			}
+			rawData := measurementData[i+9 : i+9+lengthOfData]
+			i += 9 + lengthOfData
+
+			if dataType == "vibration" {
+				numberOfMeasurements := len(rawData) / 12 // 3 axes, 4 bytes per axis => 12 bytes per measurement
+				x, y, z := make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements)
+				for i := 0; i < numberOfMeasurements; i++ {
+					x[i] = math.Float32frombits(binary.LittleEndian.Uint32(rawData[i*12 : 4+i*12]))
+					y[i] = math.Float32frombits(binary.LittleEndian.Uint32(rawData[4+i*12 : 8+i*12]))
+					z[i] = math.Float32frombits(binary.LittleEndian.Uint32(rawData[8+i*12 : 12+i*12]))
+				}
+
+				measurements = append(measurements,
+					map[string]interface{}{
+						"sensor_id":          sensor.Mac,
+						"time":               timestamp,
+						"measurement_type":   dataType,
+						"sampling_frequency": samplingFrequency,
+						"axis":               "x",
+						"raw_data":           x,
+					},
+					map[string]interface{}{
+						"sensor_id":          sensor.Mac,
+						"time":               timestamp,
+						"measurement_type":   dataType,
+						"sampling_frequency": samplingFrequency,
+						"axis":               "y",
+						"raw_data":           y,
+					},
+					map[string]interface{}{
+						"sensor_id":          sensor.Mac,
+						"time":               timestamp,
+						"measurement_type":   dataType,
+						"sampling_frequency": samplingFrequency,
+						"axis":               "z",
+						"raw_data":           z,
+					},
+				)
+			} else {
+				measurements = append(measurements,
+					map[string]interface{}{
+						"sensor_id":          sensor.Mac,
+						"time":               timestamp,
+						"measurement_type":   dataType,
+						"sampling_frequency": samplingFrequency,
+						"raw_data":           rawData,
+					},
+				)
+			}
 		}
 	}
 

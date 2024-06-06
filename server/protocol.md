@@ -1,7 +1,8 @@
 # Transmission Protocol
 
-Uses 2048 bits RSA keys with SHA256 hash<br />
-Uses RSA PKCS #1 v1.5 signatures
+- Uses 2048 bits RSA keys with SHA256 hash
+- Uses RSA PKCS #1 v1.5 signatures
+- All values must be written in Little Endian
 
 ## Pairing:
 
@@ -13,8 +14,10 @@ Uses RSA PKCS #1 v1.5 signatures
 
 ## Data transmission
 
-- The sensor sends the data with a couple of metadata and signs it => mac (6 bytes) | battery level in % (1 byte) | data type (1 byte) | sampling frequency in Hz (4 bytes) | data | signature (256 bytes)
-- Data type: 0x00 => vibration, 0x01 => audio, 0x02 => temperature,
+- The sensor sends the data with a couple of metadata and signs it => mac (6 bytes) | battery level in % (1 byte) | for each data type: { data type (1 byte) | sampling frequency in Hz (4 bytes) | length of data (4 bytes) | data } | signature (256 bytes)
+- Can send multiple data types at once
+- Data type: 0x00 => vibration, 0x01 => audio, 0x02 => temperature
+- Send -1 as battery level if don't want to send it
 - Sampling frequency must be present even if the data type doesn't have a sampling frequency (temperature) (can be anything since it will not be used at all when decoding the data)
 
 ## Settings changes
