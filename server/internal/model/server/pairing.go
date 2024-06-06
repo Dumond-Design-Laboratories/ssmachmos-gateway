@@ -99,7 +99,7 @@ func pairConfirmation(value []byte) {
 	}
 	state.pairing = [6]byte{}
 	pairResponseCharacteristic.Write([]byte{})
-	model.AddSensor(mac, state.requested[mac].publicKey, Sensors)
+	model.AddSensor(mac, state.requested[mac].dataTypes, state.requested[mac].collectionCapacity, state.requested[mac].publicKey, Sensors)
 	delete(state.requested, mac)
 
 	out.PairingLog("PAIR-SUCCESS:" + model.MacToString(mac))

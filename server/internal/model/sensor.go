@@ -100,7 +100,7 @@ func RemoveSensor(mac [6]byte, sensors *[]Sensor) error {
 	return nil
 }
 
-func AddSensor(mac [6]byte, publicKey *rsa.PublicKey, sensors *[]Sensor) error {
+func AddSensor(mac [6]byte, types []string, collectionCapacity int, publicKey *rsa.PublicKey, sensors *[]Sensor) error {
 	if sensors == nil {
 		return errors.New("sensors is nil")
 	}
@@ -108,24 +108,33 @@ func AddSensor(mac [6]byte, publicKey *rsa.PublicKey, sensors *[]Sensor) error {
 	sensor := Sensor{
 		Mac:                mac,
 		Name:               "Sensor " + MacToString(mac),
-		Types:              []string{"vibration", "temperature", "acoustic"},
+		Types:              types,
 		WakeUpInterval:     3600,
 		BatteryLevel:       -1,
-		CollectionCapacity: 100000,
-		Settings: map[string]map[string]string{
-			"vibration": {
+		CollectionCapacity: collectionCapacity,
+		Settings:           map[string]map[string]string{},
+		PublicKey:          *publicKey,
+	}
+
+	for _, t := range types {
+		switch t {
+		case "vibration":
+			sensor.Settings["vibration"] = map[string]string{
 				"active":             "true",
-				"sampling_frequency": "1000",
-			},
-			"temperature": {
+				"sampling_frequency": "100",
+				"sampling_duration":  "1",
+			}
+		case "temperature":
+			sensor.Settings["temperature"] = map[string]string{
 				"active": "true",
-			},
-			"acoustic": {
+			}
+		case "acoustic":
+			sensor.Settings["acoustic"] = map[string]string{
 				"active":             "true",
-				"sampling_frequency": "44100",
-			},
-		},
-		PublicKey: *publicKey,
+				"sampling_frequency": "8000",
+				"sampling_duration":  "1",
+			}
+		}
 	}
 
 	*sensors = append(*sensors, sensor)
