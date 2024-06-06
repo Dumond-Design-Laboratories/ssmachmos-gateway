@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/binary"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -37,33 +38,21 @@ func ParsePublicKey(value []byte) (*rsa.PublicKey, error) {
 	return rsaPub, nil
 }
 
-func UuidToBytes(uuid [4]uint32) [16]byte {
-	return [16]byte{
-		byte(uuid[0] >> 24),
-		byte(uuid[0] >> 16),
-		byte(uuid[0] >> 8),
-		byte(uuid[0]),
-		byte(uuid[1] >> 24),
-		byte(uuid[1] >> 16),
-		byte(uuid[1] >> 8),
-		byte(uuid[1]),
-		byte(uuid[2] >> 24),
-		byte(uuid[2] >> 16),
-		byte(uuid[2] >> 8),
-		byte(uuid[2]),
-		byte(uuid[3] >> 24),
-		byte(uuid[3] >> 16),
-		byte(uuid[3] >> 8),
-		byte(uuid[3]),
-	}
+func UuidToBytes(uuid [4]uint32) []byte {
+	result := []byte{}
+	result = binary.LittleEndian.AppendUint32(result[:], uuid[0])
+	result = binary.LittleEndian.AppendUint32(result[:], uuid[1])
+	result = binary.LittleEndian.AppendUint32(result[:], uuid[2])
+	result = binary.LittleEndian.AppendUint32(result[:], uuid[3])
+	return result
 }
 
 func BytesToUuid(value [16]byte) [4]uint32 {
 	return [4]uint32{
-		uint32(value[0])<<24 | uint32(value[1])<<16 | uint32(value[2])<<8 | uint32(value[3]),
-		uint32(value[4])<<24 | uint32(value[5])<<16 | uint32(value[6])<<8 | uint32(value[7]),
-		uint32(value[8])<<24 | uint32(value[9])<<16 | uint32(value[10])<<8 | uint32(value[11]),
-		uint32(value[12])<<24 | uint32(value[13])<<16 | uint32(value[14])<<8 | uint32(value[15]),
+		binary.BigEndian.Uint32(value[0:4]),
+		binary.BigEndian.Uint32(value[4:8]),
+		binary.BigEndian.Uint32(value[8:12]),
+		binary.BigEndian.Uint32(value[12:16]),
 	}
 }
 
