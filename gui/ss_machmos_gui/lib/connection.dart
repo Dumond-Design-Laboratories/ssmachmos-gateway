@@ -34,6 +34,8 @@ class Connection {
       } catch (e) {
         _state = 1;
       }
+    } else {
+      _state = 1;
     }
   }
 

@@ -61,7 +61,7 @@ func (s *Sensor) IsMacEqual(mac string) bool {
 
 func StringToMac(mac string) ([6]byte, error) {
 	var m [6]byte
-	_, err := fmt.Sscanf(mac, "%02X:%02X:%02X:%02X:%02X:%02X", &m[5], &m[4], &m[3], &m[2], &m[1], &m[0])
+	_, err := fmt.Sscanf(mac, "%02X:%02X:%02X:%02X:%02X:%02X", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5])
 	if err != nil {
 		return [6]byte{}, err
 	}
@@ -69,7 +69,7 @@ func StringToMac(mac string) ([6]byte, error) {
 }
 
 func MacToString(mac [6]byte) string {
-	return fmt.Sprintf("%02X:%02X:%02X:%02X:%02X:%02X", mac[5], mac[4], mac[3], mac[2], mac[1], mac[0])
+	return fmt.Sprintf("%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
 }
 
 func LoadSensors(path string, sensors *[]Sensor) error {

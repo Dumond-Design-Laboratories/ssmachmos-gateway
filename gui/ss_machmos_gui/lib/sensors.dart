@@ -1,13 +1,19 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/sensor_details.dart';
 
 class Sensors extends StatefulWidget {
   final List<Sensor> sensors;
   final Future<void> Function() loadSensors;
+  final Connection connection;
 
-  const Sensors({super.key, required this.sensors, required this.loadSensors});
+  const Sensors(
+      {super.key,
+      required this.sensors,
+      required this.loadSensors,
+      required this.connection});
 
   @override
   State<Sensors> createState() => _SensorsState();
@@ -51,7 +57,17 @@ class _SensorsState extends State<Sensors> {
             height: 0.5,
             color: Colors.grey,
           ),
-        if (_selectedSensor != null) SensorDetails(sensor: _selectedSensor!),
+        if (_selectedSensor != null)
+          SensorDetails(
+            sensor: _selectedSensor!,
+            connection: widget.connection,
+            onForget: () {
+              setState(() {
+                widget.sensors.remove(_selectedSensor);
+                _selectedSensor = null;
+              });
+            },
+          ),
       ],
     );
   }

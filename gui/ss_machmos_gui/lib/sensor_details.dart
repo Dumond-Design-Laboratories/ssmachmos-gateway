@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/sensors.dart';
+import 'package:ss_machmos_gui/utils.dart';
 
 class SensorDetails extends StatefulWidget {
   final Sensor sensor;
+  final Connection connection;
+  final void Function() onForget;
 
-  const SensorDetails({super.key, required this.sensor});
+  const SensorDetails({
+    super.key,
+    required this.sensor,
+    required this.connection,
+    required this.onForget,
+  });
 
   @override
   State<SensorDetails> createState() => _SensorDetailsState();
@@ -100,8 +109,22 @@ class _SensorDetailsState extends State<SensorDetails> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () {
-                          // Delete sensor
+                        onPressed: () async {
+                          await widget.connection
+                              .send("FORGET ${macToString(widget.sensor.mac)}");
+                          widget.connection.on("FORGET", (_, err) {
+                            if (err != null) {
+                              showMessage(
+                                  "Failed to forget sensor ${macToString(widget.sensor.mac)}: $err",
+                                  context);
+                            } else {
+                              showMessage(
+                                  "Forgot sensor ${macToString(widget.sensor.mac)}",
+                                  context);
+                              widget.onForget();
+                            }
+                            return true;
+                          });
                         },
                         child: const Text("Forget"),
                       ),

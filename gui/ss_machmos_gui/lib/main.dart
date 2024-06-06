@@ -210,7 +210,12 @@ class _RootState extends State<Root> {
           ),
           const SizedBox(height: 20),
           TextButton(
-            onPressed: () => _connection.openConnection(),
+            onPressed: () {
+              _connection.openConnection();
+              setState(() {
+                _connection = _connection;
+              });
+            },
             child: const Text("Try Again"),
           ),
         ],
@@ -225,6 +230,7 @@ class _RootState extends State<Root> {
                   child: Sensors(
                     sensors: _sensorsPaired,
                     loadSensors: loadSensors,
+                    connection: _connection,
                   )),
               Container(
                 width: 0.5,
