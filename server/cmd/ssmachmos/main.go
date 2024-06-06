@@ -30,13 +30,11 @@ func serve() {
 	err = server.Init(sensors, gateway)
 	if err != nil {
 		out.Logger.Print(err)
-		//panic("Error initializing server")
 	}
 
 	err = server.StartAdvertising()
 	if err != nil {
 		out.Logger.Print(err)
-		//panic("Error starting advertising")
 	}
 
 	api.Start()
