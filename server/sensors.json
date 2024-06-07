@@ -18,17 +18,17 @@
     "battery_level": -1,
     "settings": {
       "acoustic": {
-        "active": "true",
-        "sampling_frequency": "44100",
-        "sampling_duration": "1"
+        "active": true,
+        "sampling_frequency": 44100,
+        "sampling_duration": 1
       },
       "temperature": {
-        "active": "true"
+        "active": true
       },
       "vibration": {
-        "active": "true",
-        "sampling_frequency": "1000",
-        "sampling_duration": "1"
+        "active": true,
+        "sampling_frequency": 1000,
+        "sampling_duration": 1
       }
     },
     "key": {
