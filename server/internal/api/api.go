@@ -114,7 +114,6 @@ func handleConnection(conn net.Conn) {
 	for {
 		str, err := reader.ReadString('\n')
 		if err != nil {
-			out.Logger.Print(err)
 			return
 		}
 		cs := strings.Split(str, "\n")

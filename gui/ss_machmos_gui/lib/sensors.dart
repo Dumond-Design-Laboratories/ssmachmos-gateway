@@ -73,13 +73,25 @@ class _SensorsState extends State<Sensors> {
   }
 }
 
+class SensorSettings {
+  bool active;
+  int? samplingFrequency;
+  int? samplingDuration;
+
+  SensorSettings({
+    required this.active,
+    required this.samplingFrequency,
+    required this.samplingDuration,
+  });
+}
+
 class Sensor {
   Uint8List mac;
   String name;
   List<String> types;
   int wakeUpInterval;
   int batteryLevel;
-  Map<String, Map<String, String>> settings;
+  Map<String, SensorSettings> settings;
 
   Sensor({
     required this.mac,

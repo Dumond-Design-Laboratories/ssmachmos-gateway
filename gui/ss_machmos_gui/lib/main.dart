@@ -178,22 +178,30 @@ class _RootState extends State<Root> {
         return true;
       }
       try {
-        List<Sensor> sensors = jsonDecode(json)
-            .map<Sensor>((s) => Sensor(
-                  mac: Uint8List.fromList(s["mac"].cast<int>()),
-                  name: s["name"],
-                  types: s["types"].cast<String>(),
-                  wakeUpInterval: s["wake_up_interval"],
-                  batteryLevel: s["battery_level"],
-                  settings: s["settings"].cast<String, Map<String, String>>(),
-                ))
-            .toList();
+        List<Sensor> sensors = jsonDecode(json).map<Sensor>((s) {
+          Map<String, SensorSettings> settings = {};
+          for (var k in s["settings"].keys) {
+            settings[k] = SensorSettings(
+              active: s["settings"][k]["active"],
+              samplingFrequency: s["settings"][k]["sampling_frequency"],
+              samplingDuration: s["settings"][k]["sampling_duration"],
+            );
+          }
+          return Sensor(
+            mac: Uint8List.fromList(s["mac"].cast<int>()),
+            name: s["name"],
+            types: s["types"].cast<String>(),
+            wakeUpInterval: s["wake_up_interval"],
+            batteryLevel: s["battery_level"],
+            settings: settings,
+          );
+        }).toList();
         setState(() {
           _sensorsPaired = sensors;
         });
         return true;
       } catch (e) {
-        showMessage("Failed to load sensors", context);
+        showMessage("Failed to load sensors: $e", context);
         return true;
       }
     });

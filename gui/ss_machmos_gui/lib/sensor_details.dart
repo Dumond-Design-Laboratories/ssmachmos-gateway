@@ -27,7 +27,7 @@ class _SensorDetailsState extends State<SensorDetails> {
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: SizedBox(
-            width: 350,
+            width: 450,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -83,23 +83,54 @@ class _SensorDetailsState extends State<SensorDetails> {
                               style:
                                   const TextStyle(fontWeight: FontWeight.bold)),
                         ),
-                        for (String subKey in (widget.sensor.settings
-                                .cast<String, dynamic>()[key]!
-                                .cast<String, String>())
-                            .keys)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 20),
-                            child: SensorDetailField(
-                                name: subKey,
-                                value: widget.sensor.settings
-                                    .cast<String, dynamic>()[key]!
-                                    .cast<String, String>()[subKey],
-                                onChanged: (value) {
-                                  widget.sensor.settings
-                                      .cast<String, dynamic>()[key]!
-                                      .cast<String, String>()[subKey] = value;
-                                }),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 20),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  const Text("Active:",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 10),
+                                  Checkbox(
+                                    value: widget.sensor.settings[key]!.active,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        widget.sensor.settings[key]!.active =
+                                            value ?? false;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                              if (key != "temperature")
+                                SensorDetailField(
+                                  name: "Sampling Frequency",
+                                  value: widget
+                                      .sensor.settings[key]!.samplingFrequency
+                                      .toString(),
+                                  onChanged: (value) {
+                                    widget.sensor.settings[key]!
+                                        .samplingFrequency = int.parse(value);
+                                  },
+                                  units: "s",
+                                ),
+                              if (key != "temperature")
+                                SensorDetailField(
+                                  name: "Sampling Duration",
+                                  value: widget
+                                      .sensor.settings[key]!.samplingDuration
+                                      .toString(),
+                                  onChanged: (value) {
+                                    widget.sensor.settings[key]!
+                                        .samplingDuration = int.parse(value);
+                                  },
+                                  units: "s",
+                                ),
+                            ],
                           ),
+                        ),
                       ],
                     ),
                   ),
