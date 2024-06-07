@@ -31,10 +31,11 @@ func serve() {
 	if err != nil {
 		out.Logger.Print(err)
 	}
-
-	err = server.StartAdvertising()
-	if err != nil {
-		out.Logger.Print(err)
+	if err == nil {
+		err = server.StartAdvertising()
+		if err != nil {
+			out.Logger.Print(err)
+		}
 	}
 
 	api.Start()
