@@ -79,12 +79,15 @@ class _RootState extends State<Root> {
       _pairingEnabled = false;
       _sensorsPaired = [];
     });
-    _connection
-        .openConnection()
-        .then((_) => _connection.listen())
-        .then((_) => setState(() {
-              _connection = _connection;
-            }));
+    openConnection();
+  }
+
+  void openConnection() {
+    _connection.openConnection().then((_) => _connection.listen()).then((_) {
+      setState(() {
+        _connection = _connection;
+      });
+    });
   }
 
   @override
@@ -211,10 +214,7 @@ class _RootState extends State<Root> {
           const SizedBox(height: 20),
           TextButton(
             onPressed: () {
-              _connection.openConnection();
-              setState(() {
-                _connection = _connection;
-              });
+              openConnection();
             },
             child: const Text("Try Again"),
           ),

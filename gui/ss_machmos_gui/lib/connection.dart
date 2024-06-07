@@ -28,13 +28,13 @@ class Connection {
   }
 
   Future<void> send(String message) async {
-    if (_socket != null) {
-      try {
-        _socket!.write("\n$message\n");
-      } catch (e) {
-        _state = 1;
-      }
-    } else {
+    if (_socket == null) {
+      _state = 1;
+      return;
+    }
+    try {
+      _socket!.write("\n$message\n");
+    } catch (_) {
       _state = 1;
     }
   }

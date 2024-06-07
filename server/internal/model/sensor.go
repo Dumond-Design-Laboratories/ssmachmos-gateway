@@ -12,15 +12,21 @@ import (
 
 const SENSORS_FILE = "sensors.json"
 
+type settings struct {
+	Active            bool `json:"active"`
+	SamplingFrequency int  `json:"sampling_frequency"`
+	SamplingDuration  int  `json:"sampling_duration"`
+}
+
 type Sensor struct {
-	Mac                [6]byte                      `json:"mac"`
-	Name               string                       `json:"name"`
-	Types              []string                     `json:"types"`
-	WakeUpInterval     int                          `json:"wake_up_interval"`
-	BatteryLevel       int                          `json:"battery_level"`
-	CollectionCapacity int                          `json:"collection_capacity"`
-	Settings           map[string]map[string]string `json:"settings"`
-	PublicKey          rsa.PublicKey                `json:"key"`
+	Mac                [6]byte             `json:"mac"`
+	Name               string              `json:"name"`
+	Types              []string            `json:"types"`
+	WakeUpInterval     int                 `json:"wake_up_interval"`
+	BatteryLevel       int                 `json:"battery_level"`
+	CollectionCapacity int                 `json:"collection_capacity"`
+	Settings           map[string]settings `json:"settings"`
+	PublicKey          rsa.PublicKey       `json:"key"`
 }
 
 func (s *Sensor) ToString() string {
@@ -44,9 +50,12 @@ func (s *Sensor) ToString() string {
 	str += "Settings:\n"
 	for setting, value := range s.Settings {
 		str += "\t" + setting + ":\n"
-		for k, v := range value {
-			str += "\t\t" + k + ": " + v + "\n"
+		str += "\t\tActive: " + strconv.FormatBool(value.Active) + "\n"
+		if setting == "temperature" {
+			continue
 		}
+		str += "\t\tSampling Frequency: " + strconv.Itoa(value.SamplingFrequency) + "\n"
+		str += "\t\tSampling Duration: " + strconv.Itoa(value.SamplingDuration) + "\n"
 	}
 	return str
 }
@@ -112,27 +121,27 @@ func AddSensor(mac [6]byte, types []string, collectionCapacity int, publicKey *r
 		WakeUpInterval:     3600,
 		BatteryLevel:       -1,
 		CollectionCapacity: collectionCapacity,
-		Settings:           map[string]map[string]string{},
+		Settings:           map[string]settings{},
 		PublicKey:          *publicKey,
 	}
 
 	for _, t := range types {
 		switch t {
 		case "vibration":
-			sensor.Settings["vibration"] = map[string]string{
-				"active":             "true",
-				"sampling_frequency": "100",
-				"sampling_duration":  "1",
+			sensor.Settings["vibration"] = settings{
+				Active:            true,
+				SamplingFrequency: 100,
+				SamplingDuration:  1,
 			}
 		case "temperature":
-			sensor.Settings["temperature"] = map[string]string{
-				"active": "true",
+			sensor.Settings["temperature"] = settings{
+				Active: true,
 			}
 		case "acoustic":
-			sensor.Settings["acoustic"] = map[string]string{
-				"active":             "true",
-				"sampling_frequency": "8000",
-				"sampling_duration":  "1",
+			sensor.Settings["acoustic"] = settings{
+				Active:            true,
+				SamplingFrequency: 8000,
+				SamplingDuration:  1,
 			}
 		}
 	}
@@ -170,18 +179,25 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 
 		switch setting {
 		case "active":
-			if value != "true" && value != "false" {
-				return errors.New("invalid value for active setting")
-			}
-			s.Settings[dataType][setting] = value
+			setting := s.Settings[dataType]
+			setting.Active = value == "true"
+			s.Settings[dataType] = setting
 		case "sampling_frequency":
-			_, err := strconv.Atoi(value)
+			intValue, err := strconv.Atoi(value)
 			if err != nil {
 				return errors.New("invalid value for sampling_frequency setting")
 			}
-			s.Settings[dataType][setting] = value
+			setting := s.Settings[dataType]
+			setting.SamplingFrequency = intValue
+			s.Settings[dataType] = setting
 		case "sampling_duration":
-			return errors.New("unimplemented setting")
+			intValue, err := strconv.Atoi(value)
+			if err != nil {
+				return errors.New("invalid value for sampling_duration setting")
+			}
+			setting := s.Settings[dataType]
+			setting.SamplingDuration = intValue
+			s.Settings[dataType] = setting
 		case "wake_up_interval":
 			intValue, err := strconv.Atoi(value)
 			if err != nil {
