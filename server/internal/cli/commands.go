@@ -271,12 +271,12 @@ func Config(options []string, args []string, conn net.Conn) {
 			fmt.Println("Usage: config --sensor <mac-address> <setting> <value>")
 			return
 		}
-		err := sendCommand("SET-SENSOR-SETTING "+args[0]+" "+args[1]+" "+args[2], conn)
+		err := sendCommand("SET-SENSOR-SETTINGS "+args[0]+" "+args[1]+" "+args[2], conn)
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
 		}
-		waitFor("OK:SET-SENSOR-SETTING", "ERR:SET-SENSOR-SETTING")
+		waitFor("OK:SET-SENSOR-SETTINGS", "ERR:SET-SENSOR-SETTINGS")
 	default:
 		fmt.Printf("Option %s does not exist for command config\n", options[0])
 	}

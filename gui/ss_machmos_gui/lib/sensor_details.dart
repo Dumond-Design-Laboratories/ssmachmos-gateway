@@ -3,27 +3,24 @@ import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/sensors.dart';
 import 'package:ss_machmos_gui/utils.dart';
 
-class SensorDetails extends StatefulWidget {
+class SensorDetails extends StatelessWidget {
   final Sensor sensor;
   final Connection connection;
   final void Function() onForget;
+  final Future<void> Function() loadSensors;
 
   const SensorDetails({
     super.key,
     required this.sensor,
     required this.connection,
     required this.onForget,
+    required this.loadSensors,
   });
 
   @override
-  State<SensorDetails> createState() => _SensorDetailsState();
-}
-
-class _SensorDetailsState extends State<SensorDetails> {
-  @override
   Widget build(BuildContext context) {
     var settingsWidget = [
-      for (String key in widget.sensor.settings.keys)
+      for (String key in sensor.settings.keys)
         Padding(
           padding: const EdgeInsets.only(left: 20, top: 10),
           child: Column(
@@ -41,50 +38,52 @@ class _SensorDetailsState extends State<SensorDetails> {
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(width: 10),
                         Checkbox(
-                          value: widget.sensor.settings[key]!.active,
+                          value: sensor.settings[key]!.active,
                           onChanged: (value) {
-                            setState(() {
-                              widget.sensor.settings[key]!.active =
-                                  value ?? false;
-                            });
+                            sensor.settings[key]!.active = value ?? false;
                           },
                         ),
                       ],
                     ),
                     SensorDetailField(
                         name: "Wake-Up Interval",
-                        value: widget.sensor.settings[key]!.wakeUpInterval
-                            .toString(),
+                        value: sensor.settings[key]!.wakeUpInterval.toString(),
                         onChanged: (value) {
-                          widget.sensor.settings[key]!.wakeUpInterval =
-                              int.parse(value);
+                          try {
+                            sensor.settings[key]!.wakeUpInterval =
+                                int.parse(value);
+                          } catch (_) {}
                         },
                         units: "seconds"),
                     SensorDetailField(
                       name: "Next Wake-Up",
-                      value: widget.sensor.settings[key]!.nextWakeUp
-                          .toIso8601String(),
+                      value:
+                          sensor.settings[key]!.nextWakeUp.toLocal().toString(),
                       readOnly: true,
                     ),
                     if (key != "temperature")
                       SensorDetailField(
                         name: "Sampling Frequency",
-                        value: widget.sensor.settings[key]!.samplingFrequency
-                            .toString(),
+                        value:
+                            sensor.settings[key]!.samplingFrequency.toString(),
                         onChanged: (value) {
-                          widget.sensor.settings[key]!.samplingFrequency =
-                              int.parse(value);
+                          try {
+                            sensor.settings[key]!.samplingFrequency =
+                                int.parse(value);
+                          } catch (_) {}
                         },
                         units: "Hz",
                       ),
                     if (key != "temperature")
                       SensorDetailField(
                         name: "Sampling Duration",
-                        value: widget.sensor.settings[key]!.samplingDuration
-                            .toString(),
+                        value:
+                            sensor.settings[key]!.samplingDuration.toString(),
                         onChanged: (value) {
-                          widget.sensor.settings[key]!.samplingDuration =
-                              int.parse(value);
+                          try {
+                            sensor.settings[key]!.samplingDuration =
+                                int.parse(value);
+                          } catch (_) {}
                         },
                         units: "seconds",
                       ),
@@ -101,18 +100,16 @@ class _SensorDetailsState extends State<SensorDetails> {
           children: [
             TextButton(
               onPressed: () async {
-                await widget.connection
-                    .send("FORGET ${macToString(widget.sensor.mac)}");
-                widget.connection.on("FORGET", (_, err) {
+                await connection.send("FORGET ${macToString(sensor.mac)}");
+                connection.on("FORGET", (_, err) {
                   if (err != null) {
                     showMessage(
-                        "Failed to forget sensor ${macToString(widget.sensor.mac)}: $err",
+                        "Failed to forget sensor ${macToString(sensor.mac)}: $err",
                         context);
                   } else {
                     showMessage(
-                        "Forgot sensor ${macToString(widget.sensor.mac)}",
-                        context);
-                    widget.onForget();
+                        "Forgot sensor ${macToString(sensor.mac)}", context);
+                    onForget();
                   }
                   return true;
                 });
@@ -122,7 +119,26 @@ class _SensorDetailsState extends State<SensorDetails> {
             const SizedBox(width: 10),
             TextButton(
               onPressed: () {
-                // Save sensor
+                connection.send("SET-SENSOR-SETTINGS ${macToString(sensor.mac)}"
+                    " name ${sensor.name.replaceAll(" ", "_")}"
+                    " ${sensor.settings.keys.map((k) {
+                  var s = sensor.settings[k]!;
+                  return "${k}_active ${s.active}"
+                      " ${k}_wake_up_interval ${s.wakeUpInterval}"
+                      " ${k}_next_wake_up ${s.nextWakeUp.toIso8601String()}"
+                      " ${k}_sampling_frequency ${s.samplingFrequency}"
+                      " ${k}_sampling_duration ${s.samplingDuration}";
+                }).join(" ")}");
+                connection.on("SET-SENSOR-SETTINGS", (_, err) {
+                  if (err != null) {
+                    showMessage(
+                        "Failed to save ${sensor.name} settings", context);
+                  } else {
+                    showMessage("${sensor.name} settings saved", context);
+                    loadSensors();
+                  }
+                  return true;
+                });
               },
               child: const Text("Save"),
             ),
@@ -140,28 +156,28 @@ class _SensorDetailsState extends State<SensorDetails> {
             children: [
               SensorDetailField(
                 name: "Name",
-                value: widget.sensor.name,
+                value: sensor.name,
                 onChanged: (value) {
-                  widget.sensor.name = value;
+                  sensor.name = value;
                 },
               ),
               SensorDetailField(
                 name: "MAC",
-                value: macToString(widget.sensor.mac),
+                value: macToString(sensor.mac),
                 readOnly: true,
               ),
               SensorDetailField(
                 name: "Types",
-                value: widget.sensor.types.join(", "),
+                value: sensor.types.join(", "),
                 readOnly: true,
               ),
               SensorDetailField(
                 name: "Battery Level",
-                value: widget.sensor.batteryLevel == -1
+                value: sensor.batteryLevel == -1
                     ? "Unknown"
-                    : widget.sensor.batteryLevel.toString(),
+                    : sensor.batteryLevel.toString(),
                 readOnly: true,
-                units: widget.sensor.batteryLevel == -1 ? "" : "mV",
+                units: sensor.batteryLevel == -1 ? "" : "mV",
               ),
               Container(
                 height: 0.5,

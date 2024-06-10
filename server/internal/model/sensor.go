@@ -165,9 +165,9 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 	}
 
 	var sensor *Sensor
-	for _, s := range *sensors {
+	for i, s := range *sensors {
 		if s.Mac == mac {
-			sensor = &s
+			sensor = &(*sensors)[i]
 			break
 		}
 	}
@@ -183,6 +183,7 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 
 	settingParts := strings.Split(setting, "_")
 	if len(settingParts) < 2 {
+		fmt.Println(settingParts)
 		return errors.New("invalid setting format")
 	}
 
@@ -207,7 +208,7 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 			return errors.New("invalid value for sampling_frequency setting (must an integer between 0 and 4 294 967 295)")
 		}
 		setting := sensor.Settings[dataType]
-		err = isExceedingCollectionCapacity(sensor, intValue, dataType, setting)
+		err = isExceedingCollectionCapacity(sensor, "sampling_frequency", intValue, dataType, setting)
 		if err != nil {
 			return err
 		}
@@ -223,7 +224,7 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 			return errors.New("invalid value for sampling_duration setting (must an integer between 0 and 65 535)")
 		}
 		setting := sensor.Settings[dataType]
-		err = isExceedingCollectionCapacity(sensor, intValue, dataType, setting)
+		err = isExceedingCollectionCapacity(sensor, "sampling_duration", intValue, dataType, setting)
 		if err != nil {
 			return err
 		}
@@ -275,20 +276,32 @@ func getCollectionSize(sensor *Sensor) int {
 	return result
 }
 
-func isExceedingCollectionCapacity(sensor *Sensor, value int, dataType string, settings settings) error {
+func isExceedingCollectionCapacity(sensor *Sensor, setting string, value int, dataType string, settings settings) error {
 	currentCollectionSize := getCollectionSize(sensor)
+	if dataType == "temperature" {
+		return nil
+	}
+	if settings.SamplingDuration == 0 || settings.SamplingFrequency == 0 {
+		return errors.New("sampling_duration and sampling_frequency must be greater than 0")
+	}
+
+	sizeOfData := 1
 	if dataType == "vibration" {
-		currentCollectionSize -= 12 * int(settings.SamplingDuration) * int(settings.SamplingFrequency) // 3 axes of 4 bytes each
-		max := (int(sensor.CollectionCapacity) - currentCollectionSize) / (12 * int(settings.SamplingDuration))
-		if value > max {
-			return errors.New("invalid value for sampling_frequency setting (exceeds collection capacity of sensor (current maximum: " + strconv.Itoa(max) + "))")
-		}
+		sizeOfData = 12 // 3 axes of 4 bytes each
 	} else {
-		currentCollectionSize -= 4 * int(settings.SamplingDuration) * int(settings.SamplingFrequency) // TODO check the format of the raw data for acoustic and temperature (assuming a 4 bytes number)
-		max := (int(sensor.CollectionCapacity) - currentCollectionSize) / (4 * int(settings.SamplingDuration))
-		if value > max {
-			return errors.New("invalid value for sampling_frequency setting (exceeds collection capacity of sensor (current maximum: " + strconv.Itoa(max) + "))")
-		}
+		sizeOfData = 4 // TODO check the format of the raw data for acoustic and temperature (assuming a 4 bytes number for now)
+	}
+	otherFactor := 1
+	if setting == "sampling_frequency" {
+		otherFactor = int(settings.SamplingDuration)
+	} else {
+		otherFactor = int(settings.SamplingFrequency)
+	}
+
+	currentCollectionSize -= sizeOfData * otherFactor
+	max := (int(sensor.CollectionCapacity) - currentCollectionSize) / (sizeOfData * otherFactor)
+	if value > max {
+		return errors.New("invalid value for " + setting + " setting (exceeds collection capacity of sensor (current maximum: " + strconv.Itoa(max) + "))")
 	}
 	return nil
 }

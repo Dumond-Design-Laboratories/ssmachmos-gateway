@@ -67,6 +67,7 @@ class _SensorsState extends State<Sensors> {
                 _selectedSensor = null;
               });
             },
+            loadSensors: widget.loadSensors,
           ),
       ],
     );
