@@ -32,7 +32,7 @@ class MainApp extends StatelessWidget {
         ),
       ),
       home: const DefaultTabController(
-        length: 3,
+        length: 2,
         child: Scaffold(
           appBar: TabBar(
             isScrollable: true,
@@ -41,7 +41,6 @@ class MainApp extends StatelessWidget {
             tabs: [
               Tab(text: "Sensors"),
               Tab(text: "Gateway"),
-              Tab(text: "Server Logs"),
             ],
           ),
           body: Root(),
@@ -267,9 +266,6 @@ class _RootState extends State<Root> {
             ],
           ),
           Gateway(connection: _connection),
-          const Center(
-              child: Text(
-                  "Here will be a view of the server logs (the console output of \"ssmachmos serve\")")),
         ],
       );
     } else {
