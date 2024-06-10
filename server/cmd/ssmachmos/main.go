@@ -13,6 +13,7 @@ import (
 )
 
 func serve() {
+	// if the server is already running, stop it
 	conn, err := cli.OpenConnection()
 	if err == nil {
 		conn.Write([]byte("STOP\n"))
@@ -30,8 +31,7 @@ func serve() {
 	err = server.Init(sensors, gateway)
 	if err != nil {
 		out.Logger.Print(err)
-	}
-	if err == nil {
+	} else {
 		err = server.StartAdvertising()
 		if err != nil {
 			out.Logger.Print(err)
@@ -42,12 +42,15 @@ func serve() {
 }
 
 func main() {
+
+	// the user must provide at least one argument (the command)
 	as := os.Args[1:]
 	if len(as) == 0 {
 		fmt.Println("Usage: ssmachmos <command> [options] [arguments]")
 		return
 	}
 
+	// serve does not require a connection (it creates it) and does not have any arguments or options
 	if as[0] == "serve" {
 		serve()
 		return
@@ -57,32 +60,30 @@ func main() {
 	args := make([]string, len(as)-1)
 
 	var (
+		i int
 		j int
-		k int
 	)
-	for i, a := range as {
-		if i == 0 {
-			continue
-		}
-
+	// skip the first argument (the command)
+	for _, a := range as[1:] {
 		if strings.HasPrefix(a, "--") {
-			options[j] = a
-			j++
+			options[i] = a
+			i++
 		} else {
-			args[k] = a
-			k++
+			args[j] = a
+			j++
 		}
 	}
 
-	options = options[:j]
-	args = args[:k]
+	options = options[:i]
+	args = args[:j]
 
+	// open a unix domain socket connection to the server
 	conn, err := cli.OpenConnection()
-	go cli.Listen(conn)
 	if err != nil {
 		fmt.Println("Error: ", err)
 		return
 	}
+	go cli.Listen(conn)
 	defer conn.Close()
 
 	switch as[0] {
