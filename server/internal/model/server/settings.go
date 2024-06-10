@@ -1,5 +1,10 @@
 package server
 
+import (
+	"encoding/binary"
+	"time"
+)
+
 func sendSettings(value []byte) {
 	if len(value) < 6 {
 		return
@@ -21,12 +26,19 @@ func sendSettings(value []byte) {
 			}
 			switch dataType {
 			case "vibration":
-				response = append(response, 0x00, active, byte(settings.SamplingFrequency>>24), byte(settings.SamplingFrequency>>16), byte(settings.SamplingFrequency>>8), byte(settings.SamplingFrequency))
+				response = append(response, 0x00, active)
+				response = binary.LittleEndian.AppendUint32(response, uint32(settings.SamplingFrequency))
+				response = binary.LittleEndian.AppendUint16(response, uint16(settings.SamplingDuration))
 			case "audio":
-				response = append(response, 0x01, active, byte(settings.SamplingFrequency>>24), byte(settings.SamplingFrequency>>16), byte(settings.SamplingFrequency>>8), byte(settings.SamplingFrequency))
+				response = append(response, 0x01, active)
+				response = binary.LittleEndian.AppendUint32(response, uint32(settings.SamplingFrequency))
+				response = binary.LittleEndian.AppendUint16(response, uint16(settings.SamplingDuration))
 			case "temperature":
-				response = append(response, 0x02, active, 0x00, 0x00, 0x00, 0x00)
+				response = append(response, 0x02, active, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
 			}
+			timeUntilNextWakeUp := settings.NextWakeUp.UnixMilli() - time.Now().UnixMilli()
+			response = binary.LittleEndian.AppendUint32(response, uint32(timeUntilNextWakeUp))
+			settings.NextWakeUp = time.Now().Add(time.Duration(settings.WakeUpInterval) * time.Second)
 		}
 
 		settingsCharacteristic.Write(response)

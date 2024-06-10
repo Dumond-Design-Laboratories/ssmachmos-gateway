@@ -171,20 +171,21 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 		return
 	}
 
-	batteryLevel := float32(data[6])
+	batteryLevel := int(data[6])
 	timestamp := time.Now().Unix()
 
 	measurements := []map[string]interface{}{}
 
 	if batteryLevel != -1 {
 		out.Logger.Print("Received battery data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
+		sensor.BatteryLevel = int(batteryLevel)
 		measurements = []map[string]interface{}{
 			{
 				"sensor_id":          sensor.Mac,
 				"time":               timestamp,
 				"measurement_type":   "battery",
 				"sampling_frequency": 0,
-				"raw_data":           [1]float32{batteryLevel},
+				"raw_data":           [1]int{batteryLevel},
 			},
 		}
 	}
@@ -202,6 +203,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 			i += 9 + lengthOfData
 
 			if dataType == "vibration" {
+				out.Logger.Print("Received vibration data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 				numberOfMeasurements := len(rawData) / 12 // 3 axes, 4 bytes per axis => 12 bytes per measurement
 				x, y, z := make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements)
 				for i := 0; i < numberOfMeasurements; i++ {
@@ -237,6 +239,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 					},
 				)
 			} else {
+				out.Logger.Print("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 				measurements = append(measurements,
 					map[string]interface{}{
 						"sensor_id":          sensor.Mac,
