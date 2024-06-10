@@ -77,28 +77,31 @@ class SensorSettings {
   bool active;
   int? samplingFrequency;
   int? samplingDuration;
+  int wakeUpInterval;
+  DateTime nextWakeUp;
 
-  SensorSettings({
-    required this.active,
-    required this.samplingFrequency,
-    required this.samplingDuration,
-  });
+  SensorSettings(
+      {required this.active,
+      required this.samplingFrequency,
+      required this.samplingDuration,
+      required this.wakeUpInterval,
+      required this.nextWakeUp});
 }
 
 class Sensor {
   Uint8List mac;
   String name;
   List<String> types;
-  int wakeUpInterval;
   int batteryLevel;
+  int collectionCapacity;
   Map<String, SensorSettings> settings;
 
   Sensor({
     required this.mac,
     required this.name,
     required this.types,
-    required this.wakeUpInterval,
     required this.batteryLevel,
+    required this.collectionCapacity,
     required this.settings,
   });
 }

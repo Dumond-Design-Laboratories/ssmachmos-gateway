@@ -185,13 +185,15 @@ class _RootState extends State<Root> {
               active: s["settings"][k]["active"],
               samplingFrequency: s["settings"][k]["sampling_frequency"],
               samplingDuration: s["settings"][k]["sampling_duration"],
+              wakeUpInterval: s["settings"][k]["wake_up_interval"],
+              nextWakeUp: DateTime.parse(s["settings"][k]["next_wake_up"]),
             );
           }
           return Sensor(
             mac: Uint8List.fromList(s["mac"].cast<int>()),
             name: s["name"],
             types: s["types"].cast<String>(),
-            wakeUpInterval: s["wake_up_interval"],
+            collectionCapacity: s["collection_capacity"],
             batteryLevel: s["battery_level"],
             settings: settings,
           );
