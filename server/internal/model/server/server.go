@@ -65,7 +65,7 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				UUID:  dataCharUUID,
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					handleData(client, offset, value, Sensors)
+					handleData(client, offset, value)
 				},
 			},
 			{
@@ -144,7 +144,8 @@ func StopAdvertising() {
 	os.Exit(0)
 }
 
-func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Sensor) {
+// see protocol.md to understand what is going on here
+func handleData(_ bluetooth.Connection, _ int, value []byte) {
 
 	if len(value) < 263 {
 		out.Logger.Print("Invalid data format received")
@@ -155,7 +156,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 
 	macAddress := [6]byte(data[:6])
 	var sensor *model.Sensor
-	for _, s := range *sensors {
+	for _, s := range *Sensors {
 		if s.Mac == macAddress {
 			sensor = &s
 			break
@@ -178,7 +179,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 
 	if batteryLevel != -1 {
 		out.Logger.Print("Received battery data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
-		sensor.BatteryLevel = int(batteryLevel)
+		sensor.BatteryLevel = batteryLevel
 		measurements = []map[string]interface{}{
 			{
 				"sensor_id":          sensor.Mac,
@@ -191,12 +192,12 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 	}
 	if len(data) > 16 {
 		measurementData := data[7:]
-		var i int32 = 0
-		for i <= int32(len(measurementData))-9 {
+		var i uint32 = 0
+		for i <= uint32(len(measurementData))-9 {
 			dataType := DATA_TYPES[measurementData[i]]
-			samplingFrequency := int32(binary.LittleEndian.Uint32(measurementData[i+1 : i+5]))
-			lengthOfData := int32(binary.LittleEndian.Uint32(measurementData[i+5 : i+9]))
-			if i+9+lengthOfData > int32(len(measurementData)) || lengthOfData == 0 {
+			samplingFrequency := binary.LittleEndian.Uint32(measurementData[i+1 : i+5])
+			lengthOfData := binary.LittleEndian.Uint32(measurementData[i+5 : i+9])
+			if i+9+lengthOfData > uint32(len(measurementData)) || lengthOfData == 0 {
 				break
 			}
 			rawData := measurementData[i+9 : i+9+lengthOfData]
@@ -246,7 +247,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte, sensors *[]model.Se
 						"time":               timestamp,
 						"measurement_type":   dataType,
 						"sampling_frequency": samplingFrequency,
-						"raw_data":           rawData,
+						"raw_data":           rawData, // TODO check the format of the raw data for acoustic and temperature
 					},
 				)
 			}

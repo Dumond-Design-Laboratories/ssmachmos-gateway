@@ -26,7 +26,7 @@ type Sensor struct {
 	Name               string              `json:"name"`
 	Types              []string            `json:"types"`
 	BatteryLevel       int                 `json:"battery_level"`
-	CollectionCapacity int                 `json:"collection_capacity"`
+	CollectionCapacity uint32              `json:"collection_capacity"`
 	Settings           map[string]settings `json:"settings"`
 	PublicKey          rsa.PublicKey       `json:"key"`
 }
@@ -47,18 +47,18 @@ func (s *Sensor) ToString() string {
 	} else {
 		str += strconv.Itoa(s.BatteryLevel) + " %\n"
 	}
-	str += "Collection Capacity: " + strconv.Itoa(s.CollectionCapacity) + " bytes\n"
+	str += "Collection Capacity: " + strconv.Itoa(int(s.CollectionCapacity)) + " bytes\n"
 	str += "Settings:\n"
 	for setting, value := range s.Settings {
 		str += "\t" + setting + ":\n"
 		str += "\t\tActive: " + strconv.FormatBool(value.Active) + "\n"
-		str += "Wake Up Interval: " + strconv.Itoa(value.WakeUpInterval) + " seconds\n"
-		str += "Next Wake Up: " + value.NextWakeUp.Local().Format(time.RFC822) + "\n"
+		str += "\t\tWake Up Interval: " + strconv.Itoa(value.WakeUpInterval) + " seconds\n"
+		str += "\t\tNext Wake Up: " + value.NextWakeUp.Local().Format(time.RFC3339) + "\n"
 		if setting == "temperature" {
 			continue
 		}
-		str += "\t\tSampling Frequency: " + strconv.Itoa(int(value.SamplingFrequency)) + "\n"
-		str += "\t\tSampling Duration: " + strconv.Itoa(int(value.SamplingDuration)) + "\n"
+		str += "\t\tSampling Frequency: " + strconv.Itoa(int(value.SamplingFrequency)) + " Hz\n"
+		str += "\t\tSampling Duration: " + strconv.Itoa(int(value.SamplingDuration)) + " seconds\n"
 	}
 	return str
 }
@@ -112,7 +112,7 @@ func RemoveSensor(mac [6]byte, sensors *[]Sensor) error {
 	return nil
 }
 
-func AddSensor(mac [6]byte, types []string, collectionCapacity int, publicKey *rsa.PublicKey, sensors *[]Sensor) error {
+func AddSensor(mac [6]byte, types []string, collectionCapacity uint32, publicKey *rsa.PublicKey, sensors *[]Sensor) error {
 	if sensors == nil {
 		return errors.New("sensors is nil")
 	}
@@ -163,74 +163,134 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 	if sensors == nil {
 		return errors.New("sensors is nil")
 	}
+
+	var sensor *Sensor
 	for _, s := range *sensors {
-		if s.Mac != mac {
-			continue
+		if s.Mac == mac {
+			sensor = &s
+			break
 		}
+	}
+	if sensor == nil {
+		return errors.New("sensor not found")
+	}
 
-		if setting == "name" {
-			s.Name = value
-			err := saveSensors(SENSORS_FILE, sensors)
-			return err
-		}
-
-		settingParts := strings.Split(setting, "_")
-		if len(settingParts) < 2 {
-			return errors.New("invalid setting format")
-		}
-
-		dataType := settingParts[0]
-		if dataType != "vibration" && dataType != "temperature" && dataType != "acoustic" {
-			return errors.New("invalid setting data type")
-		}
-		setting = strings.Join(settingParts[1:], "_")
-
-		switch setting {
-		case "active":
-			setting := s.Settings[dataType]
-			setting.Active = value == "true"
-			s.Settings[dataType] = setting
-		case "sampling_frequency":
-			intValue, err := strconv.Atoi(value)
-			if err != nil {
-				return errors.New("invalid value for sampling_frequency setting (must be an integer (Hz))")
-			}
-			setting := s.Settings[dataType]
-			setting.SamplingFrequency = uint32(intValue)
-			s.Settings[dataType] = setting
-		case "sampling_duration":
-			intValue, err := strconv.Atoi(value)
-			if err != nil {
-				return errors.New("invalid value for sampling_duration setting (must be an integer (seconds))")
-			}
-			setting := s.Settings[dataType]
-			setting.SamplingDuration = uint16(intValue)
-			s.Settings[dataType] = setting
-		case "wake_up_interval":
-			intValue, err := strconv.Atoi(value)
-			if err != nil {
-				return errors.New("invalid value for wake_up_interval setting (must be an integer (seconds))")
-			}
-			setting := s.Settings[dataType]
-			setting.WakeUpInterval = intValue
-			s.Settings[dataType] = setting
-		case "next_wake_up":
-			timeValue, err := time.Parse(time.RFC3339, value)
-			if err != nil {
-				return errors.New("invalid value for next_wake_up setting (must be a date in RFC3339 format)")
-			}
-			setting := s.Settings[dataType]
-			setting.NextWakeUp = timeValue
-			s.Settings[dataType] = setting
-		default:
-			return errors.New("setting " + setting + " doesn't exist")
-		}
-
+	if setting == "name" {
+		sensor.Name = value
 		err := saveSensors(SENSORS_FILE, sensors)
 		return err
-
 	}
-	return errors.New("sensor not found")
+
+	settingParts := strings.Split(setting, "_")
+	if len(settingParts) < 2 {
+		return errors.New("invalid setting format")
+	}
+
+	dataType := settingParts[0]
+	if dataType != "vibration" && dataType != "temperature" && dataType != "acoustic" {
+		return errors.New("invalid setting data type")
+	}
+	setting = strings.Join(settingParts[1:], "_")
+
+	switch setting {
+	case "active":
+		setting := sensor.Settings[dataType]
+		setting.Active = value == "true"
+		sensor.Settings[dataType] = setting
+	case "sampling_frequency":
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			return errors.New("invalid value for sampling_frequency setting (must an integer (Hz))")
+		}
+		// not a uint32
+		if intValue < 0 || intValue > 4294967295 {
+			return errors.New("invalid value for sampling_frequency setting (must an integer between 0 and 4 294 967 295)")
+		}
+		setting := sensor.Settings[dataType]
+		err = isExceedingCollectionCapacity(sensor, intValue, dataType, setting)
+		if err != nil {
+			return err
+		}
+		setting.SamplingFrequency = uint32(intValue)
+		sensor.Settings[dataType] = setting
+	case "sampling_duration":
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			return errors.New("invalid value for sampling_duration setting (must be an integer (seconds))")
+		}
+		// not a uint16
+		if intValue < 0 || intValue > 65535 {
+			return errors.New("invalid value for sampling_duration setting (must an integer between 0 and 65 535)")
+		}
+		setting := sensor.Settings[dataType]
+		err = isExceedingCollectionCapacity(sensor, intValue, dataType, setting)
+		if err != nil {
+			return err
+		}
+		setting.SamplingDuration = uint16(intValue)
+		sensor.Settings[dataType] = setting
+	case "wake_up_interval":
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			return errors.New("invalid value for wake_up_interval setting (must be an integer (seconds))")
+		}
+		// when converted to milliseconds it will not be a uint32
+		if intValue < 0 || intValue > 4294967 {
+			return errors.New("invalid value for wake_up_interval setting (must an integer between 0 and 4 294 967)")
+		}
+		setting := sensor.Settings[dataType]
+		setting.WakeUpInterval = intValue
+		sensor.Settings[dataType] = setting
+	case "next_wake_up":
+		timeValue, err := time.Parse(time.RFC3339, value)
+		if err != nil {
+			return errors.New("invalid value for next_wake_up setting (must be a date in RFC3339 format)")
+		}
+		setting := sensor.Settings[dataType]
+		setting.NextWakeUp = timeValue
+		sensor.Settings[dataType] = setting
+	default:
+		return errors.New("setting " + setting + " doesn't exist")
+	}
+
+	err := saveSensors(SENSORS_FILE, sensors)
+	return err
+}
+
+func getCollectionSize(sensor *Sensor) int {
+	result := 0
+	for dataType, settings := range sensor.Settings {
+		if dataType == "temperature" {
+			result += 4 // TODO check the format of the raw data for acoustic and temperature (assuming a 4 bytes number)
+			continue
+		}
+		term := int(settings.SamplingFrequency) * int(settings.SamplingDuration)
+		if dataType == "vibration" {
+			term *= 12 // 3 axes of 4 bytes each
+		} else {
+			term *= 4 // TODO check the format of the raw data for acoustic and temperature (assuming a 4 bytes number)
+		}
+		result += term
+	}
+	return result
+}
+
+func isExceedingCollectionCapacity(sensor *Sensor, value int, dataType string, settings settings) error {
+	currentCollectionSize := getCollectionSize(sensor)
+	if dataType == "vibration" {
+		currentCollectionSize -= 12 * int(settings.SamplingDuration) * int(settings.SamplingFrequency) // 3 axes of 4 bytes each
+		max := (int(sensor.CollectionCapacity) - currentCollectionSize) / (12 * int(settings.SamplingDuration))
+		if value > max {
+			return errors.New("invalid value for sampling_frequency setting (exceeds collection capacity of sensor (current maximum: " + strconv.Itoa(max) + "))")
+		}
+	} else {
+		currentCollectionSize -= 4 * int(settings.SamplingDuration) * int(settings.SamplingFrequency) // TODO check the format of the raw data for acoustic and temperature (assuming a 4 bytes number)
+		max := (int(sensor.CollectionCapacity) - currentCollectionSize) / (4 * int(settings.SamplingDuration))
+		if value > max {
+			return errors.New("invalid value for sampling_frequency setting (exceeds collection capacity of sensor (current maximum: " + strconv.Itoa(max) + "))")
+		}
+	}
+	return nil
 }
 
 func saveSensors(path string, sensors *[]Sensor) error {

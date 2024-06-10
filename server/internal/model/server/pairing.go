@@ -12,7 +12,7 @@ import (
 type request struct {
 	publicKey          *rsa.PublicKey
 	dataTypes          []string
-	collectionCapacity int
+	collectionCapacity uint32
 }
 
 type pairingState struct {
@@ -31,6 +31,7 @@ func DisablePairing() {
 	state.active = false
 }
 
+// see protocol.md to understand what is going on here
 func pairRequest(value []byte) {
 	if len(value) < 11 || !state.active {
 		return
@@ -48,7 +49,7 @@ func pairRequest(value []byte) {
 		dataTypes = append(dataTypes, "vibration")
 	}
 
-	collectionCapacity := int(binary.LittleEndian.Uint32(value[7:11]))
+	collectionCapacity := binary.LittleEndian.Uint32(value[7:11])
 	publicKey, err := model.ParsePublicKey(value[11:])
 	if err != nil {
 		return
@@ -74,6 +75,7 @@ func pairRequest(value []byte) {
 	out.PairingLog("REQUEST-NEW:" + model.MacToString(mac))
 }
 
+// see protocol.md to understand what is going on here
 func pairConfirmation(value []byte) {
 	if len(value) != 294 || !state.active {
 		return
@@ -105,6 +107,7 @@ func pairConfirmation(value []byte) {
 	out.PairingLog("PAIR-SUCCESS:" + model.MacToString(mac))
 }
 
+// see protocol.md to understand what is going on here
 func Pair(mac [6]byte) {
 	if !state.active {
 		out.PairingLog("PAIRING-DISABLED")

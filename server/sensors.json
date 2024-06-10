@@ -14,21 +14,29 @@
       "temperature",
       "acoustic"
     ],
-    "wake_up_interval": 3600,
     "battery_level": -1,
+    "collection_capacity": 11399998,
     "settings": {
       "acoustic": {
         "active": true,
         "sampling_frequency": 44100,
-        "sampling_duration": 1
+        "sampling_duration": 1,
+        "wake_up_interval": 3600,
+        "next_wake_up": "2024-06-10T15:25:21.019717456-04:00"
       },
       "temperature": {
-        "active": true
+        "active": true,
+        "sampling_frequency": 0,
+        "sampling_duration": 0,
+        "wake_up_interval": 3600,
+        "next_wake_up": "2024-06-10T15:25:21.019717456-04:00"
       },
       "vibration": {
         "active": true,
-        "sampling_frequency": 1000,
-        "sampling_duration": 1
+        "sampling_frequency": 18633,
+        "sampling_duration": 65535,
+        "wake_up_interval": 3600,
+        "next_wake_up": "2024-06-10T15:25:21.019717456-04:00"
       }
     },
     "key": {
