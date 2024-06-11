@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path"
 )
 
 const GATEWAY_FILE = "gateway.json"
@@ -75,7 +76,7 @@ func GetSettingsCharUUID(gateway *Gateway) ([4]uint32, error) {
 	return gateway.SettingsCharUUID, nil
 }
 
-func saveSettings(gateway *Gateway, path string) error {
+func saveSettings(gateway *Gateway, fileName string) error {
 	if gateway == nil {
 		return errors.New("gateway is nil")
 	}
@@ -84,9 +85,15 @@ func saveSettings(gateway *Gateway, path string) error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(path, jsonStr, 0666)
+	configPath, err := os.UserConfigDir()
 	if err != nil {
 		return err
 	}
-	return nil
+
+	err = os.MkdirAll(path.Join(configPath, "ss_machmos"), 0666)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(path.Join(configPath, "ss_machmos", fileName), jsonStr, 0666)
 }

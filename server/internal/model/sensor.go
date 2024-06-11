@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -309,7 +310,7 @@ func isExceedingCollectionCapacity(sensor *Sensor, setting string, value int, da
 	return nil
 }
 
-func saveSensors(path string, sensors *[]Sensor) error {
+func saveSensors(fileName string, sensors *[]Sensor) error {
 	if sensors == nil {
 		return errors.New("sensors is nil")
 	}
@@ -318,9 +319,16 @@ func saveSensors(path string, sensors *[]Sensor) error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(path, jsonStr, 0666)
+
+	configPath, err := os.UserConfigDir()
 	if err != nil {
 		return err
 	}
-	return nil
+
+	err = os.MkdirAll(path.Join(configPath, "ss_machmos"), 0666)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(path.Join(configPath, "ss_machmos", fileName), jsonStr, 0666)
 }

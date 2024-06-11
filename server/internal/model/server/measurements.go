@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
+	"path"
 
 	"github.com/jukuly/ss_mach_mo/server/internal/model"
 )
@@ -21,13 +21,12 @@ func saveUnsentMeasurements(data []byte, timestamp int64) error {
 		os.MkdirAll(UNSENT_DATA_PATH, os.ModePerm)
 	}
 
-	path, err := filepath.Abs(fmt.Sprintf("%s%d.json", UNSENT_DATA_PATH, timestamp))
+	err = os.MkdirAll(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, fmt.Sprintf("%d.json", timestamp)), 0666)
 	if err != nil {
 		return err
 	}
 
-	os.WriteFile(path, data, 0644)
-	return nil
+	return os.WriteFile(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, fmt.Sprintf("%d.json", timestamp)), data, 0666)
 }
 
 func sendUnsentMeasurements() {
