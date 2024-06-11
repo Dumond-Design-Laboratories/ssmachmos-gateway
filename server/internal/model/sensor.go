@@ -248,7 +248,10 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 			return errors.New("invalid value for next_wake_up setting (must be a date in RFC3339 format)")
 		}
 		setting := sensor.Settings[dataType]
-		setting.NextWakeUp = timeValue.Add(time.Duration(setting.WakeUpInterval) * time.Second)
+		if timeValue.Before(setting.NextWakeUp.Add(-1 * time.Second * time.Duration(setting.WakeUpInterval))) {
+			return errors.New("invalid value for next_wake_up setting (must be after the next wake up time)")
+		}
+		setting.NextWakeUp = timeValue
 		sensor.Settings[dataType] = setting
 	default:
 		return errors.New("setting " + setting + " doesn't exist")
