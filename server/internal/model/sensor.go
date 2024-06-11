@@ -18,7 +18,7 @@ type settings struct {
 	SamplingFrequency uint32    `json:"sampling_frequency"`
 	SamplingDuration  uint16    `json:"sampling_duration"`
 	WakeUpInterval    int       `json:"wake_up_interval"`
-	NextWakeUp        time.Time `json:"next_wake_up"`
+	NextWakeUp        time.Time `json:"next_wake_up"` // next wake up is the next time the server will transmit to the sensor to wake up (the next NEXT wake up)
 }
 
 type Sensor struct {
@@ -53,7 +53,7 @@ func (s *Sensor) ToString() string {
 		str += "\t" + setting + ":\n"
 		str += "\t\tActive: " + strconv.FormatBool(value.Active) + "\n"
 		str += "\t\tWake Up Interval: " + strconv.Itoa(value.WakeUpInterval) + " seconds\n"
-		str += "\t\tNext Wake Up: " + value.NextWakeUp.Local().Format(time.RFC3339) + "\n"
+		str += "\t\tNext Wake Up: " + value.NextWakeUp.Add(-1*time.Second*time.Duration(value.WakeUpInterval)).Local().Format(time.RFC3339) + "\n"
 		if setting == "temperature" {
 			continue
 		}
@@ -248,7 +248,7 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 			return errors.New("invalid value for next_wake_up setting (must be a date in RFC3339 format)")
 		}
 		setting := sensor.Settings[dataType]
-		setting.NextWakeUp = timeValue
+		setting.NextWakeUp = timeValue.Add(time.Duration(setting.WakeUpInterval) * time.Second)
 		sensor.Settings[dataType] = setting
 	default:
 		return errors.New("setting " + setting + " doesn't exist")

@@ -57,8 +57,11 @@ class SensorDetails extends StatelessWidget {
                         units: "seconds"),
                     SensorDetailField(
                       name: "Next Wake-Up",
-                      value:
-                          sensor.settings[key]!.nextWakeUp.toLocal().toString(),
+                      value: sensor.settings[key]!.nextWakeUp
+                          .subtract(Duration(
+                              seconds: sensor.settings[key]!.wakeUpInterval))
+                          .toLocal()
+                          .toString(),
                       readOnly: true,
                     ),
                     if (key != "temperature")
