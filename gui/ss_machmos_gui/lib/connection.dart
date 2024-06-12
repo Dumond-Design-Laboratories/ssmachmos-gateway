@@ -6,13 +6,18 @@ class Connection {
   Socket? _socket;
   late Map<String, bool Function(String, String?)>
       _waitingFor; // callback should return if we should remove the callback
+  void Function(String message)? _onLog;
+
+  int get state => _state;
+
+  set onLog(void Function(String message) callback) {
+    _onLog = callback;
+  }
 
   Connection() {
     _state = 1;
     _waitingFor = {};
   }
-
-  int get state => _state;
 
   Future<void> openConnection() async {
     _state = 0;
@@ -33,7 +38,7 @@ class Connection {
       return;
     }
     try {
-      _socket!.write("\n$message\n");
+      _socket!.write("$message\x00");
     } catch (_) {
       _state = 1;
     }
@@ -42,7 +47,7 @@ class Connection {
   Future<void> listen() async {
     if (_socket != null) {
       _socket!.listen((event) {
-        List<String> messages = String.fromCharCodes(event).split("\n");
+        List<String> messages = String.fromCharCodes(event).split('\x00');
         for (String message in messages) {
           if (message.isEmpty) {
             continue;
@@ -50,6 +55,12 @@ class Connection {
           List<String> found = [];
           List<String> parts = message.split(":");
           if (parts.length > 1) {
+            if (parts[0] == "LOG") {
+              if (_onLog != null) {
+                _onLog!(parts.sublist(1).join(":"));
+              }
+              continue;
+            }
             String command = parts[1];
             if (_waitingFor.containsKey(command)) {
               if (_waitingFor[command]!(

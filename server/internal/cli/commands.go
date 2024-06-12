@@ -47,12 +47,11 @@ func OpenConnection() (net.Conn, error) {
 func Listen(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 	for {
-		str, err := reader.ReadString('\n')
-
+		str, err := reader.ReadString('\x00')
 		if err != nil {
 			return
 		}
-		ress := strings.Split(str, "\n")
+		ress := strings.Split(str, "\x00")
 		for _, res := range ress {
 			found := []string{}
 			if msg := parseResponse(res); msg != "" {
@@ -72,7 +71,7 @@ func Listen(conn net.Conn) {
 }
 
 func sendCommand(command string, conn net.Conn) error {
-	_, err := conn.Write([]byte("\n" + command + "\n"))
+	_, err := conn.Write([]byte(command + "\x00"))
 
 	if err != nil {
 		return fmt.Errorf("failed to send command: %w", err)

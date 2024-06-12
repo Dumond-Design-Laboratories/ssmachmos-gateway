@@ -103,6 +103,12 @@ func handleCommand(command string, conn *net.Conn) string {
 			}
 		}
 		return "OK:SET-SENSOR-SETTINGS:"
+	case "ADD-LOGGER":
+		out.LoggingConnections[conn] = true
+		return "OK:ADD-LOGGER:"
+	case "REMOVE-LOGGER":
+		delete(out.LoggingConnections, conn)
+		return "OK:REMOVE-LOGGER:"
 	case "STOP":
 		stop()
 	default:
@@ -115,17 +121,17 @@ func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
 	for {
-		str, err := reader.ReadString('\n')
+		str, err := reader.ReadString('\x00')
 		if err != nil {
 			return
 		}
-		cs := strings.Split(str, "\n")
+		cs := strings.Split(str, "\x00")
 		for _, c := range cs {
 			if c == "" {
 				continue
 			}
 			response := handleCommand(c, &conn)
-			conn.Write([]byte(response + "\n"))
+			conn.Write([]byte(response + "\x00"))
 		}
 	}
 }

@@ -16,7 +16,7 @@ func serve() {
 	// if the server is already running, stop it
 	conn, err := cli.OpenConnection()
 	if err == nil {
-		conn.Write([]byte("STOP\n"))
+		conn.Write([]byte("STOP\x00"))
 		conn.Close()
 	}
 

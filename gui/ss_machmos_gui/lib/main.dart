@@ -32,7 +32,7 @@ class MainApp extends StatelessWidget {
         ),
       ),
       home: const DefaultTabController(
-        length: 2,
+        length: 3,
         child: Scaffold(
           appBar: TabBar(
             isScrollable: true,
@@ -41,6 +41,7 @@ class MainApp extends StatelessWidget {
             tabs: [
               Tab(text: "Sensors"),
               Tab(text: "Gateway"),
+              Tab(text: "Logs"),
             ],
           ),
           body: Root(),
@@ -68,30 +69,46 @@ class _RootState extends State<Root> {
 
   late Connection _connection;
 
+  late String _logs;
+
   @override
   void initState() {
     super.initState();
     setState(() {
       _connection = Connection();
+      _logs = "";
+      _connection.onLog = (message) {
+        setState(() {
+          _logs += message;
+        });
+      };
       _sensorsNearby = [];
       _pairingWith = null;
       _pairingEnabled = false;
       _sensorsPaired = [];
     });
-    openConnection();
+    openConnection().then((_) => startLogger());
   }
 
-  void openConnection() {
-    _connection.openConnection().then((_) => _connection.listen()).then((_) {
+  Future<void> openConnection() {
+    return _connection
+        .openConnection()
+        .then((_) => _connection.listen())
+        .then((_) {
       setState(() {
         _connection = _connection;
       });
     });
   }
 
+  void startLogger() {
+    _connection.send("ADD-LOGGER");
+  }
+
   @override
   void dispose() async {
     await _connection.close();
+    await _connection.send("REMOVE-LOGGER");
     super.dispose();
   }
 
@@ -266,6 +283,11 @@ class _RootState extends State<Root> {
             ],
           ),
           Gateway(connection: _connection),
+          Center(
+            child: SingleChildScrollView(
+              child: Text(_logs),
+            ),
+          ),
         ],
       );
     } else {
