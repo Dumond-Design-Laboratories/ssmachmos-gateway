@@ -54,36 +54,33 @@ class _BluetoothState extends State<Bluetooth> {
                   border: Border.all(color: Colors.grey, width: 0.5),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: ListView.separated(
-                    itemCount: widget.sensorsNearby.length + 1,
-                    separatorBuilder: (_, __) => const Divider(
-                        color: Colors.grey, height: 0.5, thickness: 0.5),
-                    itemBuilder: (BuildContext context, int index) {
-                      if (index == widget.sensorsNearby.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 30),
-                            child: SizedBox(
-                              width: 25,
-                              height: 25,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                              ),
+                child: ListView.separated(
+                  itemCount: widget.sensorsNearby.length + 1,
+                  separatorBuilder: (_, __) => const Divider(
+                      color: Colors.grey, height: 0.5, thickness: 0.5),
+                  itemBuilder: (BuildContext context, int index) {
+                    if (index == widget.sensorsNearby.length) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 30),
+                          child: SizedBox(
+                            width: 25,
+                            height: 25,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
                             ),
                           ),
-                        );
-                      }
-                      return SensorListItem(
-                        mac: widget.sensorsNearby[index],
-                        pairing:
-                            widget.pairingWith == widget.sensorsNearby[index],
-                        onPairing: () => widget
-                            .onPairingSelected(widget.sensorsNearby[index]),
+                        ),
                       );
-                    },
-                  ),
+                    }
+                    return SensorListItem(
+                      mac: widget.sensorsNearby[index],
+                      pairing:
+                          widget.pairingWith == widget.sensorsNearby[index],
+                      onPairing: () =>
+                          widget.onPairingSelected(widget.sensorsNearby[index]),
+                    );
+                  },
                 ),
               ),
             ),

@@ -70,16 +70,22 @@ class _RootState extends State<Root> {
   late Connection _connection;
 
   late String _logs;
+  late ScrollController _logsScrollController;
 
   @override
   void initState() {
     super.initState();
     setState(() {
       _connection = Connection();
+      _logsScrollController = ScrollController();
       _logs = "";
       _connection.onLog = (message) {
         setState(() {
           _logs += message;
+          if (_logsScrollController.hasClients) {
+            _logsScrollController
+                .jumpTo(_logsScrollController.position.maxScrollExtent);
+          }
         });
       };
       _sensorsNearby = [];
@@ -283,9 +289,19 @@ class _RootState extends State<Root> {
             ],
           ),
           Gateway(connection: _connection),
-          Center(
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey, width: 0.5),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            margin: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(16),
+            alignment: Alignment.bottomLeft,
             child: SingleChildScrollView(
-              child: Text(_logs),
+              controller: _logsScrollController,
+              child: SelectableText(
+                _logs,
+              ),
             ),
           ),
         ],

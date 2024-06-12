@@ -6,13 +6,13 @@ class Connection {
   Socket? _socket;
   late Map<String, bool Function(String, String?)>
       _waitingFor; // callback should return if we should remove the callback
-  void Function(String message)? _onLog;
+  void Function(String message)? onLog;
 
   int get state => _state;
 
-  set onLog(void Function(String message) callback) {
-    _onLog = callback;
-  }
+  //set onLog(void Function(String message) callback) {
+  //_onLog = callback;
+  //}
 
   Connection() {
     _state = 1;
@@ -56,8 +56,8 @@ class Connection {
           List<String> parts = message.split(":");
           if (parts.length > 1) {
             if (parts[0] == "LOG") {
-              if (_onLog != null) {
-                _onLog!(parts.sublist(1).join(":"));
+              if (onLog != null) {
+                onLog!(parts.sublist(1).join(":"));
               }
               continue;
             }
