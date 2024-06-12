@@ -62,26 +62,30 @@ class _GatewayState extends State<Gateway> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () async {
-                  await widget.connection
-                      .send("SET-GATEWAY-ID ${_idController.text}");
-                  await widget.connection
-                      .send("SET-GATEWAY-PASSWORD ${_passwordController.text}");
-                  widget.connection.on("SET-GATEWAY-ID", (_, err) {
-                    if (err != null) {
-                      showMessage("Failed to save Gateway ID", context);
-                    } else {
-                      showMessage("Gateway ID saved", context);
-                    }
-                    return true;
-                  });
-                  widget.connection.on("SET-GATEWAY-PASSWORD", (_, err) {
-                    if (err != null) {
-                      showMessage("Failed to save Gateway Password", context);
-                    } else {
-                      showMessage("Gateway Password saved", context);
-                    }
-                    return true;
-                  });
+                  if (_idController.text.isNotEmpty) {
+                    await widget.connection
+                        .send("SET-GATEWAY-ID ${_idController.text}");
+                    widget.connection.on("SET-GATEWAY-ID", (_, err) {
+                      if (err != null) {
+                        showMessage("Failed to save Gateway ID", context);
+                      } else {
+                        showMessage("Gateway ID saved", context);
+                      }
+                      return true;
+                    });
+                  }
+                  if (_passwordController.text.isNotEmpty) {
+                    await widget.connection.send(
+                        "SET-GATEWAY-PASSWORD ${_passwordController.text}");
+                    widget.connection.on("SET-GATEWAY-PASSWORD", (_, err) {
+                      if (err != null) {
+                        showMessage("Failed to save Gateway Password", context);
+                      } else {
+                        showMessage("Gateway Password saved", context);
+                      }
+                      return true;
+                    });
+                  }
                 },
                 child: const Text("Save"),
               ),

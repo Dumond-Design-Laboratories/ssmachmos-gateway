@@ -131,7 +131,7 @@ func handleConnection(conn net.Conn) {
 }
 
 func Start() error {
-	socketPath := "/tmp/ss_machmoss.sock"
+	socketPath := "/tmp/ss_machmos.sock"
 	if err := os.RemoveAll(socketPath); err != nil {
 		out.Logger.Print(err)
 		return err
