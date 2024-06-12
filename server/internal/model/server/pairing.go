@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"time"
 
-	"github.com/jukuly/ss_mach_mo/server/internal/model"
-	"github.com/jukuly/ss_mach_mo/server/internal/out"
+	"github.com/jukuly/ss_machmos/server/internal/model"
+	"github.com/jukuly/ss_machmos/server/internal/out"
 )
 
 type request struct {

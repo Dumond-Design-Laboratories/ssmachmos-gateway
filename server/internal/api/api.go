@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jukuly/ss_mach_mo/server/internal/model"
-	"github.com/jukuly/ss_mach_mo/server/internal/model/server"
-	"github.com/jukuly/ss_mach_mo/server/internal/out"
+	"github.com/jukuly/ss_machmos/server/internal/model"
+	"github.com/jukuly/ss_machmos/server/internal/model/server"
+	"github.com/jukuly/ss_machmos/server/internal/out"
 )
 
 func handleCommand(command string, conn *net.Conn) string {
@@ -131,7 +131,7 @@ func handleConnection(conn net.Conn) {
 }
 
 func Start() error {
-	socketPath := "/tmp/ss_mach_mos.sock"
+	socketPath := "/tmp/ss_machmoss.sock"
 	if err := os.RemoveAll(socketPath); err != nil {
 		out.Logger.Print(err)
 		return err

@@ -5,11 +5,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jukuly/ss_mach_mo/server/internal/api"
-	"github.com/jukuly/ss_mach_mo/server/internal/cli"
-	"github.com/jukuly/ss_mach_mo/server/internal/model"
-	"github.com/jukuly/ss_mach_mo/server/internal/model/server"
-	"github.com/jukuly/ss_mach_mo/server/internal/out"
+	"github.com/jukuly/ss_machmos/server/internal/api"
+	"github.com/jukuly/ss_machmos/server/internal/cli"
+	"github.com/jukuly/ss_machmos/server/internal/model"
+	"github.com/jukuly/ss_machmos/server/internal/model/server"
+	"github.com/jukuly/ss_machmos/server/internal/out"
 )
 
 func serve() {

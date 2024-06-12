@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"time"
 
-	"github.com/jukuly/ss_mach_mo/server/internal/model"
+	"github.com/jukuly/ss_machmos/server/internal/model"
 )
 
 // see protocol.md to understand what is going on here

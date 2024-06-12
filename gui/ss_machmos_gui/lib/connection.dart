@@ -16,7 +16,7 @@ class Connection {
 
   Future<void> openConnection() async {
     _state = 0;
-    String socketPath = "/tmp/ss_mach_mos.sock";
+    String socketPath = "/tmp/ss_machmos.sock";
     try {
       final socket = await Socket.connect(
           InternetAddress(socketPath, type: InternetAddressType.unix), 0);

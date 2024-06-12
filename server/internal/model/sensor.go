@@ -85,8 +85,18 @@ func MacToString(mac [6]byte) string {
 	return fmt.Sprintf("%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
 }
 
-func LoadSensors(path string, sensors *[]Sensor) error {
-	jsonStr, err := os.ReadFile(path)
+func LoadSensors(fileName string, sensors *[]Sensor) error {
+	configPath, err := os.UserConfigDir()
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(path.Join(configPath, "ss_machmos"), 0777)
+	if err != nil {
+		return err
+	}
+
+	jsonStr, err := os.ReadFile(path.Join(configPath, "ss_machmos", fileName))
 	if err != nil {
 		*sensors = make([]Sensor, 0)
 		return err
@@ -325,10 +335,10 @@ func saveSensors(fileName string, sensors *[]Sensor) error {
 		return err
 	}
 
-	err = os.MkdirAll(path.Join(configPath, "ss_machmos"), 0666)
+	err = os.MkdirAll(path.Join(configPath, "ss_machmos"), 0777)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(path.Join(configPath, "ss_machmos", fileName), jsonStr, 0666)
+	return os.WriteFile(path.Join(configPath, "ss_machmos", fileName), jsonStr, 0777)
 }

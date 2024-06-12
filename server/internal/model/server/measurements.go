@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/jukuly/ss_mach_mo/server/internal/model"
+	"github.com/jukuly/ss_machmos/server/internal/model"
 )
 
 func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, error) {
@@ -16,27 +16,27 @@ func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, 
 }
 
 func saveUnsentMeasurements(data []byte, timestamp int64) error {
-	_, err := os.Stat(UNSENT_DATA_PATH)
+	_, err := os.Stat(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH))
 	if os.IsNotExist(err) {
-		os.MkdirAll(UNSENT_DATA_PATH, os.ModePerm)
+		os.MkdirAll(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH), os.ModePerm)
 	}
 
-	err = os.MkdirAll(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, fmt.Sprintf("%d.json", timestamp)), 0666)
+	err = os.MkdirAll(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, fmt.Sprintf("%d.json", timestamp)), 0777)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, fmt.Sprintf("%d.json", timestamp)), data, 0666)
+	return os.WriteFile(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, fmt.Sprintf("%d.json", timestamp)), data, 0777)
 }
 
 func sendUnsentMeasurements() {
-	files, err := os.ReadDir(UNSENT_DATA_PATH)
+	files, err := os.ReadDir(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH))
 	if err != nil {
 		return
 	}
 
 	for _, file := range files {
-		data, err := os.ReadFile(UNSENT_DATA_PATH + file.Name())
+		data, err := os.ReadFile(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, file.Name()))
 		if err != nil {
 			continue
 		}

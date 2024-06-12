@@ -16,8 +16,18 @@ type Gateway struct {
 	SettingsCharUUID [4]uint32 `json:"settings_char_uuid"`
 }
 
-func LoadSettings(gateway *Gateway, path string) error {
-	jsonStr, err := os.ReadFile(path)
+func LoadSettings(gateway *Gateway, fileName string) error {
+	configPath, err := os.UserConfigDir()
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(path.Join(configPath, "ss_machmos"), 0777)
+	if err != nil {
+		return err
+	}
+
+	jsonStr, err := os.ReadFile(path.Join(configPath, "ss_machmos", fileName))
 	if err != nil {
 		gateway = &Gateway{}
 		return err
@@ -90,10 +100,10 @@ func saveSettings(gateway *Gateway, fileName string) error {
 		return err
 	}
 
-	err = os.MkdirAll(path.Join(configPath, "ss_machmos"), 0666)
+	err = os.MkdirAll(path.Join(configPath, "ss_machmos"), 0777)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(path.Join(configPath, "ss_machmos", fileName), jsonStr, 0666)
+	return os.WriteFile(path.Join(configPath, "ss_machmos", fileName), jsonStr, 0777)
 }

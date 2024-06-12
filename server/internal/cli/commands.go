@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"strings"
 
-	"github.com/jukuly/ss_mach_mo/server/internal/model"
+	"github.com/jukuly/ss_machmos/server/internal/model"
 )
 
 var messagesToPrint = map[string]string{
@@ -34,7 +34,7 @@ func waitFor(command ...string) {
 }
 
 func OpenConnection() (net.Conn, error) {
-	socketPath := "/tmp/ss_mach_mos.sock"
+	socketPath := "/tmp/ss_machmos.sock"
 
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {

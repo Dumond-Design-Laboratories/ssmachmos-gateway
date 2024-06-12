@@ -3,7 +3,7 @@ package cli
 import (
 	"encoding/json"
 
-	"github.com/jukuly/ss_mach_mo/server/internal/model"
+	"github.com/jukuly/ss_machmos/server/internal/model"
 )
 
 func sensorJSONToString(jsonStr []byte) (string, error) {

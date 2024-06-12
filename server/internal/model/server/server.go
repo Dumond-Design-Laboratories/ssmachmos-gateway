@@ -9,8 +9,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/jukuly/ss_mach_mo/server/internal/model"
-	"github.com/jukuly/ss_mach_mo/server/internal/out"
+	"github.com/jukuly/ss_machmos/server/internal/model"
+	"github.com/jukuly/ss_machmos/server/internal/out"
 	"tinygo.org/x/bluetooth"
 )
 
