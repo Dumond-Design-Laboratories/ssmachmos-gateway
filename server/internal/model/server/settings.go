@@ -15,9 +15,9 @@ func sendSettings(value []byte) {
 	mac := [6]byte(value[:6])
 
 	var sensor *model.Sensor
-	for _, s := range *Sensors {
+	for i, s := range *Sensors {
 		if s.Mac == mac {
-			sensor = &s
+			sensor = &(*Sensors)[i]
 			break
 		}
 	}
@@ -26,8 +26,8 @@ func sendSettings(value []byte) {
 	}
 
 	response := mac[:]
-	response = binary.LittleEndian.AppendUint32(response, uint32(sensor.WakeUpInterval)*1000)
-	sensor.NextWakeUp = sensor.NextWakeUp.Add(time.Duration(sensor.WakeUpInterval) * time.Second)
+
+	response = binary.LittleEndian.AppendUint32(response, setNextWakeUp(sensor))
 
 	for dataType, settings := range sensor.Settings {
 		var active byte
@@ -51,4 +51,103 @@ func sendSettings(value []byte) {
 	}
 
 	settingsCharacteristic.Write(response)
+}
+
+func setNextWakeUp(sensor *model.Sensor) uint32 {
+	// to be set by the user (max offset around the wake up interval => wake up interval +- max offset = real wake up interval) also need to make sure max offset is less than wake up interval
+	MAX_OFFSET := time.Minute * 5
+	if sensor.WakeUpInterval < int(MAX_OFFSET.Seconds()) {
+		MAX_OFFSET = time.Duration(sensor.WakeUpInterval) * time.Second
+	}
+
+	wakeUpDurationThis := getWakeUpDuration(sensor)
+	nextWakeUpCenter := time.Now().Add(time.Duration(sensor.WakeUpInterval) * time.Second)
+
+	// going backward
+	nextWakeUpLow := nextWakeUpCenter
+	var offsetLow time.Duration
+	i := 0
+	for i < len(*Sensors) {
+		s := (*Sensors)[i]
+		i++
+		wakeUpDurationOther := getWakeUpDuration(&s)
+
+		j := 0
+		for {
+			difference := s.NextWakeUp.Add(time.Duration(j) * time.Duration(s.WakeUpInterval) * time.Second).Sub(nextWakeUpLow)
+			j++
+
+			if difference > wakeUpDurationThis {
+				break
+			}
+
+			// if conflict
+			if difference >= 0 && difference < wakeUpDurationThis || difference < 0 && -difference < wakeUpDurationOther {
+				nextWakeUpLow = nextWakeUpLow.Add(difference - wakeUpDurationThis)
+				i = 0
+				break
+			}
+		}
+
+		if nextWakeUpCenter.Sub(nextWakeUpLow) > MAX_OFFSET {
+			offsetLow = time.Duration(-1)
+			break
+		}
+	}
+	offsetLow = nextWakeUpCenter.Sub(nextWakeUpLow)
+
+	// going forward
+	nextWakeUpHigh := nextWakeUpCenter
+	var offsetHigh time.Duration
+	i = 0
+	for i < len(*Sensors) {
+		s := (*Sensors)[i]
+		i++
+		wakeUpDurationOther := getWakeUpDuration(&s)
+
+		j := 0
+		for {
+			difference := s.NextWakeUp.Add(time.Duration(j) * time.Duration(s.WakeUpInterval) * time.Second).Sub(nextWakeUpHigh)
+			j++
+
+			if difference > wakeUpDurationThis || nextWakeUpHigh.Sub(nextWakeUpCenter) > MAX_OFFSET {
+				break
+			}
+
+			// if conflict
+			if difference >= 0 && difference < wakeUpDurationThis || difference < 0 && -difference < wakeUpDurationOther {
+				nextWakeUpHigh = nextWakeUpHigh.Add(difference + wakeUpDurationOther)
+				i = 0
+			}
+		}
+
+		if nextWakeUpHigh.Sub(nextWakeUpCenter) > MAX_OFFSET {
+			offsetHigh = time.Duration(-1)
+			break
+		}
+	}
+	offsetHigh = nextWakeUpHigh.Sub(nextWakeUpCenter)
+
+	if (offsetHigh >= offsetLow || offsetHigh == time.Duration(-1)) && offsetLow != time.Duration(-1) {
+		sensor.NextWakeUp = nextWakeUpLow
+		return uint32(sensor.WakeUpInterval)*1000 - uint32(offsetLow.Milliseconds())
+	} else if offsetHigh != time.Duration(-1) {
+		sensor.NextWakeUp = nextWakeUpHigh
+		return uint32(sensor.WakeUpInterval)*1000 + uint32(offsetHigh.Milliseconds())
+	} else {
+		sensor.NextWakeUp = nextWakeUpCenter
+		return uint32(sensor.WakeUpInterval) * 1000
+	}
+}
+
+func getWakeUpDuration(sensor *model.Sensor) time.Duration {
+	WAKE_UP_DURATION_BASELINE := time.Second * 30 // baseline to account for transmission time
+
+	var maxSamplingDuration uint16 = 0
+	for _, setting := range sensor.Settings {
+		if setting.SamplingDuration > maxSamplingDuration {
+			maxSamplingDuration = setting.SamplingDuration
+		}
+	}
+	return time.Duration(maxSamplingDuration)*time.Second + WAKE_UP_DURATION_BASELINE
 }

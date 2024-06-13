@@ -156,9 +156,9 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 
 	macAddress := [6]byte(data[:6])
 	var sensor *model.Sensor
-	for _, s := range *Sensors {
+	for i, s := range *Sensors {
 		if s.Mac == macAddress {
-			sensor = &s
+			sensor = &(*Sensors)[i]
 			break
 		}
 	}
