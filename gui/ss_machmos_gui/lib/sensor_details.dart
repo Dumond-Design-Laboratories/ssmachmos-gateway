@@ -49,25 +49,6 @@ class SensorDetails extends StatelessWidget {
                         ),
                       ],
                     ),
-                    SensorDetailField(
-                        name: "Wake-Up Interval",
-                        value: sensor.settings[key]!.wakeUpInterval.toString(),
-                        onChanged: (value) {
-                          try {
-                            sensor.settings[key]!.wakeUpInterval =
-                                int.parse(value);
-                          } catch (_) {}
-                        },
-                        units: "seconds"),
-                    SensorDetailField(
-                      name: "Next Wake-Up",
-                      value: sensor.settings[key]!.nextWakeUp
-                          .subtract(Duration(
-                              seconds: sensor.settings[key]!.wakeUpInterval))
-                          .toLocal()
-                          .toString(),
-                      readOnly: true,
-                    ),
                     if (key != "temperature")
                       SensorDetailField(
                         name: "Sampling Frequency",
@@ -128,11 +109,10 @@ class SensorDetails extends StatelessWidget {
               onPressed: () {
                 connection.send("SET-SENSOR-SETTINGS ${macToString(sensor.mac)}"
                     " name ${sensor.name.replaceAll(" ", "_")}"
+                    " wake_up_interval ${sensor.wakeUpInterval}"
                     " ${sensor.settings.keys.map((k) {
                   var s = sensor.settings[k]!;
                   return "${k}_active ${s.active}"
-                      " ${k}_wake_up_interval ${s.wakeUpInterval}"
-                      " ${k}_next_wake_up ${s.nextWakeUp.toIso8601String()}"
                       " ${k}_sampling_frequency ${s.samplingFrequency}"
                       " ${k}_sampling_duration ${s.samplingDuration}";
                 }).join(" ")}");
@@ -185,6 +165,20 @@ class SensorDetails extends StatelessWidget {
                     : sensor.batteryLevel.toString(),
                 readOnly: true,
                 units: sensor.batteryLevel == -1 ? "" : "mV",
+              ),
+              SensorDetailField(
+                  name: "Wake-Up Interval",
+                  value: sensor.wakeUpInterval.toString(),
+                  onChanged: (value) {
+                    try {
+                      sensor.wakeUpInterval = int.parse(value);
+                    } catch (_) {}
+                  },
+                  units: "seconds"),
+              SensorDetailField(
+                name: "Next Wake-Up",
+                value: sensor.nextWakeUp.toLocal().toString(),
+                readOnly: true,
               ),
               Container(
                 height: 0.5,
