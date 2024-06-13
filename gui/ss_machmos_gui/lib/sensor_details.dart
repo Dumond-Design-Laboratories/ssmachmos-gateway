@@ -8,6 +8,7 @@ class SensorDetails extends StatelessWidget {
   final Connection connection;
   final void Function() onForget;
   final Future<void> Function() loadSensors;
+  final void Function(void Function()) setState;
 
   const SensorDetails({
     super.key,
@@ -15,6 +16,7 @@ class SensorDetails extends StatelessWidget {
     required this.connection,
     required this.onForget,
     required this.loadSensors,
+    required this.setState,
   });
 
   @override
@@ -40,7 +42,9 @@ class SensorDetails extends StatelessWidget {
                         Checkbox(
                           value: sensor.settings[key]!.active,
                           onChanged: (value) {
-                            sensor.settings[key]!.active = value ?? false;
+                            setState(() {
+                              sensor.settings[key]!.active = value ?? false;
+                            });
                           },
                         ),
                       ],

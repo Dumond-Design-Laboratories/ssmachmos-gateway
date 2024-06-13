@@ -68,6 +68,7 @@ class _SensorsState extends State<Sensors> {
               });
             },
             loadSensors: widget.loadSensors,
+            setState: setState,
           ),
       ],
     );
