@@ -26,6 +26,9 @@ func sendSettings(value []byte) {
 	}
 
 	response := mac[:]
+	response = binary.LittleEndian.AppendUint32(response, uint32(sensor.WakeUpInterval)*1000)
+	sensor.NextWakeUp = sensor.NextWakeUp.Add(time.Duration(sensor.WakeUpInterval) * time.Second)
+
 	for dataType, settings := range sensor.Settings {
 		var active byte
 		if settings.Active {
@@ -45,9 +48,6 @@ func sendSettings(value []byte) {
 		case "temperature":
 			response = append(response, 0x02, active, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
 		}
-		timeUntilNextWakeUp := settings.NextWakeUp.UnixMilli() - time.Now().UnixMilli()
-		response = binary.LittleEndian.AppendUint32(response, uint32(timeUntilNextWakeUp))
-		settings.NextWakeUp = settings.NextWakeUp.Add(time.Duration(settings.WakeUpInterval) * time.Second)
 	}
 
 	settingsCharacteristic.Write(response)

@@ -22,8 +22,7 @@
 
 ## Settings changes
 
-- Whenever a sensor wakes up he sends a request to the server to fetch his settings. The sensor should also fetch the settings right after pairing
-- Server response: mac of sensor (6 bytes) | for each data type: { type (1 byte) | active (1 byte) | sampling frequency in Hz (4 bytes) | sampling duration in s (2 bytes) | time until next wake up in milliseconds (4 bytes => max 50 days) }
+- Whenever a sensor wakes up he sends a request to the server to fetch his settings.  (the sensor sends its default settings when pairing)
+- Server response: mac of sensor (6 bytes) | time until next wake up in milliseconds (4 bytes => max 50 days) | for each data type: { type (1 byte) | active (1 byte) | sampling frequency in Hz (4 bytes) | sampling duration in s (2 bytes) }
 - Data type: 0x00 => vibration, 0x01 => audio, 0x02 => temperature
 - It is possible that the settings characteristic is overwritten before the sensor can read from it. To solve this, the sensor should ask for his settings again every 10 seconds + 10 seconds for each time it didn't get the answer in time (to avoid multiple sensors always fighting to get their settings)
-- Still have to make sure with Zetai that this is OK

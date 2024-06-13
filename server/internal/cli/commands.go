@@ -144,7 +144,7 @@ func Help(args []string, conn net.Conn) {
 			"|         |            | \"description\" or composed of    |                                    |\n" +
 			"|         |            | the measurement type and the    |                                    |\n" +
 			"|         |            | setting separated by an \"_\"     |                                    |\n" +
-			"|         |            | eg.: \"acoustic_next_wake_up\"    |                                    |\n" +
+			"|         |            | eg.: \"acoustic_wake_up_interval\"|                                    |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	default:

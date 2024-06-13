@@ -4,6 +4,7 @@
 - Wake up interval
 - Next wake up
 - With option "automatic settings" with same wake up interval for every sensor (different for different measurement types)
+- Have a schedueler on the gateway
 
 ## Settings
 - Sampling frequency (vibration & acoustic)

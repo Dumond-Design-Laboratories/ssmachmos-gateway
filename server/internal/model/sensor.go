@@ -15,11 +15,9 @@ import (
 const SENSORS_FILE = "sensors.json"
 
 type settings struct {
-	Active            bool      `json:"active"`
-	SamplingFrequency uint32    `json:"sampling_frequency"`
-	SamplingDuration  uint16    `json:"sampling_duration"`
-	WakeUpInterval    int       `json:"wake_up_interval"`
-	NextWakeUp        time.Time `json:"next_wake_up"` // next wake up is the next time the server will transmit to the sensor to wake up (the next NEXT wake up)
+	Active            bool   `json:"active"`
+	SamplingFrequency uint32 `json:"sampling_frequency"`
+	SamplingDuration  uint16 `json:"sampling_duration"`
 }
 
 type Sensor struct {
@@ -28,6 +26,8 @@ type Sensor struct {
 	Types              []string            `json:"types"`
 	BatteryLevel       int                 `json:"battery_level"`
 	CollectionCapacity uint32              `json:"collection_capacity"`
+	WakeUpInterval     int                 `json:"wake_up_interval"`
+	NextWakeUp         time.Time           `json:"next_wake_up"`
 	Settings           map[string]settings `json:"settings"`
 	PublicKey          rsa.PublicKey       `json:"key"`
 }
@@ -49,12 +49,12 @@ func (s *Sensor) ToString() string {
 		str += strconv.Itoa(s.BatteryLevel) + " %\n"
 	}
 	str += "Collection Capacity: " + strconv.Itoa(int(s.CollectionCapacity)) + " bytes\n"
+	str += "Wake Up Interval: " + strconv.Itoa(s.WakeUpInterval) + " seconds\n"
+	str += "Next Wake Up: " + s.NextWakeUp.Local().Format(time.RFC3339) + "\n"
 	str += "Settings:\n"
 	for setting, value := range s.Settings {
 		str += "\t" + setting + ":\n"
 		str += "\t\tActive: " + strconv.FormatBool(value.Active) + "\n"
-		str += "\t\tWake Up Interval: " + strconv.Itoa(value.WakeUpInterval) + " seconds\n"
-		str += "\t\tNext Wake Up: " + value.NextWakeUp.Add(-1*time.Second*time.Duration(value.WakeUpInterval)).Local().Format(time.RFC3339) + "\n"
 		if setting == "temperature" {
 			continue
 		}
@@ -134,6 +134,8 @@ func AddSensor(mac [6]byte, types []string, collectionCapacity uint32, publicKey
 		Types:              types,
 		BatteryLevel:       -1,
 		CollectionCapacity: collectionCapacity,
+		WakeUpInterval:     3600,
+		NextWakeUp:         time.Now().Add(3600 * time.Second),
 		Settings:           map[string]settings{},
 		PublicKey:          *publicKey,
 	}
@@ -145,22 +147,16 @@ func AddSensor(mac [6]byte, types []string, collectionCapacity uint32, publicKey
 				Active:            true,
 				SamplingFrequency: 100,
 				SamplingDuration:  1,
-				WakeUpInterval:    3600,
-				NextWakeUp:        time.Now().Add(3600 * time.Second),
 			}
 		case "temperature":
 			sensor.Settings["temperature"] = settings{
-				Active:         true,
-				WakeUpInterval: 3600,
-				NextWakeUp:     time.Now().Add(3600 * time.Second),
+				Active: true,
 			}
 		case "acoustic":
 			sensor.Settings["acoustic"] = settings{
 				Active:            true,
 				SamplingFrequency: 8000,
 				SamplingDuration:  1,
-				WakeUpInterval:    3600,
-				NextWakeUp:        time.Now().Add(3600 * time.Second),
 			}
 		}
 	}
@@ -188,8 +184,20 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 
 	if setting == "name" {
 		sensor.Name = value
-		err := saveSensors(SENSORS_FILE, sensors)
-		return err
+		return saveSensors(SENSORS_FILE, sensors)
+	}
+
+	if setting == "wake_up_interval" {
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			return errors.New("invalid value for wake_up_interval setting (must be an integer (seconds))")
+		}
+		// when converted to milliseconds it will not be a uint32
+		if intValue < 0 || intValue > 4294967 {
+			return errors.New("invalid value for wake_up_interval setting (must an integer between 0 and 4 294 967)")
+		}
+		sensor.WakeUpInterval = intValue
+		return saveSensors(SENSORS_FILE, sensors)
 	}
 
 	settingParts := strings.Split(setting, "_")
@@ -241,35 +249,11 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 		}
 		setting.SamplingDuration = uint16(intValue)
 		sensor.Settings[dataType] = setting
-	case "wake_up_interval":
-		intValue, err := strconv.Atoi(value)
-		if err != nil {
-			return errors.New("invalid value for wake_up_interval setting (must be an integer (seconds))")
-		}
-		// when converted to milliseconds it will not be a uint32
-		if intValue < 0 || intValue > 4294967 {
-			return errors.New("invalid value for wake_up_interval setting (must an integer between 0 and 4 294 967)")
-		}
-		setting := sensor.Settings[dataType]
-		setting.WakeUpInterval = intValue
-		sensor.Settings[dataType] = setting
-	case "next_wake_up":
-		timeValue, err := time.Parse(time.RFC3339, value)
-		if err != nil {
-			return errors.New("invalid value for next_wake_up setting (must be a date in RFC3339 format)")
-		}
-		setting := sensor.Settings[dataType]
-		if timeValue.Before(setting.NextWakeUp.Add(-1 * time.Second * time.Duration(setting.WakeUpInterval))) {
-			return errors.New("invalid value for next_wake_up setting (must be after the next wake up time)")
-		}
-		setting.NextWakeUp = timeValue
-		sensor.Settings[dataType] = setting
 	default:
 		return errors.New("setting " + setting + " doesn't exist")
 	}
 
-	err := saveSensors(SENSORS_FILE, sensors)
-	return err
+	return saveSensors(SENSORS_FILE, sensors)
 }
 
 func getCollectionSize(sensor *Sensor) int {
