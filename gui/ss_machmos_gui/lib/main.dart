@@ -290,7 +290,10 @@ class _RootState extends State<Root> {
             ],
           ),
           Gateway(connection: _connection),
-          Logs(logsScrollController: _logsScrollController, logs: _logs),
+          Logs(
+              logsScrollController: _logsScrollController,
+              logs: _logs,
+              connection: _connection),
         ],
       );
     } else {
