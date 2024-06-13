@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:ss_machmos_gui/bluetooth.dart';
 import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/gateway.dart';
+import 'package:ss_machmos_gui/logs.dart';
 import 'package:ss_machmos_gui/sensors.dart';
 import 'package:ss_machmos_gui/utils.dart';
 
@@ -289,21 +290,7 @@ class _RootState extends State<Root> {
             ],
           ),
           Gateway(connection: _connection),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey, width: 0.5),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            margin: const EdgeInsets.all(32),
-            padding: const EdgeInsets.all(16),
-            alignment: Alignment.bottomLeft,
-            child: SingleChildScrollView(
-              controller: _logsScrollController,
-              child: SelectableText(
-                _logs,
-              ),
-            ),
-          ),
+          Logs(logsScrollController: _logsScrollController, logs: _logs),
         ],
       );
     } else {

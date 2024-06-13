@@ -14,12 +14,14 @@ import (
 
 func serve() {
 	// if the server is already running, stop it
+	out.Logger.Println("Closing running instances...")
 	conn, err := cli.OpenConnection()
 	if err == nil {
 		conn.Write([]byte("STOP\x00"))
 		conn.Close()
 	}
 
+	out.Logger.Println("Loading local config...")
 	var sensors *[]model.Sensor = &[]model.Sensor{}
 	var gateway *model.Gateway = &model.Gateway{}
 	model.LoadSensors(model.SENSORS_FILE, sensors)
@@ -28,6 +30,7 @@ func serve() {
 		out.Logger.Print("Error loading Gateway settings. Run 'ssmachmos config --id <gateway-id>' and 'ssmachmos config --password <gateway-password>' to set the Gateway settings.")
 	}
 
+	out.Logger.Println("Starting bluetooth advertisement...")
 	err = server.Init(sensors, gateway)
 	if err != nil {
 		out.Logger.Print(err)
@@ -38,6 +41,11 @@ func serve() {
 		}
 	}
 
+	if err == nil {
+		out.Logger.Println("Done initializing server.")
+	} else {
+		out.Logger.Println("Done initializing server with errors.")
+	}
 	api.Start()
 }
 
