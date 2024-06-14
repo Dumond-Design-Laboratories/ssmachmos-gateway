@@ -76,6 +76,8 @@ class Connection {
             _waitingFor.remove(command);
           }
         }
+      }).onError((error) {
+        _state = 1;
       });
     }
   }
