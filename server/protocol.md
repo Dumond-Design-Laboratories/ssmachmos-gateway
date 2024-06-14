@@ -7,7 +7,7 @@
 ## Pairing:
 
 - The sensor generates a key pair and sends his public key, the data types it can collect, the maximum size in bytes of data it can send, and its mac address to the server => mac (6 bytes) | data types (1 byte) | collection capacity in bytes (4 bytes) | public key
-- Data types: b(0 0 0 0 0 vibration temperature acoustic) 
+- Data types: b(0 0 0 0 0 vibration temperature acoustic)
 - The user has 30 seconds to accept the pairing request
 - The server writes to the "pairing response" characteristic with the UUID of the data transmission characteristic, the UUID of the settings characteristic and the mac address of the sender (to tell the sensors which one has been accepted) => mac (6 bytes) | data characteristic uuid (16 bytes) | settings characteristic uuid (16 bytes)
 - The sensor sends an ACK to tell the server he indeed received the UUIDs. From now on, every communication will be signed by the sensor. If the ACK is not received in a delay of 30 seconds by the server, the pairing is cancelled. => mac (6 bytes) | data characteristic uuid (16 bytes) | settings characteristic uuid (16 bytes) | signature (256 bytes)
@@ -22,7 +22,7 @@
 
 ## Settings changes
 
-- Whenever a sensor wakes up he sends a request to the server to fetch his settings.  (the sensor sends its default settings when pairing)
+- Whenever a sensor wakes up he sends a request to the server to fetch his settings. => mac (6 bytes) (the sensor sends its default settings when pairing <= not yet implemented)
 - Server response: mac of sensor (6 bytes) | time until next wake up in milliseconds (4 bytes => max 50 days) | for each data type: { type (1 byte) | active (1 byte) | sampling frequency in Hz (4 bytes) | sampling duration in s (2 bytes) }
 - Data type: 0x00 => vibration, 0x01 => audio, 0x02 => temperature
 - It is possible that the settings characteristic is overwritten before the sensor can read from it. To solve this, the sensor should ask for his settings again every 10 seconds + 10 seconds for each time it didn't get the answer in time (to avoid multiple sensors always fighting to get their settings)
