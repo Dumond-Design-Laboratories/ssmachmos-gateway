@@ -172,7 +172,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		return
 	}
 
-	batteryLevel := int(data[6])
+	batteryLevel := int(int8(data[6]))
 	timestamp := time.Now().Unix()
 
 	measurements := []map[string]interface{}{}
