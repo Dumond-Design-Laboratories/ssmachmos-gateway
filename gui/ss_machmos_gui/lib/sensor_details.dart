@@ -110,6 +110,7 @@ class SensorDetails extends StatelessWidget {
                 connection.send("SET-SENSOR-SETTINGS ${macToString(sensor.mac)}"
                     " name ${sensor.name.replaceAll(" ", "_")}"
                     " wake_up_interval ${sensor.wakeUpInterval}"
+                    " wake_up_interval_max_offset ${sensor.wakeUpIntervalMaxOffset}"
                     " ${sensor.settings.keys.map((k) {
                   var s = sensor.settings[k]!;
                   return "${k}_active ${s.active}"
@@ -172,6 +173,15 @@ class SensorDetails extends StatelessWidget {
                   onChanged: (value) {
                     try {
                       sensor.wakeUpInterval = int.parse(value);
+                    } catch (_) {}
+                  },
+                  units: "seconds"),
+              SensorDetailField(
+                  name: "Wake-Up Interval Max Offset",
+                  value: sensor.wakeUpIntervalMaxOffset.toString(),
+                  onChanged: (value) {
+                    try {
+                      sensor.wakeUpIntervalMaxOffset = int.parse(value);
                     } catch (_) {}
                   },
                   units: "seconds"),

@@ -216,6 +216,7 @@ class _RootState extends State<Root> {
             types: s["types"].cast<String>(),
             collectionCapacity: s["collection_capacity"],
             wakeUpInterval: s["wake_up_interval"],
+            wakeUpIntervalMaxOffset: s["wake_up_interval_max_offset"],
             nextWakeUp: DateTime.parse(s["next_wake_up"]),
             batteryLevel: s["battery_level"],
             settings: settings,

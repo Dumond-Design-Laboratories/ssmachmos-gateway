@@ -94,6 +94,7 @@ class Sensor {
   int batteryLevel;
   int collectionCapacity;
   int wakeUpInterval;
+  int wakeUpIntervalMaxOffset;
   DateTime nextWakeUp;
   Map<String, SensorSettings> settings;
 
@@ -105,6 +106,7 @@ class Sensor {
       required this.collectionCapacity,
       required this.settings,
       required this.wakeUpInterval,
+      required this.wakeUpIntervalMaxOffset,
       required this.nextWakeUp});
 }
 
