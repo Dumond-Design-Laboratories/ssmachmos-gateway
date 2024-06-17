@@ -54,11 +54,7 @@ func sendSettings(value []byte) {
 }
 
 func setNextWakeUp(sensor *model.Sensor) uint32 {
-	// to be set by the user (max offset around the wake up interval => wake up interval +- max offset = real wake up interval) also need to make sure max offset is less than wake up interval
-	MAX_OFFSET := time.Minute * 5
-	if sensor.WakeUpInterval < int(MAX_OFFSET.Seconds()) {
-		MAX_OFFSET = time.Duration(sensor.WakeUpInterval) * time.Second
-	}
+	maxOffset := time.Duration(sensor.WakeUpIntervalMaxOffset) * time.Second
 
 	wakeUpDurationThis := getWakeUpDuration(sensor)
 	nextWakeUpCenter := time.Now().Add(time.Duration(sensor.WakeUpInterval) * time.Second)
@@ -89,7 +85,7 @@ func setNextWakeUp(sensor *model.Sensor) uint32 {
 			}
 		}
 
-		if nextWakeUpCenter.Sub(nextWakeUpLow) > MAX_OFFSET {
+		if nextWakeUpCenter.Sub(nextWakeUpLow) > maxOffset {
 			offsetLow = time.Duration(-1)
 			break
 		}
@@ -110,7 +106,7 @@ func setNextWakeUp(sensor *model.Sensor) uint32 {
 			difference := s.NextWakeUp.Add(time.Duration(j) * time.Duration(s.WakeUpInterval) * time.Second).Sub(nextWakeUpHigh)
 			j++
 
-			if difference > wakeUpDurationThis || nextWakeUpHigh.Sub(nextWakeUpCenter) > MAX_OFFSET {
+			if difference > wakeUpDurationThis || nextWakeUpHigh.Sub(nextWakeUpCenter) > maxOffset {
 				break
 			}
 
@@ -121,7 +117,7 @@ func setNextWakeUp(sensor *model.Sensor) uint32 {
 			}
 		}
 
-		if nextWakeUpHigh.Sub(nextWakeUpCenter) > MAX_OFFSET {
+		if nextWakeUpHigh.Sub(nextWakeUpCenter) > maxOffset {
 			offsetHigh = time.Duration(-1)
 			break
 		}

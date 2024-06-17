@@ -21,15 +21,16 @@ type settings struct {
 }
 
 type Sensor struct {
-	Mac                [6]byte             `json:"mac"`
-	Name               string              `json:"name"`
-	Types              []string            `json:"types"`
-	BatteryLevel       int                 `json:"battery_level"`
-	CollectionCapacity uint32              `json:"collection_capacity"`
-	WakeUpInterval     int                 `json:"wake_up_interval"`
-	NextWakeUp         time.Time           `json:"next_wake_up"`
-	Settings           map[string]settings `json:"settings"`
-	PublicKey          rsa.PublicKey       `json:"key"`
+	Mac                     [6]byte             `json:"mac"`
+	Name                    string              `json:"name"`
+	Types                   []string            `json:"types"`
+	BatteryLevel            int                 `json:"battery_level"`
+	CollectionCapacity      uint32              `json:"collection_capacity"`
+	WakeUpInterval          int                 `json:"wake_up_interval"`
+	WakeUpIntervalMaxOffset int                 `json:"wake_up_interval_max_offset"`
+	NextWakeUp              time.Time           `json:"next_wake_up"`
+	Settings                map[string]settings `json:"settings"`
+	PublicKey               rsa.PublicKey       `json:"key"`
 }
 
 func (s *Sensor) ToString() string {
@@ -49,7 +50,7 @@ func (s *Sensor) ToString() string {
 		str += strconv.Itoa(s.BatteryLevel) + " %\n"
 	}
 	str += "Collection Capacity: " + strconv.Itoa(int(s.CollectionCapacity)) + " bytes\n"
-	str += "Wake Up Interval: " + strconv.Itoa(s.WakeUpInterval) + " seconds\n"
+	str += "Wake Up Interval: " + strconv.Itoa(s.WakeUpInterval) + " +- " + strconv.Itoa(s.WakeUpIntervalMaxOffset) + " seconds\n"
 	str += "Next Wake Up: " + s.NextWakeUp.Local().Format(time.RFC3339) + "\n"
 	str += "Settings:\n"
 	for setting, value := range s.Settings {
@@ -129,15 +130,16 @@ func AddSensor(mac [6]byte, types []string, collectionCapacity uint32, publicKey
 	}
 	// Default settings
 	sensor := Sensor{
-		Mac:                mac,
-		Name:               "Sensor " + MacToString(mac),
-		Types:              types,
-		BatteryLevel:       -1,
-		CollectionCapacity: collectionCapacity,
-		WakeUpInterval:     3600,
-		NextWakeUp:         time.Now().Add(3600 * time.Second),
-		Settings:           map[string]settings{},
-		PublicKey:          *publicKey,
+		Mac:                     mac,
+		Name:                    "Sensor " + MacToString(mac),
+		Types:                   types,
+		BatteryLevel:            -1,
+		CollectionCapacity:      collectionCapacity,
+		WakeUpInterval:          3600,
+		WakeUpIntervalMaxOffset: 300,
+		NextWakeUp:              time.Now().Add(3600 * time.Second),
+		Settings:                map[string]settings{},
+		PublicKey:               *publicKey,
 	}
 
 	for _, t := range types {
@@ -193,10 +195,22 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 			return errors.New("invalid value for wake_up_interval setting (must be an integer (seconds))")
 		}
 		// when converted to milliseconds it will not be a uint32
-		if intValue < 0 || intValue > 4294967 {
-			return errors.New("invalid value for wake_up_interval setting (must an integer between 0 and 4 294 967)")
+		if intValue < sensor.WakeUpIntervalMaxOffset || intValue > 4294967 {
+			return errors.New("invalid value for wake_up_interval setting (must an integer between wake_up_interval_max_offset and 4 294 967)")
 		}
 		sensor.WakeUpInterval = intValue
+		return saveSensors(SENSORS_FILE, sensors)
+	}
+	if setting == "wake_up_interval_max_offset" {
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			return errors.New("invalid value for wake_up_interval_max_offset setting (must be an integer (seconds))")
+		}
+		// the max offset must be smaller than the wake up interval
+		if intValue < 0 || intValue >= sensor.WakeUpInterval {
+			return errors.New("invalid value for wake_up_interval_max_offset setting (must an integer between 0 and wake_up_interval)")
+		}
+		sensor.WakeUpIntervalMaxOffset = intValue
 		return saveSensors(SENSORS_FILE, sensors)
 	}
 
