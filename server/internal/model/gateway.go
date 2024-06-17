@@ -72,7 +72,7 @@ func GetSettingsCharUUID(gateway *Gateway) ([4]uint32, error) {
 	if gateway == nil {
 		return [4]uint32{}, errors.New("gateway is nil")
 	}
-	if gateway.DataCharUUID == [4]uint32{0, 0, 0, 0} {
+	if gateway.SettingsCharUUID == [4]uint32{0, 0, 0, 0} {
 		var err error
 		gateway.SettingsCharUUID, err = GenerateUUID()
 		if err != nil {
