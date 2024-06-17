@@ -165,7 +165,7 @@ class SensorDetails extends StatelessWidget {
                     ? "Unknown"
                     : sensor.batteryLevel.toString(),
                 readOnly: true,
-                units: sensor.batteryLevel == -1 ? "" : "mV",
+                units: sensor.batteryLevel == -1 ? "" : "%",
               ),
               SensorDetailField(
                   name: "Wake-Up Interval",

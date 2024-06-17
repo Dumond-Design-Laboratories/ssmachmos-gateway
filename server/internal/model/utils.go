@@ -40,19 +40,19 @@ func ParsePublicKey(value []byte) (*rsa.PublicKey, error) {
 
 func UuidToBytes(uuid [4]uint32) []byte {
 	result := []byte{}
-	result = binary.LittleEndian.AppendUint32(result[:], uuid[0])
-	result = binary.LittleEndian.AppendUint32(result[:], uuid[1])
-	result = binary.LittleEndian.AppendUint32(result[:], uuid[2])
-	result = binary.LittleEndian.AppendUint32(result[:], uuid[3])
+	result = binary.LittleEndian.AppendUint32(result, uuid[0])
+	result = binary.LittleEndian.AppendUint32(result, uuid[1])
+	result = binary.LittleEndian.AppendUint32(result, uuid[2])
+	result = binary.LittleEndian.AppendUint32(result, uuid[3])
 	return result
 }
 
 func BytesToUuid(value [16]byte) [4]uint32 {
 	return [4]uint32{
-		binary.BigEndian.Uint32(value[0:4]),
-		binary.BigEndian.Uint32(value[4:8]),
-		binary.BigEndian.Uint32(value[8:12]),
-		binary.BigEndian.Uint32(value[12:16]),
+		binary.LittleEndian.Uint32(value[0:4]),
+		binary.LittleEndian.Uint32(value[4:8]),
+		binary.LittleEndian.Uint32(value[8:12]),
+		binary.LittleEndian.Uint32(value[12:16]),
 	}
 }
 

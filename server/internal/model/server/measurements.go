@@ -16,12 +16,7 @@ func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, 
 }
 
 func saveUnsentMeasurements(data []byte, timestamp int64) error {
-	_, err := os.Stat(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH))
-	if os.IsNotExist(err) {
-		os.MkdirAll(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH), os.ModePerm)
-	}
-
-	err = os.MkdirAll(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, fmt.Sprintf("%d.json", timestamp)), 0777)
+	err := os.MkdirAll(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH), 0777)
 	if err != nil {
 		return err
 	}
