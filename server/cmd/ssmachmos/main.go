@@ -27,17 +27,17 @@ func serve() {
 	model.LoadSensors(model.SENSORS_FILE, sensors)
 	err = model.LoadSettings(gateway, model.GATEWAY_FILE)
 	if err != nil {
-		out.Logger.Print("Error loading Gateway settings. Run 'ssmachmos config --id <gateway-id>' and 'ssmachmos config --password <gateway-password>' to set the Gateway settings.")
+		out.Logger.Println("Error loading Gateway settings. Run 'ssmachmos config --id <gateway-id>' and 'ssmachmos config --password <gateway-password>' to set the Gateway settings.")
 	}
 
 	out.Logger.Println("Starting bluetooth advertisement...")
 	err = server.Init(sensors, gateway)
 	if err != nil {
-		out.Logger.Print(err)
+		out.Logger.Println(err)
 	} else {
 		err = server.StartAdvertising()
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 		}
 	}
 

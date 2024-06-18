@@ -21,7 +21,7 @@ func handleCommand(command string, conn *net.Conn) string {
 	case "LIST":
 		res, err := list()
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:LIST:" + err.Error()
 		}
 		return "OK:LIST:" + res
@@ -31,7 +31,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		res, err := view(parts[1])
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:VIEW:" + err.Error()
 		}
 		return "OK:VIEW:" + res
@@ -51,7 +51,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := pairAccept(parts[1])
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:PAIR-ACCEPT:" + err.Error()
 		}
 		return "OK:PAIR-ACCEPT:"
@@ -61,7 +61,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := forget(parts[1])
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:FORGET:" + err.Error()
 		}
 		return "OK:FORGET:"
@@ -71,7 +71,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := model.SetGatewayId(server.Gateway, strings.Join(parts[1:], " "))
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:SET-GATEWAY-ID:" + err.Error()
 		}
 		return "OK:SET-GATEWAY-ID:"
@@ -81,7 +81,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := model.SetGatewayPassword(server.Gateway, strings.Join(parts[1:], " "))
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:SET-GATEWAY-PASSWORD:" + err.Error()
 		}
 		return "OK:SET-GATEWAY-PASSWORD:"
@@ -91,14 +91,14 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		mac, err := model.StringToMac(parts[1])
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:SET-SENSOR-SETTING:" + err.Error()
 		}
 		nbrOfSettings := (len(parts) - 2) / 2
 		for i := 0; i < nbrOfSettings; i++ {
 			err = model.UpdateSensorSetting(mac, parts[2+i*2], parts[3+i*2], server.Sensors)
 			if err != nil {
-				out.Logger.Print(err)
+				out.Logger.Println(err)
 				return "ERR:SET-SENSOR-SETTINGS:" + err.Error()
 			}
 		}
@@ -117,9 +117,9 @@ func handleCommand(command string, conn *net.Conn) string {
 	return "ERR:unknown"
 }
 
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
-	reader := bufio.NewReader(conn)
+func handleConnection(conn *net.Conn) {
+	defer (*conn).Close()
+	reader := bufio.NewReader(*conn)
 	for {
 		str, err := reader.ReadString('\x00')
 		if err != nil {
@@ -130,8 +130,8 @@ func handleConnection(conn net.Conn) {
 			if c == "" {
 				continue
 			}
-			response := handleCommand(c, &conn)
-			conn.Write([]byte(response + "\x00"))
+			response := handleCommand(c, conn)
+			(*conn).Write([]byte(response + "\x00"))
 		}
 	}
 }
@@ -139,13 +139,13 @@ func handleConnection(conn net.Conn) {
 func Start() error {
 	socketPath := "/tmp/ss_machmos.sock"
 	if err := os.RemoveAll(socketPath); err != nil {
-		out.Logger.Print(err)
+		out.Logger.Println(err)
 		return err
 	}
 
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
-		out.Logger.Print(err)
+		out.Logger.Println(err)
 		return err
 	}
 	defer listener.Close()
@@ -153,9 +153,9 @@ func Start() error {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return err
 		}
-		go handleConnection(conn)
+		go handleConnection(&conn)
 	}
 }
