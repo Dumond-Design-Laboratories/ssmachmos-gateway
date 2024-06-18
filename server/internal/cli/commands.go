@@ -15,7 +15,7 @@ import (
 var messagesToPrint = map[string]string{
 	"REQUEST-SENSOR-EXISTS": "Pairing request for already paired sensor. First \"Forget\" the sensor before pairing again.",
 	"REQUEST-TIMEOUT":       "Pairing request timed out for sensor ",
-	"REQUEST-NEW":           "New pairing request from sensor ",
+	"REQUEST-NEW":           "New pairing request (\"accept <mac-address>\" to accept) from sensor ",
 	"PAIR-SUCCESS":          "Pairing successful with sensor ",
 	"PAIRING-DISABLED":      "Error: Pairing mode disabled",
 	"REQUEST-NOT-FOUND":     "Error: Pairing request not found for sensor ",
