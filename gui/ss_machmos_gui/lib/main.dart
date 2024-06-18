@@ -116,6 +116,9 @@ class _RootState extends State<Root> {
   void dispose() async {
     await _connection.close();
     await _connection.send("REMOVE-LOGGER");
+    if (_pairingEnabled) {
+      await _connection.send("PAIR-DISABLE");
+    }
     super.dispose();
   }
 
@@ -123,13 +126,26 @@ class _RootState extends State<Root> {
     if (p) {
       await _connection.send("PAIR-ENABLE");
       _connection.on("PAIR-ENABLE", (_, __) {
-        setState(() => _pairingEnabled = p);
+        setState(() {
+          _pairingEnabled = p;
+          _sensorsNearby = [];
+          _pairingWith = null;
+        });
         return true;
+      });
+      _connection.on("REQUEST-SENSOR-EXISTS", (mac, _) {
+        showMessage(
+            "Pairing request for already paired sensor $mac. First \"Forget\" sensor $mac before pairing again.",
+            context);
+        return false;
       });
       _connection.on("REQUEST-TIMEOUT", (mac, _) {
         if (_pairingWith != mac) {
           setState(() {
             _sensorsNearby.remove(mac);
+            if (_pairingWith == mac) {
+              _pairingWith = null;
+            }
           });
         }
         return false;
@@ -143,7 +159,10 @@ class _RootState extends State<Root> {
       _connection.on("PAIR-SUCCESS", (mac, _) {
         _sensorsNearby.remove(mac);
         if (_pairingWith == mac) {
-          setState(() => _pairingWith = null);
+          setState(() {
+            _sensorsNearby.remove(mac);
+            _pairingWith = null;
+          });
         }
         showMessage("Sensor $mac has been paired with the gateway", context);
         loadSensors();
@@ -156,12 +175,18 @@ class _RootState extends State<Root> {
       _connection.on("REQUEST-NOT-FOUND", (mac, _) {
         setState(() {
           _sensorsNearby.remove(mac);
+          if (_pairingWith == mac) {
+            _pairingWith = null;
+          }
         });
         return false;
       });
       _connection.on("PAIRING-CANCELED", (mac, _) {
         if (_pairingWith == mac) {
-          setState(() => _pairingWith = null);
+          setState(() {
+            _sensorsNearby.remove(mac);
+            _pairingWith = null;
+          });
         }
         return false;
       });
@@ -171,7 +196,10 @@ class _RootState extends State<Root> {
       });
       _connection.on("PAIRING-TIMEOUT", (mac, _) {
         if (_pairingWith == mac) {
-          setState(() => _pairingWith = null);
+          setState(() {
+            _sensorsNearby.remove(mac);
+            _pairingWith = null;
+          });
         }
         showMessage("Pairing timed out with sensor $mac", context);
         return false;
@@ -179,17 +207,22 @@ class _RootState extends State<Root> {
     } else {
       await _connection.send("PAIR-DISABLE");
       _connection.on("PAIR-DISABLE", (_, __) {
-        setState(() => _pairingEnabled = p);
+        setState(() {
+          _pairingEnabled = p;
+          _sensorsNearby = [];
+          _pairingWith = null;
+        });
+        _connection.off("REQUEST-SENSOR-EXISTS");
+        _connection.off("REQUEST-TIMEOUT");
+        _connection.off("REQUEST-NEW");
+        _connection.off("PAIR-SUCCESS");
+        _connection.off("PAIRING-DISABLED");
+        _connection.off("REQUEST-NOT-FOUND");
+        _connection.off("PAIRING-CANCELED");
+        _connection.off("PAIRING-WITH");
+        _connection.off("PAIRING-TIMEOUT");
         return true;
       });
-      _connection.off("REQUEST-TIMEOUT-");
-      _connection.off("REQUEST-NEW-");
-      _connection.off("PAIR-SUCCESS-");
-      _connection.off("PAIRING-DISABLED");
-      _connection.off("REQUEST-NOT-FOUND-");
-      _connection.off("PAIRING-CANCELED-");
-      _connection.off("PAIRING-WITH-");
-      _connection.off("PAIRING-TIMEOUT-");
     }
   }
 

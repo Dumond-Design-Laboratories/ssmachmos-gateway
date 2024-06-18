@@ -13,14 +13,15 @@ import (
 )
 
 var messagesToPrint = map[string]string{
-	"REQUEST-TIMEOUT":   "Pairing request timed out for sensor ",
-	"REQUEST-NEW":       "New pairing request from sensor ",
-	"PAIR-SUCCESS":      "Pairing successful with sensor ",
-	"PAIRING-DISABLED":  "Error: Pairing mode disabled",
-	"REQUEST-NOT-FOUND": "Error: Pairing request not found for sensor ",
-	"PAIRING-CANCELED":  "Pairing canceled with sensor ",
-	"PAIRING-WITH":      "Pairing with sensor ",
-	"PAIRING-TIMEOUT":   "Pairing timed out with sensor ",
+	"REQUEST-SENSOR-EXISTS": "Pairing request for already paired sensor. First \"Forget\" the sensor before pairing again.",
+	"REQUEST-TIMEOUT":       "Pairing request timed out for sensor ",
+	"REQUEST-NEW":           "New pairing request (\"accept <mac-address>\" to accept) from sensor ",
+	"PAIR-SUCCESS":          "Pairing successful with sensor ",
+	"PAIRING-DISABLED":      "Error: Pairing mode disabled",
+	"REQUEST-NOT-FOUND":     "Error: Pairing request not found for sensor ",
+	"PAIRING-CANCELED":      "Pairing canceled with sensor ",
+	"PAIRING-WITH":          "Pairing with sensor ",
+	"PAIRING-TIMEOUT":       "Pairing timed out with sensor ",
 }
 
 var waitingFor = map[string]chan<- bool{}
