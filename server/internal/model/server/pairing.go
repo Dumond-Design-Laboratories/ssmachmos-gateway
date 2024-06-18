@@ -37,6 +37,15 @@ func pairRequest(value []byte) {
 		return
 	}
 	mac := [6]byte(value[:6])
+	for _, s := range *Sensors {
+		if s.Mac == mac {
+			out.PairingLog("REQUEST-SENSOR-EXISTS:" + model.MacToString(mac))
+			return
+		}
+	}
+	if _, exists := state.requested[mac]; exists {
+		return
+	}
 
 	dataTypes := []string{}
 	if value[6]&0x01 == 0x01 {
@@ -52,9 +61,6 @@ func pairRequest(value []byte) {
 	collectionCapacity := binary.LittleEndian.Uint32(value[7:11])
 	publicKey, err := model.ParsePublicKey(value[11:])
 	if err != nil {
-		return
-	}
-	if _, exists := state.requested[mac]; exists {
 		return
 	}
 
@@ -87,7 +93,7 @@ func pairConfirmation(value []byte) {
 	settingsUuid := model.BytesToUuid([16]byte(data[22:38]))
 	signature := value[len(value)-256:]
 
-	if state.pairing != mac || !model.VerifySignature(data, signature, state.requested[mac].publicKey) {
+	if _, exists := state.requested[mac]; !exists || state.pairing != mac || !model.VerifySignature(data, signature, state.requested[mac].publicKey) {
 		return
 	}
 

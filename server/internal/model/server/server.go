@@ -121,11 +121,9 @@ func StartAdvertising() error {
 			if sig == os.Interrupt {
 				err := adapter.DefaultAdvertisement().Stop()
 				if err != nil {
-					fmt.Println("Error:", err)
-					os.Exit(0)
-					return
+					out.Logger.Println("Error:", err)
 				}
-				fmt.Println("Stopping server")
+				out.Logger.Println("Stopping server")
 				os.Exit(0)
 				return
 			}
