@@ -3,7 +3,7 @@ package server
 import (
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"math"
 	"os"
 	"os/signal"
@@ -100,7 +100,7 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 
 	adv := adapter.DefaultAdvertisement()
 	if adv == nil {
-		return fmt.Errorf("advertisement is nil")
+		return errors.New("advertisement is nil")
 	}
 	err = adv.Configure(bluetooth.AdvertisementOptions{
 		LocalName:    "Gateway Server",
@@ -120,11 +120,11 @@ func StartAdvertising() error {
 			if sig == os.Interrupt {
 				err := adapter.DefaultAdvertisement().Stop()
 				if err != nil {
-					fmt.Println("Error:", err)
+					out.Logger.Println("Error:", err)
 					os.Exit(0)
 					return
 				}
-				fmt.Println("Stopping server")
+				out.Logger.Println("Stopping server")
 				os.Exit(0)
 				return
 			}
@@ -132,7 +132,7 @@ func StartAdvertising() error {
 	}()
 	adv := adapter.DefaultAdvertisement()
 	if adv == nil {
-		return fmt.Errorf("advertisement is nil")
+		return errors.New("advertisement is nil")
 	}
 	return adv.Start()
 }
