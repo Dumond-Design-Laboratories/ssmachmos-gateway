@@ -12,6 +12,7 @@ import (
 )
 
 func handleCommand(command string, conn *net.Conn) string {
+	out.Logger.Println("b start")
 	parts := strings.Split(command, " ")
 
 	if len(parts) == 0 {
@@ -36,8 +37,11 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		return "OK:VIEW:" + res
 	case "PAIR-ENABLE":
+		out.Logger.Println("b enable")
 		out.PairingConnections[conn] = true
+		out.Logger.Println("b enable 1")
 		pairEnable()
+		out.Logger.Println("b enable 2")
 		return "OK:PAIR-ENABLE:"
 	case "PAIR-DISABLE":
 		delete(out.PairingConnections, conn)
@@ -46,14 +50,18 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		return "OK:PAIR-DISABLE:"
 	case "PAIR-ACCEPT":
+		out.Logger.Println("b accept")
 		if len(parts) < 2 {
 			return "ERR:PAIR-ACCEPT:not enough arguments"
 		}
 		err := pairAccept(parts[1])
+		out.Logger.Println("b accept 1")
 		if err != nil {
+			out.Logger.Println("b accept 2 error")
 			out.Logger.Print(err)
 			return "ERR:PAIR-ACCEPT:" + err.Error()
 		}
+		out.Logger.Println("b accept 2 ok")
 		return "OK:PAIR-ACCEPT:"
 	case "FORGET":
 		if len(parts) < 2 {
@@ -117,12 +125,13 @@ func handleCommand(command string, conn *net.Conn) string {
 	return "ERR:unknown"
 }
 
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
-	reader := bufio.NewReader(conn)
+func handleConnection(conn *net.Conn) {
+	defer (*conn).Close()
+	reader := bufio.NewReader(*conn)
 	for {
 		str, err := reader.ReadString('\x00')
 		if err != nil {
+			out.Logger.Print(err)
 			return
 		}
 		cs := strings.Split(str, "\x00")
@@ -130,8 +139,12 @@ func handleConnection(conn net.Conn) {
 			if c == "" {
 				continue
 			}
-			response := handleCommand(c, &conn)
-			conn.Write([]byte(response + "\x00"))
+			out.Logger.Println("a")
+			response := handleCommand(c, conn)
+			out.Logger.Println("b done")
+			(*conn).Write([]byte(response + "\x00"))
+			out.Logger.Println("c")
+			
 		}
 	}
 }
@@ -156,6 +169,6 @@ func Start() error {
 			out.Logger.Print(err)
 			return err
 		}
-		go handleConnection(conn)
+		go handleConnection(&conn)
 	}
 }

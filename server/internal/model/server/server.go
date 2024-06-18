@@ -48,7 +48,7 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 		requested: make(map[[6]byte]request),
 		pairing:   [6]byte{},
 	}
-
+	
 	dataCharUUID, err := model.GetDataCharUUID(Gateway)
 	if err != nil {
 		return err
