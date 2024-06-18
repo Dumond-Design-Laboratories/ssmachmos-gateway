@@ -12,7 +12,6 @@ import (
 )
 
 func handleCommand(command string, conn *net.Conn) string {
-	out.Logger.Println("b start")
 	parts := strings.Split(command, " ")
 
 	if len(parts) == 0 {
@@ -22,7 +21,7 @@ func handleCommand(command string, conn *net.Conn) string {
 	case "LIST":
 		res, err := list()
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:LIST:" + err.Error()
 		}
 		return "OK:LIST:" + res
@@ -32,16 +31,13 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		res, err := view(parts[1])
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:VIEW:" + err.Error()
 		}
 		return "OK:VIEW:" + res
 	case "PAIR-ENABLE":
-		out.Logger.Println("b enable")
 		out.PairingConnections[conn] = true
-		out.Logger.Println("b enable 1")
 		pairEnable()
-		out.Logger.Println("b enable 2")
 		return "OK:PAIR-ENABLE:"
 	case "PAIR-DISABLE":
 		delete(out.PairingConnections, conn)
@@ -50,18 +46,14 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		return "OK:PAIR-DISABLE:"
 	case "PAIR-ACCEPT":
-		out.Logger.Println("b accept")
 		if len(parts) < 2 {
 			return "ERR:PAIR-ACCEPT:not enough arguments"
 		}
 		err := pairAccept(parts[1])
-		out.Logger.Println("b accept 1")
 		if err != nil {
-			out.Logger.Println("b accept 2 error")
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:PAIR-ACCEPT:" + err.Error()
 		}
-		out.Logger.Println("b accept 2 ok")
 		return "OK:PAIR-ACCEPT:"
 	case "FORGET":
 		if len(parts) < 2 {
@@ -69,7 +61,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := forget(parts[1])
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:FORGET:" + err.Error()
 		}
 		return "OK:FORGET:"
@@ -79,7 +71,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := model.SetGatewayId(server.Gateway, strings.Join(parts[1:], " "))
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:SET-GATEWAY-ID:" + err.Error()
 		}
 		return "OK:SET-GATEWAY-ID:"
@@ -89,7 +81,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := model.SetGatewayPassword(server.Gateway, strings.Join(parts[1:], " "))
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:SET-GATEWAY-PASSWORD:" + err.Error()
 		}
 		return "OK:SET-GATEWAY-PASSWORD:"
@@ -99,14 +91,14 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		mac, err := model.StringToMac(parts[1])
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return "ERR:SET-SENSOR-SETTING:" + err.Error()
 		}
 		nbrOfSettings := (len(parts) - 2) / 2
 		for i := 0; i < nbrOfSettings; i++ {
 			err = model.UpdateSensorSetting(mac, parts[2+i*2], parts[3+i*2], server.Sensors)
 			if err != nil {
-				out.Logger.Print(err)
+				out.Logger.Println(err)
 				return "ERR:SET-SENSOR-SETTINGS:" + err.Error()
 			}
 		}
@@ -131,7 +123,6 @@ func handleConnection(conn *net.Conn) {
 	for {
 		str, err := reader.ReadString('\x00')
 		if err != nil {
-			out.Logger.Print(err)
 			return
 		}
 		cs := strings.Split(str, "\x00")
@@ -139,12 +130,8 @@ func handleConnection(conn *net.Conn) {
 			if c == "" {
 				continue
 			}
-			out.Logger.Println("a")
 			response := handleCommand(c, conn)
-			out.Logger.Println("b done")
 			(*conn).Write([]byte(response + "\x00"))
-			out.Logger.Println("c")
-			
 		}
 	}
 }
@@ -152,13 +139,13 @@ func handleConnection(conn *net.Conn) {
 func Start() error {
 	socketPath := "/tmp/ss_machmos.sock"
 	if err := os.RemoveAll(socketPath); err != nil {
-		out.Logger.Print(err)
+		out.Logger.Println(err)
 		return err
 	}
 
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
-		out.Logger.Print(err)
+		out.Logger.Println(err)
 		return err
 	}
 	defer listener.Close()
@@ -166,7 +153,7 @@ func Start() error {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 			return err
 		}
 		go handleConnection(&conn)

@@ -1,10 +1,9 @@
 package out
 
 import (
+	"fmt"
 	"log"
 	"net"
-	"time"
-	"fmt"
 )
 
 type logWriter struct{}
@@ -24,7 +23,7 @@ func (writer logWriter) Write(bytes []byte) (int, error) {
 		_, err := (*conn).Write([]byte("LOG:" + string(bytes) + "\x00"))
 		if err != nil {
 			delete(LoggingConnections, conn)
-			fmt.Print(err)
+			fmt.Println(err)
 			fmt.Printf("Removing connection %v from LoggingConnections\n", conn)
 		}
 	}
@@ -33,12 +32,6 @@ func (writer logWriter) Write(bytes []byte) (int, error) {
 
 func SetLogger(logger *log.Logger) {
 	Logger = logger
-	go func() {
-		for {
-			time.Sleep(10 * time.Second)
-			Logger.Println("still alive")
-		}
-	}()
 }
 
 func PairingLog(msg string) {
@@ -47,13 +40,13 @@ func PairingLog(msg string) {
 			delete(PairingConnections, conn)
 			fmt.Printf("Removing connection %v from PairingConnections\n", conn)
 			continue
-		}		
+		}
 		_, err := (*conn).Write([]byte("MSG:" + msg + "\x00"))
 		if err != nil {
 			delete(PairingConnections, conn)
-			fmt.Print(err)
+			fmt.Println(err)
 			fmt.Printf("Removing connection %v from PairingConnections\n", conn)
 		}
 	}
-	Logger.Print(msg)
+	Logger.Println(msg)
 }

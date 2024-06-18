@@ -48,7 +48,6 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 		requested: make(map[[6]byte]request),
 		pairing:   [6]byte{},
 	}
-	
 	dataCharUUID, err := model.GetDataCharUUID(Gateway)
 	if err != nil {
 		return err
@@ -140,7 +139,7 @@ func StartAdvertising() error {
 
 func StopAdvertising() {
 	adapter.DefaultAdvertisement().Stop()
-	out.Logger.Print("Stopping server")
+	out.Logger.Println("Stopping server")
 	os.Exit(0)
 }
 
@@ -148,7 +147,7 @@ func StopAdvertising() {
 func handleData(_ bluetooth.Connection, _ int, value []byte) {
 
 	if len(value) < 263 {
-		out.Logger.Print("Invalid data format received")
+		out.Logger.Println("Invalid data format received")
 		return
 	}
 	data := value[:len(value)-256]
@@ -163,12 +162,12 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		}
 	}
 	if sensor == nil {
-		out.Logger.Print("Device " + model.MacToString(macAddress) + " tried to send data, but it is not paired with this gateway")
+		out.Logger.Println("Device " + model.MacToString(macAddress) + " tried to send data, but it is not paired with this gateway")
 		return
 	}
 
 	if !model.VerifySignature(data, signature, &sensor.PublicKey) {
-		out.Logger.Print("Invalid signature received from " + model.MacToString(macAddress))
+		out.Logger.Println("Invalid signature received from " + model.MacToString(macAddress))
 		return
 	}
 
@@ -178,7 +177,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 	measurements := []map[string]interface{}{}
 
 	if batteryLevel != -1 {
-		out.Logger.Print("Received battery data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
+		out.Logger.Println("Received battery data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 		sensor.BatteryLevel = batteryLevel
 		measurements = []map[string]interface{}{
 			{
@@ -204,7 +203,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 			i += 9 + lengthOfData
 
 			if dataType == "vibration" {
-				out.Logger.Print("Received vibration data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
+				out.Logger.Println("Received vibration data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 				numberOfMeasurements := len(rawData) / 12 // 3 axes, 4 bytes per axis => 12 bytes per measurement
 				x, y, z := make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements)
 				for i := 0; i < numberOfMeasurements; i++ {
@@ -240,7 +239,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 					},
 				)
 			} else {
-				out.Logger.Print("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
+				out.Logger.Println("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 				measurements = append(measurements,
 					map[string]interface{}{
 						"sensor_id":          sensor.Mac,
@@ -258,23 +257,23 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 	resp, err := sendMeasurements(jsonData, Gateway)
 
 	if err != nil {
-		out.Logger.Print("Error sending data to server")
-		out.Logger.Print(err)
+		out.Logger.Println("Error sending data to server")
+		out.Logger.Println(err)
 		if err := saveUnsentMeasurements(jsonData, timestamp); err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 		}
 		return
 	}
 
 	if resp.StatusCode != 200 {
-		out.Logger.Print("Error sending data to server")
+		out.Logger.Println("Error sending data to server")
 
 		body := make([]byte, resp.ContentLength)
 		defer resp.Body.Close()
 		resp.Body.Read(body)
-		out.Logger.Print(string(body))
+		out.Logger.Println(string(body))
 		if err := saveUnsentMeasurements(jsonData, timestamp); err != nil {
-			out.Logger.Print(err)
+			out.Logger.Println(err)
 		}
 		return
 	}

@@ -216,7 +216,6 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 
 	settingParts := strings.Split(setting, "_")
 	if len(settingParts) < 2 {
-		fmt.Println(settingParts)
 		return errors.New("invalid setting format")
 	}
 
