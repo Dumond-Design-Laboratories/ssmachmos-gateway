@@ -64,7 +64,9 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				UUID:  dataCharUUID,
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					handleData(client, offset, value)
+					if len(value) > 0 && value[0] == 0x00 {
+						handleData(client, offset, value[1:])
+					}
 				},
 			},
 			{
@@ -72,14 +74,18 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				UUID:   settingsCharUUID,
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					sendSettings(value)
+					if len(value) > 0 && value[0] == 0x00 {
+						sendSettings(value[1:])
+					}
 				},
 			},
 			{
 				UUID:  PAIR_REQUEST_CHARACTERISTIC_UUID,
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					pairRequest(value)
+					if len(value) > 0 && value[0] == 0x00 {
+						pairRequest(value[1:])
+					}
 				},
 			},
 			{
@@ -88,7 +94,9 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				Value:  []byte{},
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					pairConfirmation(value)
+					if len(value) > 0 && value[0] == 0x00 {
+						pairConfirmation(value[1:])
+					}
 				},
 			},
 		},

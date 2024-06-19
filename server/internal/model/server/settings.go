@@ -24,7 +24,7 @@ func sendSettings(value []byte) {
 		return
 	}
 
-	response := mac[:]
+	response := append(mac[:], 0x01)
 	response = binary.LittleEndian.AppendUint32(response, setNextWakeUp(sensor))
 
 	for dataType, settings := range sensor.Settings {
