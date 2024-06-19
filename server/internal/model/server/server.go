@@ -95,7 +95,7 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
 					if len(value) > 0 && value[0] == 0x00 {
-						pairConfirmation(value[1:])
+						pairConfirmation(value)
 					}
 				},
 			},
