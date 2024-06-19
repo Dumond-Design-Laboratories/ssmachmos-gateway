@@ -33,10 +33,10 @@ func DisablePairing() {
 
 // see protocol.md to understand what is going on here
 func pairRequest(value []byte) {
-	if len(value) < 11 || !state.active {
+	if len(value) < 12 || !state.active {
 		return
 	}
-	mac := [6]byte(value[:6])
+	mac := [6]byte(value[1:7])
 	for _, s := range *Sensors {
 		if s.Mac == mac {
 			out.PairingLog("REQUEST-SENSOR-EXISTS:" + model.MacToString(mac))
@@ -48,18 +48,18 @@ func pairRequest(value []byte) {
 	}
 
 	dataTypes := []string{}
-	if value[6]&0x01 == 0x01 {
+	if value[7]&0x01 == 0x01 {
 		dataTypes = append(dataTypes, "acoustic")
 	}
-	if value[6]&0x02 == 0x02 {
+	if value[7]&0x02 == 0x02 {
 		dataTypes = append(dataTypes, "temperature")
 	}
-	if value[6]&0x04 == 0x04 {
+	if value[7]&0x04 == 0x04 {
 		dataTypes = append(dataTypes, "vibration")
 	}
 
-	collectionCapacity := binary.LittleEndian.Uint32(value[7:11])
-	publicKey, err := model.ParsePublicKey(value[11:])
+	collectionCapacity := binary.LittleEndian.Uint32(value[8:12])
+	publicKey, err := model.ParsePublicKey(value[12:])
 	if err != nil {
 		return
 	}
@@ -83,14 +83,14 @@ func pairRequest(value []byte) {
 
 // see protocol.md to understand what is going on here
 func pairConfirmation(value []byte) {
-	if len(value) != 294 || !state.active {
+	if len(value) != 295 || !state.active {
 		return
 	}
 
-	data := value[:38]
-	mac := [6]byte(data[:6])
-	dataUuid := model.BytesToUuid([16]byte(data[6:22]))
-	settingsUuid := model.BytesToUuid([16]byte(data[22:38]))
+	data := value[:39]
+	mac := [6]byte(data[1:7])
+	dataUuid := model.BytesToUuid([16]byte(data[7:23]))
+	settingsUuid := model.BytesToUuid([16]byte(data[23:39]))
 	signature := value[len(value)-256:]
 
 	if _, exists := state.requested[mac]; !exists || state.pairing != mac || !model.VerifySignature(data, signature, state.requested[mac].publicKey) {

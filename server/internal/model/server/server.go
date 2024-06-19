@@ -65,7 +65,7 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
 					if len(value) > 0 && value[0] == 0x00 {
-						handleData(client, offset, value[1:])
+						handleData(client, offset, value)
 					}
 				},
 			},
@@ -75,7 +75,7 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
 					if len(value) > 0 && value[0] == 0x00 {
-						sendSettings(value[1:])
+						sendSettings(value)
 					}
 				},
 			},
@@ -84,7 +84,7 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
 					if len(value) > 0 && value[0] == 0x00 {
-						pairRequest(value[1:])
+						pairRequest(value)
 					}
 				},
 			},
@@ -152,14 +152,14 @@ func StopAdvertising() {
 // see protocol.md to understand what is going on here
 func handleData(_ bluetooth.Connection, _ int, value []byte) {
 
-	if len(value) < 263 {
+	if len(value) < 264 {
 		out.Logger.Println("Invalid data format received")
 		return
 	}
 	data := value[:len(value)-256]
 	signature := value[len(value)-256:]
 
-	macAddress := [6]byte(data[:6])
+	macAddress := [6]byte(data[1:7])
 	var sensor *model.Sensor
 	for i, s := range *Sensors {
 		if s.Mac == macAddress {
@@ -177,7 +177,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		return
 	}
 
-	batteryLevel := int(int8(data[6]))
+	batteryLevel := int(int8(data[7]))
 	timestamp := time.Now().Unix()
 
 	measurements := []map[string]interface{}{}
@@ -196,7 +196,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		}
 	}
 	if len(data) > 16 {
-		measurementData := data[7:]
+		measurementData := data[8:]
 		var i uint32 = 0
 		for i <= uint32(len(measurementData))-9 {
 			dataType := DATA_TYPES[measurementData[i]]

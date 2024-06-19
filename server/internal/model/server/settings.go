@@ -9,10 +9,10 @@ import (
 
 // see protocol.md to understand what is going on here
 func sendSettings(value []byte) {
-	if len(value) < 6 {
+	if len(value) < 7 {
 		return
 	}
-	mac := [6]byte(value[:6])
+	mac := [6]byte(value[1:7])
 	var sensor *model.Sensor
 	for i, s := range *Sensors {
 		if s.Mac == mac {
