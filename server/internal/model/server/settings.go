@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/binary"
 	"time"
-	"fmt"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
 )
@@ -27,7 +26,7 @@ func sendSettings(value []byte) {
 
 	response := mac[:]
 	response = binary.LittleEndian.AppendUint32(response, setNextWakeUp(sensor))
-															
+
 	for dataType, settings := range sensor.Settings {
 		var active byte
 		if settings.Active {
@@ -48,10 +47,8 @@ func sendSettings(value []byte) {
 			response = append(response, 0x02, active, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
 		}
 	}
-	fmt.Println("1")
-	fmt.Println(response)
-	settingsCharacteristic.Write([]byte{1})
-	fmt.Println("2")
+
+	settingsCharacteristic.Write(response)
 }
 
 func setNextWakeUp(sensor *model.Sensor) uint32 {
