@@ -220,7 +220,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 
 				measurements = append(measurements,
 					map[string]interface{}{
-						"sensor_id":          sensor.Mac,
+						"sensor_id":          model.MacToString(sensor.Mac),
 						"time":               timestamp,
 						"measurement_type":   dataType,
 						"sampling_frequency": samplingFrequency,
@@ -228,7 +228,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 						"raw_data":           x,
 					},
 					map[string]interface{}{
-						"sensor_id":          sensor.Mac,
+						"sensor_id":          model.MacToString(sensor.Mac),
 						"time":               timestamp,
 						"measurement_type":   dataType,
 						"sampling_frequency": samplingFrequency,
@@ -236,7 +236,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 						"raw_data":           y,
 					},
 					map[string]interface{}{
-						"sensor_id":          sensor.Mac,
+						"sensor_id":          model.MacToString(sensor.Mac),
 						"time":               timestamp,
 						"measurement_type":   dataType,
 						"sampling_frequency": samplingFrequency,
@@ -248,7 +248,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 				out.Logger.Println("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 				measurements = append(measurements,
 					map[string]interface{}{
-						"sensor_id":          sensor.Mac,
+						"sensor_id":          model.MacToString(sensor.Mac),
 						"time":               timestamp,
 						"measurement_type":   dataType,
 						"sampling_frequency": samplingFrequency,
@@ -284,5 +284,5 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		return
 	}
 
-	sendUnsentMeasurements()
+	SendUnsentMeasurements()
 }

@@ -38,6 +38,8 @@ func serve() {
 		err = server.StartAdvertising()
 		if err != nil {
 			out.Logger.Println(err)
+		} else {
+			server.SendUnsentMeasurements()	
 		}
 	}
 
