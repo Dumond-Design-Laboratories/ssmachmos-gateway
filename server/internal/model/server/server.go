@@ -284,5 +284,5 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		return
 	}
 
-	SendUnsentMeasurements()
+	sendUnsentMeasurements()
 }
