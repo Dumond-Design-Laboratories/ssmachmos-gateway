@@ -35,6 +35,10 @@ class Connection {
     }
     try {
       _socket!.write("$message\x00");
+      if (message == "STOP") {
+        await _socket!.close();
+        _state = 1;
+      }
     } catch (_) {
       _state = 1;
     }
