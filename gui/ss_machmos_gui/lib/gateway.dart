@@ -24,6 +24,10 @@ class _GatewayState extends State<Gateway> {
     _idController = TextEditingController();
     _passwordController = TextEditingController();
     _httpController = TextEditingController();
+    loadGateway();
+  }
+
+  void loadGateway() {
     widget.connection.send("GET-GATEWAY");
     widget.connection.on("GET-GATEWAY", (json, err) {
       if (err != null) {
@@ -52,7 +56,7 @@ class _GatewayState extends State<Gateway> {
   Widget build(BuildContext context) {
     return Center(
       child: SizedBox(
-        width: 400,
+        width: 450,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -68,6 +72,7 @@ class _GatewayState extends State<Gateway> {
                 ),
               ],
             ),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -83,6 +88,7 @@ class _GatewayState extends State<Gateway> {
                 ),
               ],
             ),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -92,6 +98,25 @@ class _GatewayState extends State<Gateway> {
                   child: TextField(
                     controller: _httpController,
                   ),
+                ),
+                const SizedBox(width: 10),
+                IconButton(
+                  iconSize: 20,
+                  icon: const Icon(Icons.restore),
+                  onPressed: () async {
+                    await widget.connection
+                        .send("SET-GATEWAY-HTTP-ENDPOINT default");
+                    widget.connection.on("SET-GATEWAY-HTTP-ENDPOINT", (_, err) {
+                      if (err != null) {
+                        showMessage(
+                            "Failed to save Gateway HTTP Endpoint", context);
+                      } else {
+                        showMessage("Gateway HTTP Endpoint saved", context);
+                      }
+                      loadGateway();
+                      return true;
+                    });
+                  },
                 ),
               ],
             ),
@@ -108,6 +133,7 @@ class _GatewayState extends State<Gateway> {
                     } else {
                       showMessage("Gateway ID saved", context);
                     }
+                    loadGateway();
                     return true;
                   });
                   if (_passwordController.text.isNotEmpty) {
@@ -119,6 +145,7 @@ class _GatewayState extends State<Gateway> {
                       } else {
                         showMessage("Gateway Password saved", context);
                       }
+                      loadGateway();
                       return true;
                     });
                   }
@@ -131,6 +158,7 @@ class _GatewayState extends State<Gateway> {
                     } else {
                       showMessage("Gateway HTTP Endpoint saved", context);
                     }
+                    loadGateway();
                     return true;
                   });
                 },
