@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -31,13 +30,13 @@ func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, 
 	return http.Post("https://openphm.org/gateway_data", "application/json", bytes.NewBuffer([]byte(json)))
 }
 
-func saveUnsentMeasurements(data []byte, timestamp int64) error {
+func saveUnsentMeasurements(data []byte, timestamp string) error {
 	err := os.MkdirAll(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH), 0777)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, fmt.Sprintf("%d.json", timestamp)), data, 0777)
+	return os.WriteFile(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, timestamp+".json"), data, 0777)
 }
 
 func sendUnsentMeasurements() {

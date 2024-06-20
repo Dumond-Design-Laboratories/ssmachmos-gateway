@@ -14,6 +14,8 @@ import (
 	"tinygo.org/x/bluetooth"
 )
 
+const ISO8601 = "2006-01-02T15:04:05.999Z"
+
 var adapter = bluetooth.DefaultAdapter
 
 var SERVICE_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}                      // same for every gateway fbe7e8cd-940d-16f1-ad5b-474ea07498ca
@@ -178,7 +180,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 	}
 
 	batteryLevel := int(int8(data[7]))
-	timestamp := time.Now().Unix()
+	timestamp := time.Now().UTC().Format(ISO8601)
 
 	measurements := []map[string]interface{}{}
 
