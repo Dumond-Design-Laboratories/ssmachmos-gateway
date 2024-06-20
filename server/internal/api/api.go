@@ -65,6 +65,28 @@ func handleCommand(command string, conn *net.Conn) string {
 			return "ERR:FORGET:" + err.Error()
 		}
 		return "OK:FORGET:"
+	case "GET-GATEWAY":
+		res, err := getGateway()
+		if err != nil {
+			out.Logger.Println(err)
+			return "ERR:GET-GATEWAY:" + err.Error()
+		}
+		return "OK:GET-GATEWAY:" + res
+	case "SET-GATEWAY-HTTP-ENDPOINT":
+		if len(parts) < 2 {
+			return "ERR:SET-GATEWAY-HTTP-ENDPOINT:not enough arguments"
+		}
+		var err error
+		if parts[1] == "default" {
+			err = model.SetGatewayHTTPEndpoint(server.Gateway, server.DEFAULT_GATEWAY_HTTP_ENDPOINT)
+		} else {
+			err = model.SetGatewayHTTPEndpoint(server.Gateway, parts[1])
+		}
+		if err != nil {
+			out.Logger.Println(err)
+			return "ERR:SET-GATEWAY-HTTP-ENDPOINT:" + err.Error()
+		}
+		return "OK:SET-GATEWAY-HTTP-ENDPOINT:"
 	case "SET-GATEWAY-ID":
 		if len(parts) < 2 {
 			return "ERR:SET-GATEWAY-ID:not enough arguments"

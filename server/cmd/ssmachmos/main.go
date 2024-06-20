@@ -23,7 +23,9 @@ func serve() {
 
 	out.Logger.Println("Loading local config...")
 	var sensors *[]model.Sensor = &[]model.Sensor{}
-	var gateway *model.Gateway = &model.Gateway{}
+	var gateway *model.Gateway = &model.Gateway{
+		HTTPEndpoint: "https://openphm.org/gateway_data",
+	}
 	model.LoadSensors(model.SENSORS_FILE, sensors)
 	err = model.LoadSettings(gateway, model.GATEWAY_FILE)
 	if err != nil {
@@ -100,7 +102,7 @@ func main() {
 	case "list":
 		cli.List(conn)
 	case "view":
-		cli.View(args, conn)
+		cli.View(options, args, conn)
 	case "pair":
 		cli.Pair(args, conn)
 	case "forget":

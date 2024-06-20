@@ -52,6 +52,11 @@ func forget(mac string) error {
 	return nil
 }
 
+func getGateway() (string, error) {
+	jsonStr, err := json.Marshal(*server.Gateway)
+	return string(jsonStr), err
+}
+
 func stop() {
 	server.StopAdvertising()
 }

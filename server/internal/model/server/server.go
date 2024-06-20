@@ -15,6 +15,7 @@ import (
 )
 
 const ISO8601 = "2006-01-02T15:04:05.999Z"
+const DEFAULT_GATEWAY_HTTP_ENDPOINT = "https://openphm.org/gateway_data"
 
 var adapter = bluetooth.DefaultAdapter
 

@@ -92,7 +92,8 @@ func Help(args []string, conn net.Conn) {
 			"+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| list    | None       | None                            | List all sensors                   |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n" +
-			"| view    | None       | <mac-address>                   | View a specific sensors' settings  |\n" +
+			"| view    | --sensor   | <mac-address>                   | View a specific sensors' settings  |\n" +
+			"|         | --gateway  | None                            | View the Gateway settings          |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| pair    |            | None                            | Enter pairing mode                 |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n" +
@@ -100,6 +101,10 @@ func Help(args []string, conn net.Conn) {
 			"+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| config  | --id       | <gateway-id>                    | Set the Gateway Id                 |\n" +
 			"|         | --password | <gateway-password>              | Set the Gateway Password           |\n" +
+			"|         | --http     | <http-endpoint>                 | Set the HTTP Endpoint where the    |\n" +
+			"|         |            | default                         | 	data will be sent                |\n" +
+			"|         |            |                                 |   default is openphm.org           |\n" +
+			"|         |            |                                 |                                    |\n" +
 			"|         | --sensor   | <mac-address> <setting> <value> | Set a setting of a sensor          |\n" +
 			"|         |            |                                 |   Type \"help config\"               |\n" +
 			"|         |            |                                 |   for more information             |\n" +
@@ -122,7 +127,8 @@ func Help(args []string, conn net.Conn) {
 
 	case "view":
 		fmt.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
-			"| view    | None       | <mac-address>                   | View a specific sensors' settings  |\n" +
+			"| view    | --sensor   | <mac-address>                   | View a specific sensors' settings  |\n" +
+			"|         | --gateway  | None                            | View the Gateway settings          |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "pair":
@@ -139,6 +145,8 @@ func Help(args []string, conn net.Conn) {
 		fmt.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
 			"| config  | --id       | <gateway-id>                    | Set the Gateway Id                 |\n" +
 			"|         | --password | <gateway-password>              | Set the Gateway Password           |\n" +
+			"|         | --http     | <http-endpoint>                 | Set the HTTP Endpoint where the    |\n" +
+			"|         |            |                                 | 	data will be sent                |\n" +
 			"|         |            |                                 |                                    |\n" +
 			"|         | --sensor   | <mac-address> <setting> <value> | Set a setting of a sensor          |\n" +
 			"|         |            | <setting> can be \"name\",        |                                    |\n" +
@@ -162,17 +170,34 @@ func List(conn net.Conn) {
 	waitFor("OK:LIST", "ERR:LIST")
 }
 
-func View(args []string, conn net.Conn) {
-	if len(args) == 0 {
-		fmt.Println("Usage: view <mac-address>")
+func View(options []string, args []string, conn net.Conn) {
+	if len(options) == 0 {
+		fmt.Print("\nUsage: view --sensor <mac-address>\n" +
+			"              --gateway\n")
 		return
 	}
-	err := sendCommand("VIEW "+args[0], conn)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
+	switch options[0] {
+	case "--sensor":
+		if len(args) == 0 {
+			fmt.Println("Usage: view --sensor <mac-address>")
+			return
+		}
+		err := sendCommand("VIEW "+args[0], conn)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+		waitFor("OK:VIEW", "ERR:VIEW")
+	case "--gateway":
+		err := sendCommand("GET-GATEWAY", conn)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+		waitFor("OK:GET-GATEWAY", "ERR:GET-GATEWAY")
+	default:
+		fmt.Printf("Option %s does not exist for command view\n", options[0])
 	}
-	waitFor("OK:VIEW", "ERR:VIEW")
 }
 
 func Pair(args []string, conn net.Conn) {
@@ -240,6 +265,7 @@ func Config(options []string, args []string, conn net.Conn) {
 	if len(options) == 0 {
 		fmt.Print("\nUsage: config --id <gateway-id>\n" +
 			"              --password <gateway-password>\n" +
+			"              --http <http-endpoint> | default\n" +
 			"              --sensor <mac-address> <setting> <value>\n")
 		return
 	}
@@ -266,6 +292,17 @@ func Config(options []string, args []string, conn net.Conn) {
 			return
 		}
 		waitFor("OK:SET-GATEWAY-PASSWORD", "ERR:SET-GATEWAY-PASSWORD")
+	case "--http":
+		if len(args) == 0 {
+			fmt.Println("Usage: config --http <http-endpoint> | default")
+			return
+		}
+		err := sendCommand("SET-GATEWAY-HTTP-ENDPOINT "+args[0], conn)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+		waitFor("OK:SET-GATEWAY-HTTP-ENDPOINT", "ERR:SET-GATEWAY-HTTP-ENDPOINT")
 	case "--sensor":
 		if len(args) < 3 {
 			fmt.Println("Usage: config --sensor <mac-address> <setting> <value>")
@@ -322,6 +359,13 @@ func parseResponse(res string) string {
 				return "Error: " + err.Error()
 			}
 			return str
+		case "GET-GATEWAY":
+			gateway := model.Gateway{}
+			err := json.Unmarshal([]byte(parts[2]), &gateway)
+			if err != nil {
+				return "Error: " + err.Error()
+			}
+			return "Gateway ID: " + gateway.Id + "\nHTTP Endpoint: " + gateway.HTTPEndpoint
 		}
 	} else if parts[0] == "ERR" {
 		if len(parts) < 3 {

@@ -41,7 +41,7 @@ func LoadSettings(gateway *Gateway, fileName string) error {
 	return nil
 }
 
-func SetHTTPEndpoint(gateway *Gateway, endpoint string) error {
+func SetGatewayHTTPEndpoint(gateway *Gateway, endpoint string) error {
 	gateway.HTTPEndpoint = endpoint
 	return saveSettings(gateway, GATEWAY_FILE)
 }
