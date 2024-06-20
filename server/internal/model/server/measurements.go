@@ -27,7 +27,12 @@ func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, 
 	if err != nil {
 		return nil, err
 	}
-	return http.Post("https://openphm.org/gateway_data", "application/json", bytes.NewBuffer([]byte(json)))
+	endpoint := gateway.HTTPEndpoint
+	if endpoint == "" {
+		endpoint = "https://openphm.org/gateway_data"
+	}
+
+	return http.Post(endpoint, "application/json", bytes.NewBuffer([]byte(json)))
 }
 
 func saveUnsentMeasurements(data []byte, timestamp string) error {

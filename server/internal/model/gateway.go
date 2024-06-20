@@ -14,6 +14,7 @@ type Gateway struct {
 	Password         string    `json:"password"`
 	DataCharUUID     [4]uint32 `json:"data_char_uuid"`
 	SettingsCharUUID [4]uint32 `json:"settings_char_uuid"`
+	HTTPEndpoint     string    `json:"http_endpoint"`
 }
 
 func LoadSettings(gateway *Gateway, fileName string) error {
@@ -38,6 +39,11 @@ func LoadSettings(gateway *Gateway, fileName string) error {
 		return err
 	}
 	return nil
+}
+
+func SetHTTPEndpoint(gateway *Gateway, endpoint string) error {
+	gateway.HTTPEndpoint = endpoint
+	return saveSettings(gateway, GATEWAY_FILE)
 }
 
 func SetGatewayId(gateway *Gateway, id string) error {
