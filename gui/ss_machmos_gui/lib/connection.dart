@@ -10,10 +10,6 @@ class Connection {
 
   int get state => _state;
 
-  //set onLog(void Function(String message) callback) {
-  //_onLog = callback;
-  //}
-
   Connection() {
     _state = 1;
     _waitingFor = {};

@@ -29,14 +29,18 @@ class Logs extends StatelessWidget {
           alignment: Alignment.bottomLeft,
           child: SingleChildScrollView(
             controller: _logsScrollController,
-            child: SelectableText(
-              _logs,
+            child: Row(
+              children: [
+                SelectableText(
+                  _logs,
+                ),
+              ],
             ),
           ),
         ),
         Positioned(
-          top: 48,
-          right: 48,
+          top: 48.5,
+          right: 48.5,
           child: TextButton(
             style: ButtonStyle(
               backgroundColor: const WidgetStatePropertyAll(Colors.red),
