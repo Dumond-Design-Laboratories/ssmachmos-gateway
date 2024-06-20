@@ -34,10 +34,6 @@ func SetLogger(logger *log.Logger) {
 	Logger = logger
 }
 
-func Error(content interface{}) {
-	Logger.Println("Error:", content)
-}
-
 func PairingLog(msg string) {
 	for conn := range PairingConnections {
 		if conn == nil || (*conn) == nil {

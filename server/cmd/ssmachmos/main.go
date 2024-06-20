@@ -35,11 +35,11 @@ func serve() {
 	out.Logger.Println("Starting bluetooth advertisement...")
 	err = server.Init(sensors, gateway)
 	if err != nil {
-		out.Error(err)
+		out.Logger.Println("Error:", err)
 	} else {
 		err = server.StartAdvertising()
 		if err != nil {
-			out.Error(err)
+			out.Logger.Println("Error:", err)
 		}
 	}
 

@@ -21,7 +21,7 @@ func handleCommand(command string, conn *net.Conn) string {
 	case "LIST":
 		res, err := list()
 		if err != nil {
-			out.Error(err)
+			out.Logger.Println("Error:", err)
 			return "ERR:LIST:" + err.Error()
 		}
 		return "OK:LIST:" + res
@@ -31,7 +31,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		res, err := view(parts[1])
 		if err != nil {
-			out.Error(err)
+			out.Logger.Println("Error:", err)
 			return "ERR:VIEW:" + err.Error()
 		}
 		return "OK:VIEW:" + res
@@ -51,7 +51,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := pairAccept(parts[1])
 		if err != nil {
-			out.Error(err)
+			out.Logger.Println("Error:", err)
 			return "ERR:PAIR-ACCEPT:" + err.Error()
 		}
 		return "OK:PAIR-ACCEPT:"
@@ -61,14 +61,14 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := forget(parts[1])
 		if err != nil {
-			out.Error(err)
+			out.Logger.Println("Error:", err)
 			return "ERR:FORGET:" + err.Error()
 		}
 		return "OK:FORGET:"
 	case "GET-GATEWAY":
 		res, err := getGateway()
 		if err != nil {
-			out.Error(err)
+			out.Logger.Println("Error:", err)
 			return "ERR:GET-GATEWAY:" + err.Error()
 		}
 		return "OK:GET-GATEWAY:" + res
@@ -83,7 +83,7 @@ func handleCommand(command string, conn *net.Conn) string {
 			err = model.SetGatewayHTTPEndpoint(server.Gateway, parts[1])
 		}
 		if err != nil {
-			out.Error(err)
+			out.Logger.Println("Error:", err)
 			return "ERR:SET-GATEWAY-HTTP-ENDPOINT:" + err.Error()
 		}
 		return "OK:SET-GATEWAY-HTTP-ENDPOINT:"
@@ -93,7 +93,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := model.SetGatewayId(server.Gateway, strings.Join(parts[1:], " "))
 		if err != nil {
-			out.Error(err)
+			out.Logger.Println("Error:", err)
 			return "ERR:SET-GATEWAY-ID:" + err.Error()
 		}
 		return "OK:SET-GATEWAY-ID:"
@@ -103,7 +103,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		err := model.SetGatewayPassword(server.Gateway, strings.Join(parts[1:], " "))
 		if err != nil {
-			out.Error(err)
+			out.Logger.Println("Error:", err)
 			return "ERR:SET-GATEWAY-PASSWORD:" + err.Error()
 		}
 		return "OK:SET-GATEWAY-PASSWORD:"
@@ -113,14 +113,14 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		mac, err := model.StringToMac(parts[1])
 		if err != nil {
-			out.Error(err)
+			out.Logger.Println("Error:", err)
 			return "ERR:SET-SENSOR-SETTING:" + err.Error()
 		}
 		nbrOfSettings := (len(parts) - 2) / 2
 		for i := 0; i < nbrOfSettings; i++ {
 			err = model.UpdateSensorSetting(mac, parts[2+i*2], parts[3+i*2], server.Sensors)
 			if err != nil {
-				out.Error(err)
+				out.Logger.Println("Error:", err)
 				return "ERR:SET-SENSOR-SETTINGS:" + err.Error()
 			}
 		}
@@ -161,13 +161,13 @@ func handleConnection(conn *net.Conn) {
 func Start() error {
 	socketPath := "/tmp/ss_machmos.sock"
 	if err := os.RemoveAll(socketPath); err != nil {
-		out.Error(err)
+		out.Logger.Println("Error:", err)
 		return err
 	}
 
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
-		out.Error(err)
+		out.Logger.Println("Error:", err)
 		return err
 	}
 	defer listener.Close()
@@ -175,7 +175,7 @@ func Start() error {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			out.Error(err)
+			out.Logger.Println("Error:", err)
 			return err
 		}
 		go handleConnection(&conn)

@@ -133,12 +133,12 @@ func Pair(mac [6]byte) {
 
 	dataCharUUID, err := model.GetDataCharUUID(Gateway)
 	if err != nil {
-		out.Error(err)
+		out.Logger.Println("Error:", err)
 		return
 	}
 	settingsCharUUID, err := model.GetSettingsCharUUID(Gateway)
 	if err != nil {
-		out.Error(err)
+		out.Logger.Println("Error:", err)
 		return
 	}
 	dataUuid := model.UuidToBytes(dataCharUUID)
