@@ -131,7 +131,7 @@ func StartAdvertising() error {
 			if sig == os.Interrupt {
 				err := adapter.DefaultAdvertisement().Stop()
 				if err != nil {
-					out.Logger.Println("Error:", err)
+					out.Error(err)
 				}
 				out.Logger.Println("Stopping server")
 				os.Exit(0)
@@ -262,21 +262,24 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		}
 	}
 
-	jsonData, _ := json.Marshal(measurements)
+	jsonData, err := json.Marshal(measurements)
+	if err != nil {
+		out.Error(err)
+		return
+	}
+
 	resp, err := sendMeasurements(jsonData, Gateway)
 
 	if err != nil {
-		out.Logger.Println("Error sending data to server")
-		out.Logger.Println(err)
+		out.Error(err)
 		if err := saveUnsentMeasurements(jsonData, timestamp); err != nil {
-			out.Logger.Println(err)
+			out.Error(err)
 		}
 		return
 	}
 
 	if resp.StatusCode != 200 {
 		out.Logger.Println("Error sending data to server")
-
 		body := make([]byte, resp.ContentLength)
 		defer resp.Body.Close()
 		resp.Body.Read(body)

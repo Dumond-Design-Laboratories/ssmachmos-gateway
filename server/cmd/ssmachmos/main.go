@@ -35,11 +35,11 @@ func serve() {
 	out.Logger.Println("Starting bluetooth advertisement...")
 	err = server.Init(sensors, gateway)
 	if err != nil {
-		out.Logger.Println(err)
+		out.Error(err)
 	} else {
 		err = server.StartAdvertising()
 		if err != nil {
-			out.Logger.Println(err)
+			out.Error(err)
 		}
 	}
 
@@ -90,7 +90,7 @@ func main() {
 	// open a unix domain socket connection to the server
 	conn, err := cli.OpenConnection()
 	if err != nil {
-		fmt.Println("Error: ", err)
+		fmt.Println("Error:", err)
 		return
 	}
 	go cli.Listen(conn)

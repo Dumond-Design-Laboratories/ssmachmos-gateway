@@ -43,20 +43,20 @@ func saveUnsentMeasurements(data []byte, timestamp string) error {
 func sendUnsentMeasurements() {
 	files, err := os.ReadDir(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH))
 	if err != nil {
-		out.Logger.Println(err)
+		out.Error(err)
 		return
 	}
 
 	for _, file := range files {
 		data, err := os.ReadFile(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, file.Name()))
 		if err != nil {
-			out.Logger.Println(err)
+			out.Error(err)
 			continue
 		}
 
 		resp, err := sendMeasurements(data, Gateway)
 		if err != nil {
-			out.Logger.Println(err)
+			out.Error(err)
 			continue
 		}
 

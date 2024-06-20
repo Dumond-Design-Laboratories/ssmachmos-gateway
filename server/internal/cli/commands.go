@@ -39,7 +39,7 @@ func OpenConnection() (net.Conn, error) {
 
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to server: %w", err)
+		return nil, err
 	}
 
 	return conn, nil
@@ -75,7 +75,7 @@ func sendCommand(command string, conn net.Conn) error {
 	_, err := conn.Write([]byte(command + "\x00"))
 
 	if err != nil {
-		return fmt.Errorf("failed to send command: %w", err)
+		return err
 	}
 
 	return nil

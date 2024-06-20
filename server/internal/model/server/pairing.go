@@ -131,8 +131,16 @@ func Pair(mac [6]byte) {
 	}
 	state.pairing = mac
 
-	dataCharUUID, _ := model.GetDataCharUUID(Gateway)
-	settingsCharUUID, _ := model.GetSettingsCharUUID(Gateway)
+	dataCharUUID, err := model.GetDataCharUUID(Gateway)
+	if err != nil {
+		out.Error(err)
+		return
+	}
+	settingsCharUUID, err := model.GetSettingsCharUUID(Gateway)
+	if err != nil {
+		out.Error(err)
+		return
+	}
 	dataUuid := model.UuidToBytes(dataCharUUID)
 	settingsUuid := model.UuidToBytes(settingsCharUUID)
 	pairResponseCharacteristic.Write(append(append(append([]byte{0x01}, mac[:]...), dataUuid...), settingsUuid...))

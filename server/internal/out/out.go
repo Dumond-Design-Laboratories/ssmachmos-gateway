@@ -23,7 +23,7 @@ func (writer logWriter) Write(bytes []byte) (int, error) {
 		_, err := (*conn).Write([]byte("LOG:" + string(bytes) + "\x00"))
 		if err != nil {
 			delete(LoggingConnections, conn)
-			fmt.Println(err)
+			fmt.Println("Error:", err)
 			fmt.Printf("Removing connection %v from LoggingConnections\n", conn)
 		}
 	}
@@ -32,6 +32,10 @@ func (writer logWriter) Write(bytes []byte) (int, error) {
 
 func SetLogger(logger *log.Logger) {
 	Logger = logger
+}
+
+func Error(content interface{}) {
+	Logger.Println("Error:", content)
 }
 
 func PairingLog(msg string) {
@@ -44,7 +48,7 @@ func PairingLog(msg string) {
 		_, err := (*conn).Write([]byte("MSG:" + msg + "\x00"))
 		if err != nil {
 			delete(PairingConnections, conn)
-			fmt.Println(err)
+			fmt.Println("Error:", err)
 			fmt.Printf("Removing connection %v from PairingConnections\n", conn)
 		}
 	}
