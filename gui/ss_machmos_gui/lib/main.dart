@@ -94,7 +94,7 @@ class _RootState extends State<Root> {
       _pairingEnabled = false;
       _sensorsPaired = [];
     });
-    openConnection().then((_) => startLogger());
+    openConnection();
   }
 
   Future<void> openConnection() {
@@ -105,7 +105,7 @@ class _RootState extends State<Root> {
       setState(() {
         _connection = _connection;
       });
-    });
+    }).then((_) => startLogger());
   }
 
   void startLogger() {
