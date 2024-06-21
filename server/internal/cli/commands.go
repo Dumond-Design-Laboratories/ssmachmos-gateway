@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
+	"github.com/jukuly/ss_machmos/server/internal/out"
 )
 
 var messagesToPrint = map[string]string{
@@ -50,6 +51,7 @@ func Listen(conn net.Conn) {
 	for {
 		str, err := reader.ReadString('\x00')
 		if err != nil {
+			os.Exit(0)
 			return
 		}
 		ress := strings.Split(str, "\x00")
@@ -81,34 +83,44 @@ func sendCommand(command string, conn net.Conn) error {
 	return nil
 }
 
-func Help(args []string, conn net.Conn) {
+func Help(args []string) {
 	if len(args) == 0 {
-		fmt.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
-			"| Command | Options    | Arguments                       | Description                        |\n" +
-			"+---------+------------+---------------------------------+------------------------------------+\n" +
-			"| help    | None       | None                            | View this table                    |\n" +
-			"|         |            | <command>                       | View usage and description         |\n" +
-			"|         |            |                                 | of a specific command              |\n" +
-			"+---------+------------+---------------------------------+------------------------------------+\n" +
-			"| list    | None       | None                            | List all sensors                   |\n" +
-			"+---------+------------+---------------------------------+------------------------------------+\n" +
-			"| view    | --sensor   | <mac-address>                   | View a specific sensors' settings  |\n" +
-			"|         | --gateway  | None                            | View the Gateway settings          |\n" +
-			"+---------+------------+---------------------------------+------------------------------------+\n" +
-			"| pair    |            | None                            | Enter pairing mode                 |\n" +
-			"+---------+------------+---------------------------------+------------------------------------+\n" +
-			"| forget  | None       | <mac-address>                   | Forget a sensor                    |\n" +
-			"+---------+------------+---------------------------------+------------------------------------+\n" +
-			"| config  | --id       | <gateway-id>                    | Set the Gateway Id                 |\n" +
-			"|         | --password | <gateway-password>              | Set the Gateway Password           |\n" +
-			"|         | --http     | <http-endpoint>                 | Set the HTTP Endpoint where the    |\n" +
-			"|         |            | default                         | 	data will be sent                |\n" +
-			"|         |            |                                 |   default is openphm.org           |\n" +
-			"|         |            |                                 |                                    |\n" +
-			"|         | --sensor   | <mac-address> <setting> <value> | Set a setting of a sensor          |\n" +
-			"|         |            |                                 |   Type \"help config\"               |\n" +
-			"|         |            |                                 |   for more information             |\n" +
-			"+---------+------------+---------------------------------+------------------------------------+\n")
+		fmt.Print("+---------+--------------+---------------------------------+------------------------------------+\n" +
+			"| Command | Options      | Arguments                       | Description                        |\n" +
+			"+---------+--------------+---------------------------------+------------------------------------+\n" +
+			"| help    | None         | None                            | View this table                    |\n" +
+			"|         |              | <command>                       | View usage and description         |\n" +
+			"|         |              |                                 | of a specific command              |\n" +
+			"+---------+--------------+---------------------------------+------------------------------------+\n" +
+			"| serve   | None         | None                            | Start the server and see the       |\n" +
+			"|         |              |                                 | live stream of logs in the console |\n" +
+			"|         |              |                                 |                                    |\n" +
+			"|         | --no-console | None                            | Start the server without the       |\n" +
+			"|         |              |                                 | live stream of logs                |\n" +
+			"+---------+--------------+---------------------------------+------------------------------------+\n" +
+			"| logs    | None         | None                            | View the live stream of logs       |\n" +
+			"+---------+--------------+---------------------------------+------------------------------------+\n" +
+			"| stop    | None         | None                            | Stop the server                    |\n" +
+			"+---------+--------------+---------------------------------+------------------------------------+\n" +
+			"| list    | None         | None                            | List all sensors                   |\n" +
+			"+---------+--------------+---------------------------------+------------------------------------+\n" +
+			"| view    | --sensor     | <mac-address>                   | View a specific sensors' settings  |\n" +
+			"|         | --gateway    | None                            | View the Gateway settings          |\n" +
+			"+---------+--------------+---------------------------------+------------------------------------+\n" +
+			"| pair    | None         | None                            | Enter pairing mode                 |\n" +
+			"+---------+--------------+---------------------------------+------------------------------------+\n" +
+			"| forget  | None         | <mac-address>                   | Forget a sensor                    |\n" +
+			"+---------+--------------+---------------------------------+------------------------------------+\n" +
+			"| config  | --id         | <gateway-id>                    | Set the Gateway Id                 |\n" +
+			"|         | --password   | <gateway-password>              | Set the Gateway Password           |\n" +
+			"|         | --http       | <http-endpoint>                 | Set the HTTP Endpoint where the    |\n" +
+			"|         |              | default                         |   data will be sent                |\n" +
+			"|         |              |                                 |   default is openphm.org           |\n" +
+			"|         |              |                                 |                                    |\n" +
+			"|         | --sensor     | <mac-address> <setting> <value> | Set a setting of a sensor          |\n" +
+			"|         |              |                                 |   Type \"help config\"               |\n" +
+			"|         |              |                                 |   for more information             |\n" +
+			"+---------+--------------+---------------------------------+------------------------------------+\n")
 		return
 	}
 
@@ -118,6 +130,25 @@ func Help(args []string, conn net.Conn) {
 			"| help    | None       | None                            | View all commands and their usage  |\n" +
 			"|         |            | <command>                       | View usage and description         |\n" +
 			"|         |            | <command>                       | of a specific command              |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n")
+
+	case "serve":
+		fmt.Print("+---------+--------------+---------------------------------+------------------------------------+\n" +
+			"| serve   | None         | None                            | Start the server and see the       |\n" +
+			"|         |              |                                 | live stream of logs in the console |\n" +
+			"|         |              |                                 |                                    |\n" +
+			"|         | --no-console | None                            | Start the server without the       |\n" +
+			"|         |              |                                 | live stream of logs                |\n" +
+			"+---------+--------------+---------------------------------+------------------------------------+\n")
+
+	case "logs":
+		fmt.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| logs    | None       | None                            | View the live stream of logs       |\n" +
+			"+---------+------------+---------------------------------+------------------------------------+\n")
+
+	case "stop":
+		fmt.Print("+---------+------------+---------------------------------+------------------------------------+\n" +
+			"| stop    | None       | None                            | Stop the server                    |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	case "list":
@@ -159,6 +190,30 @@ func Help(args []string, conn net.Conn) {
 	default:
 		fmt.Printf("Unknown command: %s\n", args[0])
 	}
+}
+
+func Logs(conn net.Conn) {
+	err := sendCommand("ADD-LOGGER", conn)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	waitFor("OK:ADD-LOGGER")
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			if sig == os.Interrupt {
+				err := sendCommand("REMOVE-LOGGER", conn)
+				if err != nil {
+					out.Logger.Println("Error:", err)
+					os.Exit(0)
+				}
+				return
+			}
+		}
+	}()
+	waitFor("OK:REMOVE-LOGGER")
 }
 
 func List(conn net.Conn) {
@@ -381,6 +436,12 @@ func parseResponse(res string) string {
 				return msg + strings.Join(parts[2:], ":")
 			}
 		}
+	} else if parts[0] == "LOG" {
+		line := strings.Join(parts[1:], ":")
+		if last := len(line) - 1; last >= 0 && line[last] == '\n' {
+			line = line[:last]
+		}
+		return line
 	}
 	return ""
 }

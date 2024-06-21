@@ -60,12 +60,6 @@ func main() {
 		return
 	}
 
-	// serve does not require a connection (it creates it) and does not have any arguments or options
-	if as[0] == "serve" {
-		serve()
-		return
-	}
-
 	options := make([]string, len(as)-1)
 	args := make([]string, len(as)-1)
 
@@ -87,6 +81,34 @@ func main() {
 	options = options[:i]
 	args = args[:j]
 
+	if as[0] == "serve" {
+		if len(options) > 0 && options[0] == "--no-console" {
+			process, err := os.StartProcess(os.Args[0], []string{os.Args[0], "serve"}, &os.ProcAttr{
+				Files: []*os.File{nil, nil, nil},
+				Env:   os.Environ(),
+			})
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
+			err = process.Release()
+			if err != nil {
+				fmt.Println("Error:", err)
+			}
+			fmt.Println("Server started.")
+			fmt.Println("To stop the server, run 'ssmachmos stop'.")
+			fmt.Println("To view the live server logs, run 'ssmachmos logs'.")
+		} else {
+			serve()
+		}
+		return
+	}
+
+	if as[0] == "help" {
+		cli.Help(args)
+		return
+	}
+
 	// open a unix domain socket connection to the server
 	conn, err := cli.OpenConnection()
 	if err != nil {
@@ -97,8 +119,8 @@ func main() {
 	defer conn.Close()
 
 	switch as[0] {
-	case "help":
-		cli.Help(args, conn)
+	case "logs":
+		cli.Logs(conn)
 	case "list":
 		cli.List(conn)
 	case "view":
