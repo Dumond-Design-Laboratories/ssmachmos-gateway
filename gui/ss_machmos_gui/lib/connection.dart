@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 class Connection {
   late int _state; // 0: connecting, 1: failed, 2: connected
   Socket? _socket;
@@ -15,10 +17,20 @@ class Connection {
     _waitingFor = {};
   }
 
+  Future<void> startServer() async {
+    await Process.run(
+      kDebugMode
+          ? "${Directory.current.parent.parent.path}/server/ssmachmos"
+          : "ssmachmos",
+      ["serve", "--no-console"],
+    );
+  }
+
   Future<void> openConnection() async {
     _state = 0;
     String socketPath = "/tmp/ss_machmos.sock";
     try {
+      _socket = null;
       final socket = await Socket.connect(
           InternetAddress(socketPath, type: InternetAddressType.unix), 0);
       _socket = socket;

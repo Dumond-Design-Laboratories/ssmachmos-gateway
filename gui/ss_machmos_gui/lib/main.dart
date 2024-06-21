@@ -275,15 +275,14 @@ class _RootState extends State<Root> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Center(
-            child: Text(
-                "Error: Could not connect to server. Type \"ssmachmos serve\" in the terminal and try again."),
+            child: Text("Error: Could not connect to server."),
           ),
           const SizedBox(height: 20),
           TextButton(
             onPressed: () {
-              openConnection();
+              _connection.startServer().then((_) => openConnection());
             },
-            child: const Text("Try Again"),
+            child: const Text("Start Server"),
           ),
         ],
       );
