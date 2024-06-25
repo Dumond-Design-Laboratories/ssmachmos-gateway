@@ -190,7 +190,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		sensor.BatteryLevel = batteryLevel
 		measurements = []map[string]interface{}{
 			{
-				"sensor_id":          sensor.Mac,
+				"sensor_id":          model.MacToString(macAddress),
 				"time":               timestamp,
 				"measurement_type":   "battery",
 				"sampling_frequency": 0,
@@ -223,7 +223,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 
 				measurements = append(measurements,
 					map[string]interface{}{
-						"sensor_id":          model.MacToString(sensor.Mac),
+						"sensor_id":          model.MacToString(macAddress),
 						"time":               timestamp,
 						"measurement_type":   dataType,
 						"sampling_frequency": samplingFrequency,
@@ -231,7 +231,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 						"raw_data":           x,
 					},
 					map[string]interface{}{
-						"sensor_id":          model.MacToString(sensor.Mac),
+						"sensor_id":          model.MacToString(macAddress),
 						"time":               timestamp,
 						"measurement_type":   dataType,
 						"sampling_frequency": samplingFrequency,
@@ -239,7 +239,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 						"raw_data":           y,
 					},
 					map[string]interface{}{
-						"sensor_id":          model.MacToString(sensor.Mac),
+						"sensor_id":          model.MacToString(macAddress),
 						"time":               timestamp,
 						"measurement_type":   dataType,
 						"sampling_frequency": samplingFrequency,
@@ -251,7 +251,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 				out.Logger.Println("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 				measurements = append(measurements,
 					map[string]interface{}{
-						"sensor_id":          model.MacToString(sensor.Mac),
+						"sensor_id":          model.MacToString(macAddress),
 						"time":               timestamp,
 						"measurement_type":   dataType,
 						"sampling_frequency": samplingFrequency,

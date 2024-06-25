@@ -12,16 +12,19 @@ import (
 )
 
 type requestBody struct {
-	GatewayId       string `json:"gateway_id"`
-	GatewayPassword string `json:"gateway_password"`
-	Measurements    string `json:"measurements"`
+	GatewayId       string                   `json:"gateway_id"`
+	GatewayPassword string                   `json:"gateway_password"`
+	Measurements    []map[string]interface{} `json:"measurements"`
 }
 
 func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, error) {
 	body := requestBody{
 		GatewayId:       gateway.Id,
 		GatewayPassword: gateway.Password,
-		Measurements:    string(jsonData),
+	}
+	err := json.Unmarshal(jsonData, &body.Measurements)
+	if err != nil {
+		return nil, err
 	}
 	json, err := json.Marshal(body)
 	if err != nil {
