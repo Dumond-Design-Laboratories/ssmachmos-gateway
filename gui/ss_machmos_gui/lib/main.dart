@@ -71,6 +71,7 @@ class _RootState extends State<Root> {
   late Connection _connection;
 
   late String _logs;
+  late bool _logsConnected;
   late ScrollController _logsScrollController;
 
   @override
@@ -80,6 +81,7 @@ class _RootState extends State<Root> {
       _connection = Connection();
       _logsScrollController = ScrollController();
       _logs = "";
+      _logsConnected = false;
       _connection.onLog = (message) {
         setState(() {
           _logs += message;
@@ -88,6 +90,9 @@ class _RootState extends State<Root> {
                 .jumpTo(_logsScrollController.position.maxScrollExtent);
           }
         });
+      };
+      _connection.onError = () {
+        _logsConnected = false;
       };
       _sensorsNearby = [];
       _pairingWith = null;
@@ -105,7 +110,12 @@ class _RootState extends State<Root> {
       setState(() {
         _connection = _connection;
       });
-    }).then((_) => startLogger());
+    }).then((_) {
+      if (!_logsConnected) {
+        _logsConnected = true;
+        startLogger();
+      }
+    });
   }
 
   void startLogger() {
@@ -116,6 +126,7 @@ class _RootState extends State<Root> {
   void dispose() async {
     await _connection.close();
     await _connection.send("REMOVE-LOGGER");
+    _logsConnected = false;
     if (_pairingEnabled) {
       await _connection.send("PAIR-DISABLE");
     }
@@ -279,8 +290,15 @@ class _RootState extends State<Root> {
           ),
           const SizedBox(height: 20),
           TextButton(
-            onPressed: () {
-              _connection.startServer().then((_) => openConnection());
+            onPressed: () async {
+              await _connection.startServer();
+              for (int i = 0; i < 30; i++) {
+                await openConnection();
+                await Future.delayed(const Duration(seconds: 1));
+                if (_logsConnected) {
+                  break;
+                }
+              }
             },
             child: const Text("Start Server"),
           ),

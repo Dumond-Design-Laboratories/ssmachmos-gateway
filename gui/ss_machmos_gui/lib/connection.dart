@@ -9,6 +9,7 @@ class Connection {
   late Map<String, bool Function(String, String?)>
       _waitingFor; // callback should return if we should remove the callback
   void Function(String message)? onLog;
+  void Function()? onError;
 
   int get state => _state;
 
@@ -37,12 +38,18 @@ class Connection {
       _state = 2;
     } catch (e) {
       _state = 1;
+      if (onError != null) {
+        onError!();
+      }
     }
   }
 
   Future<void> send(String message) async {
     if (_socket == null) {
       _state = 1;
+      if (onError != null) {
+        onError!();
+      }
       return;
     }
     try {
@@ -50,9 +57,15 @@ class Connection {
       if (message == "STOP") {
         await _socket!.close();
         _state = 1;
+        if (onError != null) {
+          onError!();
+        }
       }
     } catch (_) {
       _state = 1;
+      if (onError != null) {
+        onError!();
+      }
     }
   }
 
@@ -88,8 +101,11 @@ class Connection {
             _waitingFor.remove(command);
           }
         }
-      }).onError((error) {
+      }, cancelOnError: true).onError((error) {
         _state = 1;
+        if (onError != null) {
+          onError!();
+        }
       });
     }
   }
