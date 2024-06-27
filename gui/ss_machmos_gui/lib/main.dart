@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:ss_machmos_gui/bluetooth.dart';
 import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/gateway.dart';
@@ -65,7 +64,7 @@ class MainApp extends StatelessWidget {
               Tab(text: "Sensors"),
               Tab(text: "Gateway"),
               Tab(text: "Logs"),
-              Tab(text: "Help"),
+              Tab(icon: Icon(Icons.help_outline)),
             ],
           ),
           body: Root(),
