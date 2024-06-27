@@ -8,8 +8,8 @@ import (
 	"github.com/jukuly/ss_machmos/server/internal/api"
 	"github.com/jukuly/ss_machmos/server/internal/cli"
 	"github.com/jukuly/ss_machmos/server/internal/model"
-	"github.com/jukuly/ss_machmos/server/internal/model/server"
 	"github.com/jukuly/ss_machmos/server/internal/out"
+	"github.com/jukuly/ss_machmos/server/internal/server"
 )
 
 func serve() {

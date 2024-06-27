@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
-	"github.com/jukuly/ss_machmos/server/internal/model/server"
+	"github.com/jukuly/ss_machmos/server/internal/server"
 )
 
 func pairEnable() {

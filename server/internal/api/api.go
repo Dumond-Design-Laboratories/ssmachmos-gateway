@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
-	"github.com/jukuly/ss_machmos/server/internal/model/server"
 	"github.com/jukuly/ss_machmos/server/internal/out"
+	"github.com/jukuly/ss_machmos/server/internal/server"
 )
 
 func handleCommand(command string, conn *net.Conn) string {
