@@ -42,24 +42,16 @@ class Logs extends StatelessWidget {
           top: 48.5,
           right: 48.5,
           child: TextButton(
-            style: ButtonStyle(
-              backgroundColor: const WidgetStatePropertyAll(Colors.red),
-              shape: WidgetStatePropertyAll(
-                RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+            style: const ButtonStyle(
+              backgroundColor: WidgetStatePropertyAll(Colors.red),
             ),
             onPressed: () {
               _connection.send("STOP");
             },
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-              child: Text("Stop",
-                  style: TextStyle(
-                    color: Colors.white,
-                  )),
-            ),
+            child: const Text("Stop",
+                style: TextStyle(
+                  color: Colors.white,
+                )),
           ),
         ),
       ],

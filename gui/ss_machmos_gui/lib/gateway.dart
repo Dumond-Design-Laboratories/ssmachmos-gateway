@@ -99,7 +99,7 @@ class _GatewayState extends State<Gateway> {
                     controller: _httpController,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 5),
                 IconButton(
                   iconSize: 20,
                   icon: const Icon(Icons.restore),

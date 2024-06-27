@@ -230,7 +230,7 @@ class _SensorDetailFieldState extends State<SensorDetailField> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: widget.readOnly ? 10 : 0),
+      padding: EdgeInsets.symmetric(vertical: widget.readOnly ? 10 : 5),
       child: Row(
         children: [
           Text("${widget.name}:",
@@ -245,6 +245,7 @@ class _SensorDetailFieldState extends State<SensorDetailField> {
                 onChanged: widget.onChanged,
               ),
             ),
+          const SizedBox(width: 10),
           Text(widget.units),
         ],
       ),

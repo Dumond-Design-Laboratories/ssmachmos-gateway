@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:ss_machmos_gui/bluetooth.dart';
 import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/gateway.dart';
+import 'package:ss_machmos_gui/help.dart';
 import 'package:ss_machmos_gui/logs.dart';
 import 'package:ss_machmos_gui/sensors.dart';
 import 'package:ss_machmos_gui/utils.dart';
@@ -24,6 +26,7 @@ class MainApp extends StatelessWidget {
         fontFamily: "OpenSans",
         textTheme: const TextTheme(
           bodyMedium: TextStyle(fontSize: 14),
+          bodyLarge: TextStyle(fontSize: 14),
         ),
         dropdownMenuTheme: const DropdownMenuThemeData(
           textStyle: TextStyle(fontSize: 14),
@@ -31,9 +34,28 @@ class MainApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF326496),
         ),
+        inputDecorationTheme: const InputDecorationTheme(
+          border: OutlineInputBorder(),
+          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          isDense: true,
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: ButtonStyle(
+            shape: WidgetStateProperty.all(
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(5),
+              ),
+            ),
+            foregroundColor: WidgetStateProperty.all(Colors.white),
+            backgroundColor: WidgetStateProperty.all(const Color(0xFF326496)),
+            padding: WidgetStateProperty.all(
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            ),
+          ),
+        ),
       ),
       home: const DefaultTabController(
-        length: 3,
+        length: 4,
         child: Scaffold(
           appBar: TabBar(
             isScrollable: true,
@@ -43,6 +65,7 @@ class MainApp extends StatelessWidget {
               Tab(text: "Sensors"),
               Tab(text: "Gateway"),
               Tab(text: "Logs"),
+              Tab(text: "Help"),
             ],
           ),
           body: Root(),
@@ -345,6 +368,7 @@ class _RootState extends State<Root> {
               logsScrollController: _logsScrollController,
               logs: _logs,
               connection: _connection),
+          Help(),
         ],
       );
     } else {
