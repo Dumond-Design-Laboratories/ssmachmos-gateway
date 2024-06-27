@@ -1,44 +1,108 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 class Help extends StatelessWidget {
-  const Help({super.key});
+  final ScrollController controller = ScrollController();
+  final GlobalKey sensorsKey = GlobalKey();
+  final GlobalKey pairingKey = GlobalKey();
+  final GlobalKey sensorPropertiesKey = GlobalKey();
+  final GlobalKey gatewayKey = GlobalKey();
+  final GlobalKey logsKey = GlobalKey();
+
+  Help({super.key});
+
+  void scrollToKey(GlobalKey key) {
+    final context = key.currentContext;
+    if (context != null) {
+      Scrollable.ensureVisible(context,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const SingleChildScrollView(
+    return SingleChildScrollView(
       child: Padding(
-        padding: EdgeInsets.all(32),
+        padding: const EdgeInsets.all(32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            H1(
+            const H1(
               "Overview",
               first: true,
             ),
-            Text(
-              "This application serves as the gateway for SS MachMoS. It allows the sensors to transmit their information to a cloud platform like openMachMoS. "
-              "The app is made up of three parts: a server that runs in the background, a command line interface, and a graphical user interface.\n\n"
-              "The server is a separate process that runs in the background independently from both interfaces. It always listens for sensors sending data, and will relay it "
-              "to the cloud platform depending on the gateway settings. To Start the server, the user can either use this command in the terminal: \"ssmachmos serve\" "
-              "or start the graphical user interface and press \"Start Server\". As it it independent from the interfaces, closing an interface won't close the server. To close the server, "
-              "the user can either use this command in the terminal: \"ssmachmos stop\" or press the stop button in the \"Logs\" tab of the graphical user interface.\n\n"
-              "The command line interface allows the user to monitor the sensors and to change the settings of the server. For more information on the commands available, the user can "
-              "use this command in the terminal: \"ssmachmos help\"\n\n"
-              "The graphical user interface allows the user to do everything he can do with the command line interface, only it is easier to understand and to use. "
-              "There are four tabs at the top of the window: Sensors, Gateway, Logs, and Help. The \"Sensors\" tab allows the user to add/modify/monitor/forget sensors, "
-              "the \"Gateway\" tab allows the user to change the gateway settings, and the \"Logs\" tab allows the user to view the logs of the server and to monitor its activity.",
+            RichText(
+              text: TextSpan(
+                style: DefaultTextStyle.of(context).style,
+                children: [
+                  const TextSpan(
+                    text:
+                        "This application serves as the gateway for SS MachMoS. It allows the sensors to transmit their information to a cloud platform like openMachMoS. "
+                        "The app is made up of three parts: a server that runs in the background, a command line interface, and a graphical user interface.\n\n"
+                        "The server is a separate process that runs in the background independently from both interfaces. It always listens for sensors sending data, and will relay it "
+                        "to the cloud platform depending on the gateway settings. To Start the server, the user can either use this command in the terminal: \"ssmachmos serve\" "
+                        "or start the graphical user interface and press \"Start Server\". As it it independent from the interfaces, closing an interface won't close the server. To close the server, "
+                        "the user can either use this command in the terminal: \"ssmachmos stop\" or press the stop button in the \"Logs\" tab of the graphical user interface.\n\n"
+                        "The command line interface allows the user to monitor the sensors and to change the settings of the server. For more information on the commands available, the user can "
+                        "use this command in the terminal: \"ssmachmos help\"\n\n"
+                        "The graphical user interface allows the user to do everything he can do with the command line interface, only it is easier to understand and to use. "
+                        "There are four tabs at the top of the window: ",
+                  ),
+                  link(
+                    "Sensors",
+                    onPressed: () => scrollToKey(sensorsKey),
+                  ),
+                  const TextSpan(text: ", "),
+                  link(
+                    "Gateway",
+                    onPressed: () => scrollToKey(gatewayKey),
+                  ),
+                  const TextSpan(text: ", "),
+                  link(
+                    "Logs",
+                    onPressed: () => scrollToKey(logsKey),
+                  ),
+                  const TextSpan(
+                    text:
+                        ", and Help. The \"Sensors\" tab allows the user to add/modify/monitor/forget sensors, "
+                        "the \"Gateway\" tab allows the user to change the gateway settings, and the \"Logs\" tab allows the user to view the logs of the server and to monitor its activity.",
+                  ),
+                ],
+              ),
             ),
             H1(
               "Sensors Tab",
+              key: sensorsKey,
             ),
-            Text(
-              "The sensors are paired like described in the \"Pairing\" section. A sensor's settings can be ajusted by selecting it in the dropdown menu to the left of the page. "
-              "This will display the different sensor properties described in the \"Sensor Properties\" section",
+            RichText(
+              text: TextSpan(
+                style: DefaultTextStyle.of(context).style,
+                children: [
+                  const TextSpan(
+                    text: "The sensors are paired like described in the ",
+                  ),
+                  link(
+                    "Pairing",
+                    onPressed: () => scrollToKey(pairingKey),
+                  ),
+                  const TextSpan(
+                    text:
+                        " section. A sensor's settings can be ajusted by selecting it in the dropdown menu to the left of the page. "
+                        "This will display the different sensor properties described in the ",
+                  ),
+                  link(
+                    "Sensor Properties",
+                    onPressed: () => scrollToKey(sensorPropertiesKey),
+                  ),
+                  const TextSpan(text: " section"),
+                ],
+              ),
             ),
             H2(
               "Pairing",
+              key: pairingKey,
             ),
-            Text(
+            const Text(
               "The sensors connect to the gateway via Bluetooth. For a sensor to be able to comunicate with the gateway, it needs to be paired. "
               "To pair a sensor, the user should first turn pairing on by clicking on the toggle switch next to \"Discover Sensors\" "
               "He will then need to click on the button on the physical sensor for it to start looking for nearby gateways. When the MAC address of the sensor "
@@ -47,9 +111,10 @@ class Help extends StatelessWidget {
             ),
             H2(
               "Sensor Properties",
+              key: sensorPropertiesKey,
             ),
-            Padding(
-              padding: EdgeInsets.only(left: 16),
+            const Padding(
+              padding: const EdgeInsets.only(left: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -124,19 +189,20 @@ class Help extends StatelessWidget {
             ),
             H1(
               "Gateway Tab",
+              key: gatewayKey,
             ),
-            H2(
+            const H2(
               "Id and Password",
               first: true,
             ),
-            Text(
+            const Text(
               "This is the id and password that will be transmitted to the server when sending data. For the openMachMoS cloud platform, they correspond to the id and password "
               "set when creating the gateway on https://openphm.org",
             ),
-            H2(
+            const H2(
               "HTTP Endpoint",
             ),
-            Text(
+            const Text(
               "This is the endpoint to which the data will be sent. By default, it is set to send to the openMachMoS cloud platform. "
               "If, when a sensor sends its data to the server, the server is not connected to the internet or any error occurs in the data transmission to the cloud, "
               "the unsent data will be temporarily saved and the server will try to send it to the cloud the next time data is collected.\n\n"
@@ -158,8 +224,9 @@ class Help extends StatelessWidget {
             ),
             H1(
               "Logs Tab",
+              key: logsKey,
             ),
-            Text(
+            const Text(
               "This tab allows the user to monitor server activity. In particular, the logs will display any error (important or not) that will occur during the process. "
               "They will also display the interactions between the sensors and the server. For example, when a sensor sends data to the server and when pairing is taking place.",
             ),
@@ -252,4 +319,17 @@ class H4 extends StatelessWidget {
       ),
     );
   }
+}
+
+TextSpan link(String text, {required void Function() onPressed}) {
+  return TextSpan(
+    text: text,
+    style: const TextStyle(
+      color: Color.fromARGB(255, 0, 0, 255),
+      fontWeight: FontWeight.bold,
+      decoration: TextDecoration.underline,
+      decorationColor: Color.fromARGB(255, 0, 0, 255),
+    ),
+    recognizer: TapGestureRecognizer()..onTap = onPressed,
+  );
 }
