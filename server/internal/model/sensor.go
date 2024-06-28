@@ -124,11 +124,7 @@ func RemoveSensor(mac [6]byte, sensors *[]Sensor) error {
 	return nil
 }
 
-func AddSensor(mac [6]byte, types []string, collectionCapacity uint32, publicKey *rsa.PublicKey, sensors *[]Sensor) error {
-	if sensors == nil {
-		return errors.New("sensors is nil")
-	}
-	// Default settings
+func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32, publicKey *rsa.PublicKey) Sensor {
 	sensor := Sensor{
 		Mac:                     mac,
 		Name:                    "Sensor " + MacToString(mac),
@@ -163,7 +159,15 @@ func AddSensor(mac [6]byte, types []string, collectionCapacity uint32, publicKey
 		}
 	}
 
-	*sensors = append(*sensors, sensor)
+	return sensor
+}
+
+func AddSensor(mac [6]byte, types []string, collectionCapacity uint32, publicKey *rsa.PublicKey, sensors *[]Sensor) error {
+	if sensors == nil {
+		return errors.New("sensors is nil")
+	}
+
+	*sensors = append(*sensors, getDefaultSensor(mac, types, collectionCapacity, publicKey))
 	err := saveSensors(SENSORS_FILE, sensors)
 	return err
 }
@@ -182,6 +186,11 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 	}
 	if sensor == nil {
 		return errors.New("sensor not found")
+	}
+
+	if setting == "auto" {
+		*sensor = getDefaultSensor(mac, sensor.Types, sensor.CollectionCapacity, &sensor.PublicKey)
+		return saveSensors(SENSORS_FILE, sensors)
 	}
 
 	if setting == "name" {

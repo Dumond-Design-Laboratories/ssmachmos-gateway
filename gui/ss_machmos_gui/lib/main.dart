@@ -160,7 +160,6 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
 
   Future<void> onPairingToggle(bool p) async {
     if (p) {
-      await _connection.send("PAIR-ENABLE");
       _connection.on("PAIR-ENABLE", (_, __) {
         setState(() {
           _pairingEnabled = p;
@@ -240,8 +239,8 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
         showMessage("Pairing timed out with sensor $mac", context);
         return false;
       });
+      await _connection.send("PAIR-ENABLE");
     } else {
-      await _connection.send("PAIR-DISABLE");
       _connection.on("PAIR-DISABLE", (_, __) {
         setState(() {
           _pairingEnabled = p;
@@ -259,11 +258,11 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
         _connection.off("PAIRING-TIMEOUT");
         return true;
       });
+      await _connection.send("PAIR-DISABLE");
     }
   }
 
   Future<void> loadSensors() async {
-    await _connection.send("LIST");
     _connection.on("LIST", (json, err) {
       if (err != null) {
         showMessage("Failed to load sensors", context);
@@ -300,6 +299,7 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
         return true;
       }
     });
+    await _connection.send("LIST");
   }
 
   @override
@@ -358,7 +358,6 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
                     sensorsNearby: _sensorsNearby,
                     pairingWith: _pairingWith,
                     onPairingSelected: (mac) async => {
-                      await _connection.send("PAIR-ACCEPT $mac"),
                       _connection.on("PAIR-ACCEPT", (_, err) {
                         if (err != null) {
                           return true;
@@ -366,6 +365,7 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
                         setState(() => _pairingWith = mac);
                         return true;
                       }),
+                      await _connection.send("PAIR-ACCEPT $mac"),
                     },
                   )),
             ],

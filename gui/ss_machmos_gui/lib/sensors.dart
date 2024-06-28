@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/sensor_details.dart';
+import 'package:ss_machmos_gui/utils.dart';
 
 class Sensors extends StatefulWidget {
   final List<Sensor> sensors;
@@ -74,7 +76,45 @@ class _SensorsState extends State<Sensors> {
                 _selectedSensor = null;
               });
             },
-            loadSensors: widget.loadSensors,
+            loadSensors: () async {
+              await widget.loadSensors();
+              widget.connection.on("VIEW", (json, err) {
+                if (err != null) {
+                  showMessage("Failed to load sensors", context);
+                  return true;
+                }
+                try {
+                  dynamic s = jsonDecode(json);
+                  Map<String, SensorSettings> settings = {};
+                  for (var k in s["settings"].keys) {
+                    settings[k] = SensorSettings(
+                      active: s["settings"][k]["active"],
+                      samplingFrequency: s["settings"][k]["sampling_frequency"],
+                      samplingDuration: s["settings"][k]["sampling_duration"],
+                    );
+                  }
+                  setState(() {
+                    _selectedSensor = Sensor(
+                      mac: Uint8List.fromList(s["mac"].cast<int>()),
+                      name: s["name"],
+                      types: s["types"].cast<String>(),
+                      collectionCapacity: s["collection_capacity"],
+                      wakeUpInterval: s["wake_up_interval"],
+                      wakeUpIntervalMaxOffset: s["wake_up_interval_max_offset"],
+                      nextWakeUp: DateTime.parse(s["next_wake_up"]),
+                      batteryLevel: s["battery_level"],
+                      settings: settings,
+                    );
+                  });
+                  return true;
+                } catch (e) {
+                  showMessage("Failed to load sensors: $e", context);
+                  return true;
+                }
+              });
+              await widget.connection
+                  .send("VIEW ${macToString(_selectedSensor!.mac)}");
+            },
             setState: setState,
             tabController: widget.tabController,
             typesKey: widget.typesKey,

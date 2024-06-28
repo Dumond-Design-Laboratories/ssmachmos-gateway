@@ -95,8 +95,7 @@ class SensorDetails extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             TextButton(
-              onPressed: () async {
-                await connection.send("FORGET ${macToString(sensor.mac)}");
+              onPressed: () {
                 connection.on("FORGET", (_, err) {
                   if (err != null) {
                     showMessage(
@@ -109,22 +108,57 @@ class SensorDetails extends StatelessWidget {
                   }
                   return true;
                 });
+                connection.send("FORGET ${macToString(sensor.mac)}");
               },
               child: const Text("Forget"),
             ),
             const SizedBox(width: 10),
             TextButton(
               onPressed: () {
-                connection.send("SET-SENSOR-SETTINGS ${macToString(sensor.mac)}"
-                    " name ${sensor.name.replaceAll(" ", "_")}"
-                    " wake_up_interval ${sensor.wakeUpInterval}"
-                    " wake_up_interval_max_offset ${sensor.wakeUpIntervalMaxOffset}"
-                    " ${sensor.settings.keys.map((k) {
-                  var s = sensor.settings[k]!;
-                  return "${k}_active ${s.active}"
-                      " ${k}_sampling_frequency ${s.samplingFrequency}"
-                      " ${k}_sampling_duration ${s.samplingDuration}";
-                }).join(" ")}");
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Text(
+                        "Reset sensor: ${sensor.name}",
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text("Cancel"),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            connection.on("SET-SENSOR-SETTINGS", (_, err) {
+                              if (err != null) {
+                                showMessage(
+                                    "Failed to save ${sensor.name} settings",
+                                    context);
+                              } else {
+                                showMessage(
+                                    "${sensor.name} settings saved", context);
+                                loadSensors();
+                              }
+                              return true;
+                            });
+                            connection.send(
+                                "SET-SENSOR-SETTINGS ${macToString(sensor.mac)} auto auto");
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text("Confirm"),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+              child: const Text("Reset"),
+            ),
+            const SizedBox(width: 10),
+            TextButton(
+              onPressed: () {
                 connection.on("SET-SENSOR-SETTINGS", (_, err) {
                   if (err != null) {
                     showMessage(
@@ -135,6 +169,16 @@ class SensorDetails extends StatelessWidget {
                   }
                   return true;
                 });
+                connection.send("SET-SENSOR-SETTINGS ${macToString(sensor.mac)}"
+                    " name ${sensor.name.replaceAll(" ", "_")}"
+                    " wake_up_interval ${sensor.wakeUpInterval}"
+                    " wake_up_interval_max_offset ${sensor.wakeUpIntervalMaxOffset}"
+                    " ${sensor.settings.keys.map((k) {
+                  var s = sensor.settings[k]!;
+                  return "${k}_active ${s.active}"
+                      " ${k}_sampling_frequency ${s.samplingFrequency}"
+                      " ${k}_sampling_duration ${s.samplingDuration}";
+                }).join(" ")}");
               },
               child: const Text("Save"),
             ),

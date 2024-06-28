@@ -38,7 +38,6 @@ class _GatewayState extends State<Gateway> {
   }
 
   void loadGateway() {
-    widget.connection.send("GET-GATEWAY");
     widget.connection.on("GET-GATEWAY", (json, err) {
       if (err != null) {
         showMessage("Failed to load gateway", context);
@@ -60,6 +59,7 @@ class _GatewayState extends State<Gateway> {
         return true;
       }
     });
+    widget.connection.send("GET-GATEWAY");
   }
 
   @override
@@ -129,8 +129,6 @@ class _GatewayState extends State<Gateway> {
                   iconSize: 20,
                   icon: const Icon(Icons.restore),
                   onPressed: () async {
-                    await widget.connection
-                        .send("SET-GATEWAY-HTTP-ENDPOINT default");
                     widget.connection.on("SET-GATEWAY-HTTP-ENDPOINT", (_, err) {
                       if (err != null) {
                         showMessage(
@@ -141,6 +139,8 @@ class _GatewayState extends State<Gateway> {
                       loadGateway();
                       return true;
                     });
+                    await widget.connection
+                        .send("SET-GATEWAY-HTTP-ENDPOINT default");
                   },
                 ),
               ],
@@ -150,8 +150,6 @@ class _GatewayState extends State<Gateway> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () async {
-                  await widget.connection
-                      .send("SET-GATEWAY-ID ${_idController.text}");
                   widget.connection.on("SET-GATEWAY-ID", (_, err) {
                     if (err != null) {
                       showMessage("Failed to save Gateway ID", context);
@@ -161,9 +159,9 @@ class _GatewayState extends State<Gateway> {
                     loadGateway();
                     return true;
                   });
+                  await widget.connection
+                      .send("SET-GATEWAY-ID ${_idController.text}");
                   if (_passwordController.text.isNotEmpty) {
-                    await widget.connection.send(
-                        "SET-GATEWAY-PASSWORD ${_passwordController.text}");
                     widget.connection.on("SET-GATEWAY-PASSWORD", (_, err) {
                       if (err != null) {
                         showMessage("Failed to save Gateway Password", context);
@@ -173,9 +171,10 @@ class _GatewayState extends State<Gateway> {
                       loadGateway();
                       return true;
                     });
+                    await widget.connection.send(
+                        "SET-GATEWAY-PASSWORD ${_passwordController.text}");
                   }
-                  await widget.connection.send(
-                      "SET-GATEWAY-HTTP-ENDPOINT ${_httpController.text}");
+
                   widget.connection.on("SET-GATEWAY-HTTP-ENDPOINT", (_, err) {
                     if (err != null) {
                       showMessage(
@@ -186,6 +185,8 @@ class _GatewayState extends State<Gateway> {
                     loadGateway();
                     return true;
                   });
+                  await widget.connection.send(
+                      "SET-GATEWAY-HTTP-ENDPOINT ${_httpController.text}");
                 },
                 child: const Text("Save"),
               ),
