@@ -46,7 +46,31 @@ class Logs extends StatelessWidget {
               backgroundColor: WidgetStatePropertyAll(Colors.red),
             ),
             onPressed: () {
-              _connection.send("STOP");
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text(
+                      "Stop the server",
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text("Cancel"),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          _connection.send("STOP");
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text("Confirm"),
+                      ),
+                    ],
+                  );
+                },
+              );
             },
             child: const Text("Stop",
                 style: TextStyle(
