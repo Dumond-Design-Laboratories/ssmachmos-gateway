@@ -2,12 +2,22 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:ss_machmos_gui/connection.dart';
+import 'package:ss_machmos_gui/help.dart';
 import 'package:ss_machmos_gui/utils.dart';
 
 class Gateway extends StatefulWidget {
   final Connection connection;
+  final TabController tabController;
+  final GlobalKey idKey;
+  final GlobalKey httpEndpointKey;
 
-  const Gateway({super.key, required this.connection});
+  const Gateway({
+    super.key,
+    required this.connection,
+    required this.tabController,
+    required this.idKey,
+    required this.httpEndpointKey,
+  });
 
   @override
   State<Gateway> createState() => _GatewayState();
@@ -63,6 +73,11 @@ class _GatewayState extends State<Gateway> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                HelpButton(
+                  tabController: widget.tabController,
+                  page: widget.idKey,
+                ),
+                const SizedBox(width: 10),
                 const Text("Gateway ID:"),
                 const SizedBox(width: 10),
                 Expanded(
@@ -76,6 +91,11 @@ class _GatewayState extends State<Gateway> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                HelpButton(
+                  tabController: widget.tabController,
+                  page: widget.idKey,
+                ),
+                const SizedBox(width: 10),
                 const Text("Gateway Password:"),
                 const SizedBox(width: 10),
                 Expanded(
@@ -92,6 +112,11 @@ class _GatewayState extends State<Gateway> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                HelpButton(
+                  tabController: widget.tabController,
+                  page: widget.httpEndpointKey,
+                ),
+                const SizedBox(width: 10),
                 const Text("HTTP Endpoint:"),
                 const SizedBox(width: 10),
                 Expanded(

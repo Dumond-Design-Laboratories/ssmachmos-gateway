@@ -53,23 +53,7 @@ class MainApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const DefaultTabController(
-        length: 4,
-        child: Scaffold(
-          appBar: TabBar(
-            isScrollable: true,
-            labelPadding: EdgeInsets.symmetric(horizontal: 25),
-            tabAlignment: TabAlignment.start,
-            tabs: [
-              Tab(text: "Sensors"),
-              Tab(text: "Gateway"),
-              Tab(text: "Logs"),
-              Tab(icon: Icon(Icons.help_outline)),
-            ],
-          ),
-          body: Root(),
-        ),
-      ),
+      home: const Root(),
     );
   }
 }
@@ -83,7 +67,15 @@ class Root extends StatefulWidget {
   State<Root> createState() => _RootState();
 }
 
-class _RootState extends State<Root> {
+class _RootState extends State<Root> with SingleTickerProviderStateMixin {
+  final List<Tab> tabs = [
+    const Tab(text: "Sensors"),
+    const Tab(text: "Gateway"),
+    const Tab(text: "Logs"),
+    const Tab(icon: Icon(Icons.help_outline)),
+  ];
+  late TabController _tabController;
+
   late bool _pairingEnabled;
   late List<String> _sensorsNearby;
   late String? _pairingWith;
@@ -96,10 +88,17 @@ class _RootState extends State<Root> {
   late bool _logsConnected;
   late ScrollController _logsScrollController;
 
+  late GlobalKey _sensorTypesKey;
+  late GlobalKey _wakeUpIntervalKey;
+  late GlobalKey _gatewayIdKey;
+  late GlobalKey _httpEndpointKey;
+
   @override
   void initState() {
     super.initState();
     setState(() {
+      _tabController = TabController(
+          length: tabs.length, vsync: this, animationDuration: Duration.zero);
       _connection = Connection();
       _logsScrollController = ScrollController();
       _logs = "";
@@ -120,6 +119,10 @@ class _RootState extends State<Root> {
       _pairingWith = null;
       _pairingEnabled = false;
       _sensorsPaired = [];
+      _sensorTypesKey = GlobalKey();
+      _wakeUpIntervalKey = GlobalKey();
+      _gatewayIdKey = GlobalKey();
+      _httpEndpointKey = GlobalKey();
     });
     openConnection();
   }
@@ -301,10 +304,11 @@ class _RootState extends State<Root> {
 
   @override
   Widget build(BuildContext context) {
+    Widget body;
     if (_connection.state == 0) {
-      return const Center(child: CircularProgressIndicator());
+      body = const Center(child: CircularProgressIndicator());
     } else if (_connection.state == 1) {
-      return Column(
+      body = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Center(
@@ -327,7 +331,8 @@ class _RootState extends State<Root> {
         ],
       );
     } else if (_connection.state == 2) {
-      return TabBarView(
+      body = TabBarView(
+        controller: _tabController,
         children: [
           Row(
             children: [
@@ -337,6 +342,9 @@ class _RootState extends State<Root> {
                     sensors: _sensorsPaired,
                     loadSensors: loadSensors,
                     connection: _connection,
+                    tabController: _tabController,
+                    typesKey: _sensorTypesKey,
+                    wakeUpIntervalKey: _wakeUpIntervalKey,
                   )),
               Container(
                 width: 0.5,
@@ -362,20 +370,44 @@ class _RootState extends State<Root> {
                   )),
             ],
           ),
-          Gateway(connection: _connection),
+          Gateway(
+            connection: _connection,
+            tabController: _tabController,
+            idKey: _gatewayIdKey,
+            httpEndpointKey: _httpEndpointKey,
+          ),
           Logs(
               logsScrollController: _logsScrollController,
               logs: _logs,
               connection: _connection),
-          Help(),
+          Help(
+            sensorTypesKey: _sensorTypesKey,
+            wakeUpIntervalKey: _wakeUpIntervalKey,
+            gatewayIdKey: _gatewayIdKey,
+            httpEndpointKey: _httpEndpointKey,
+          ),
         ],
       );
     } else {
       // should never happen as state is always 0, 1 or 2
-      return const Center(
+      body = const Center(
         child: Text(
             "Unknown error occurred. Please restart the application and try again."),
       );
     }
+
+    return DefaultTabController(
+      animationDuration: Duration.zero,
+      length: tabs.length,
+      child: Scaffold(
+          appBar: TabBar(
+            isScrollable: true,
+            labelPadding: const EdgeInsets.symmetric(horizontal: 25),
+            tabAlignment: TabAlignment.start,
+            controller: _tabController,
+            tabs: tabs,
+          ),
+          body: body),
+    );
   }
 }

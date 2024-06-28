@@ -9,7 +9,18 @@ class Help extends StatelessWidget {
   final GlobalKey gatewayKey = GlobalKey();
   final GlobalKey logsKey = GlobalKey();
 
-  Help({super.key});
+  final GlobalKey gatewayIdKey;
+  final GlobalKey httpEndpointKey;
+  final GlobalKey sensorTypesKey;
+  final GlobalKey wakeUpIntervalKey;
+
+  Help({
+    super.key,
+    required this.gatewayIdKey,
+    required this.httpEndpointKey,
+    required this.sensorTypesKey,
+    required this.wakeUpIntervalKey,
+  });
 
   void scrollToKey(GlobalKey key) {
     final context = key.currentContext;
@@ -113,40 +124,39 @@ class Help extends StatelessWidget {
               "Sensor Properties",
               key: sensorPropertiesKey,
             ),
-            const Padding(
+            Padding(
               padding: const EdgeInsets.only(left: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  H3(
+                  const H3(
                     "Name",
                     first: true,
                   ),
-                  Text(
+                  const Text(
                     "A name to be given to a sensor. Allows the user to more easily identify a sensor.",
                   ),
-                  H3(
+                  const H3(
                     "MAC",
                   ),
-                  Text(
+                  const Text(
                     "The MAC address of the sensor. Used as the id on the cloud platform and on the gateway.",
                   ),
-                  H3(
-                    "Types",
-                  ),
-                  Text(
+                  H3("Types", key: sensorTypesKey),
+                  const Text(
                     "The different types of measurement the sensor is capable of. They are transmitted by the sensor when initially pairing.",
                   ),
-                  H3(
+                  const H3(
                     "Battery Level",
                   ),
-                  Text(
+                  const Text(
                     "The battery level in mV of the sensor. It is transmitted by the sensor every time a measurement is taken.",
                   ),
                   H3(
                     "Wake-Up Interval",
+                    key: wakeUpIntervalKey,
                   ),
-                  Text(
+                  const Text(
                     "The duration between measurements (seconds). The server will synchronize the sensors to try to make them wake-up not at the same time. "
                     "To control this, the user can set the \"Wake-Up Interval Max Offset\" field to specify what is the maximum deviation from the next expected wake-up that "
                     "is acceptable for this sensor. If there is no available time interval between "
@@ -154,10 +164,10 @@ class Help extends StatelessWidget {
                     "after its last wake-up. The Wake-Up Interval field must be greater than the Wake-Up Interval Max Offest field. Finally, the next wake-up time is displayed in the "
                     "Next Wake-Up field in local time.",
                   ),
-                  H3(
+                  const H3(
                     "Measurement Specific Settings",
                   ),
-                  Padding(
+                  const Padding(
                     padding: EdgeInsets.only(left: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,16 +201,18 @@ class Help extends StatelessWidget {
               "Gateway Tab",
               key: gatewayKey,
             ),
-            const H2(
+            H2(
               "Id and Password",
               first: true,
+              key: gatewayIdKey,
             ),
             const Text(
               "This is the id and password that will be transmitted to the server when sending data. For the openMachMoS cloud platform, they correspond to the id and password "
               "set when creating the gateway on https://openphm.org",
             ),
-            const H2(
+            H2(
               "HTTP Endpoint",
+              key: httpEndpointKey,
             ),
             const Text(
               "This is the endpoint to which the data will be sent. By default, it is set to send to the openMachMoS cloud platform. "
@@ -332,4 +344,36 @@ TextSpan link(String text, {required void Function() onPressed}) {
     ),
     recognizer: TapGestureRecognizer()..onTap = onPressed,
   );
+}
+
+class HelpButton extends StatelessWidget {
+  final TabController tabController;
+  final GlobalKey page;
+
+  const HelpButton(
+      {super.key, required this.tabController, required this.page});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: () async {
+        tabController.animateTo(3);
+
+        BuildContext? context = page.currentContext;
+        while (context == null) {
+          await Future.delayed(const Duration(milliseconds: 10));
+          context = page.currentContext;
+        }
+        if (context.mounted) {
+          Scrollable.ensureVisible(context,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut);
+        }
+      },
+      iconSize: 20,
+      constraints: const BoxConstraints(),
+      padding: EdgeInsets.zero,
+      icon: const Icon(Icons.help_outline),
+    );
+  }
 }

@@ -8,12 +8,19 @@ class Sensors extends StatefulWidget {
   final List<Sensor> sensors;
   final Future<void> Function() loadSensors;
   final Connection connection;
+  final TabController tabController;
+  final GlobalKey typesKey;
+  final GlobalKey wakeUpIntervalKey;
 
-  const Sensors(
-      {super.key,
-      required this.sensors,
-      required this.loadSensors,
-      required this.connection});
+  const Sensors({
+    super.key,
+    required this.sensors,
+    required this.loadSensors,
+    required this.connection,
+    required this.tabController,
+    required this.typesKey,
+    required this.wakeUpIntervalKey,
+  });
 
   @override
   State<Sensors> createState() => _SensorsState();
@@ -69,6 +76,9 @@ class _SensorsState extends State<Sensors> {
             },
             loadSensors: widget.loadSensors,
             setState: setState,
+            tabController: widget.tabController,
+            typesKey: widget.typesKey,
+            wakeUpIntervalKey: widget.wakeUpIntervalKey,
           ),
       ],
     );

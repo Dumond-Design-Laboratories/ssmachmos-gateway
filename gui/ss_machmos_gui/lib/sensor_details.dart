@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ss_machmos_gui/connection.dart';
+import 'package:ss_machmos_gui/help.dart';
 import 'package:ss_machmos_gui/sensors.dart';
 import 'package:ss_machmos_gui/utils.dart';
 
@@ -9,6 +10,9 @@ class SensorDetails extends StatelessWidget {
   final void Function() onForget;
   final Future<void> Function() loadSensors;
   final void Function(void Function()) setState;
+  final TabController tabController;
+  final GlobalKey typesKey;
+  final GlobalKey wakeUpIntervalKey;
 
   const SensorDetails({
     super.key,
@@ -17,11 +21,14 @@ class SensorDetails extends StatelessWidget {
     required this.onForget,
     required this.loadSensors,
     required this.setState,
+    required this.tabController,
+    required this.typesKey,
+    required this.wakeUpIntervalKey,
   });
 
   @override
   Widget build(BuildContext context) {
-    var settingsWidget = [
+    List<Widget> settingsWidget = [
       for (String key in sensor.settings.keys)
         Padding(
           padding: const EdgeInsets.only(left: 20, top: 10),
@@ -36,6 +43,7 @@ class SensorDetails extends StatelessWidget {
                   children: [
                     Row(
                       children: [
+                        const SizedBox(width: 30),
                         const Text("Active:",
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(width: 10),
@@ -158,6 +166,8 @@ class SensorDetails extends StatelessWidget {
                 name: "Types",
                 value: sensor.types.join(", "),
                 readOnly: true,
+                tabController: tabController,
+                page: typesKey,
               ),
               SensorDetailField(
                 name: "Battery Level",
@@ -168,23 +178,27 @@ class SensorDetails extends StatelessWidget {
                 units: sensor.batteryLevel == -1 ? "" : "%",
               ),
               SensorDetailField(
-                  name: "Wake-Up Interval",
-                  value: sensor.wakeUpInterval.toString(),
-                  onChanged: (value) {
-                    try {
-                      sensor.wakeUpInterval = int.parse(value);
-                    } catch (_) {}
-                  },
-                  units: "seconds"),
+                name: "Wake-Up Interval",
+                value: sensor.wakeUpInterval.toString(),
+                onChanged: (value) {
+                  try {
+                    sensor.wakeUpInterval = int.parse(value);
+                  } catch (_) {}
+                },
+                units: "seconds",
+              ),
               SensorDetailField(
-                  name: "Wake-Up Interval Max Offset",
-                  value: sensor.wakeUpIntervalMaxOffset.toString(),
-                  onChanged: (value) {
-                    try {
-                      sensor.wakeUpIntervalMaxOffset = int.parse(value);
-                    } catch (_) {}
-                  },
-                  units: "seconds"),
+                name: "Wake-Up Interval Max Offset",
+                value: sensor.wakeUpIntervalMaxOffset.toString(),
+                onChanged: (value) {
+                  try {
+                    sensor.wakeUpIntervalMaxOffset = int.parse(value);
+                  } catch (_) {}
+                },
+                units: "seconds",
+                tabController: tabController,
+                page: wakeUpIntervalKey,
+              ),
               SensorDetailField(
                 name: "Next Wake-Up",
                 value: sensor.nextWakeUp.toLocal().toString(),
@@ -212,6 +226,8 @@ class SensorDetailField extends StatefulWidget {
   final void Function(String)? onChanged;
   final bool readOnly;
   final String units;
+  final TabController? tabController;
+  final GlobalKey? page;
 
   const SensorDetailField({
     super.key,
@@ -220,6 +236,8 @@ class SensorDetailField extends StatefulWidget {
     this.onChanged,
     this.readOnly = false,
     this.units = "",
+    this.tabController,
+    this.page,
   });
 
   @override
@@ -233,6 +251,13 @@ class _SensorDetailFieldState extends State<SensorDetailField> {
       padding: EdgeInsets.symmetric(vertical: widget.readOnly ? 10 : 5),
       child: Row(
         children: [
+          if (widget.tabController != null && widget.page != null)
+            HelpButton(
+                tabController: widget.tabController!, page: widget.page!),
+          SizedBox(
+              width: (widget.tabController != null && widget.page != null)
+                  ? 10
+                  : 30),
           Text("${widget.name}:",
               style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(width: 10),
