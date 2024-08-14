@@ -14,6 +14,12 @@ import (
 
 const SENSORS_FILE = "sensors.json"
 
+var DATA_SIZE = map[string]int{
+	"temperature": 2,
+	"audio":       2,
+	"vibration":   4 * 3,
+}
+
 type settings struct {
 	Active            bool   `json:"active"`
 	SamplingFrequency uint32 `json:"sampling_frequency"`
@@ -150,8 +156,8 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32, pu
 			sensor.Settings["temperature"] = settings{
 				Active: true,
 			}
-		case "acoustic":
-			sensor.Settings["acoustic"] = settings{
+		case "audio":
+			sensor.Settings["audio"] = settings{
 				Active:            true,
 				SamplingFrequency: 8000,
 				SamplingDuration:  1,
@@ -229,7 +235,7 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 	}
 
 	dataType := settingParts[0]
-	if dataType != "vibration" && dataType != "temperature" && dataType != "acoustic" {
+	if dataType != "vibration" && dataType != "temperature" && dataType != "audio" {
 		return errors.New("invalid setting data type")
 	}
 	setting = strings.Join(settingParts[1:], "_")
@@ -248,11 +254,12 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 		if intValue < 0 || intValue > 4294967295 {
 			return errors.New("invalid value for sampling_frequency setting (must an integer between 0 and 4 294 967 295)")
 		}
-		setting := sensor.Settings[dataType]
-		err = isExceedingCollectionCapacity(sensor, "sampling_frequency", intValue, dataType, setting)
+		err = isExceedingCollectionCapacity(sensor, "sampling_frequency", intValue, dataType)
 		if err != nil {
 			return err
 		}
+
+		setting := sensor.Settings[dataType]
 		setting.SamplingFrequency = uint32(intValue)
 		sensor.Settings[dataType] = setting
 	case "sampling_duration":
@@ -264,11 +271,12 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 		if intValue < 0 || intValue > 65535 {
 			return errors.New("invalid value for sampling_duration setting (must an integer between 0 and 65 535)")
 		}
-		setting := sensor.Settings[dataType]
-		err = isExceedingCollectionCapacity(sensor, "sampling_duration", intValue, dataType, setting)
+		err = isExceedingCollectionCapacity(sensor, "sampling_duration", intValue, dataType)
 		if err != nil {
 			return err
 		}
+
+		setting := sensor.Settings[dataType]
 		setting.SamplingDuration = uint16(intValue)
 		sensor.Settings[dataType] = setting
 	default:
@@ -281,45 +289,40 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 func getCollectionSize(sensor *Sensor) int {
 	result := 0
 	for dataType, settings := range sensor.Settings {
-		if dataType == "temperature" {
-			result += 4 // TODO check the format of the raw data for acoustic and temperature (assuming a 4 bytes number)
+		if dataType == "temperature" { // Temperature data is a single number (no frequency or duration)
+			result += DATA_SIZE["temperature"]
 			continue
 		}
+
 		term := int(settings.SamplingFrequency) * int(settings.SamplingDuration)
-		if dataType == "vibration" {
-			term *= 12 // 3 axes of 4 bytes each
-		} else {
-			term *= 4 // TODO check the format of the raw data for acoustic and temperature (assuming a 4 bytes number)
-		}
+		term *= DATA_SIZE[dataType]
 		result += term
 	}
 	return result
 }
 
-func isExceedingCollectionCapacity(sensor *Sensor, setting string, value int, dataType string, settings settings) error {
-	currentCollectionSize := getCollectionSize(sensor)
+func isExceedingCollectionCapacity(sensor *Sensor, setting string, value int, dataType string) error {
 	if dataType == "temperature" {
 		return nil
 	}
+
+	settings := sensor.Settings[dataType]
 	if settings.SamplingDuration == 0 || settings.SamplingFrequency == 0 {
 		return errors.New("sampling_duration and sampling_frequency must be greater than 0")
 	}
 
-	sizeOfData := 1
-	if dataType == "vibration" {
-		sizeOfData = 12 // 3 axes of 4 bytes each
-	} else {
-		sizeOfData = 4 // TODO check the format of the raw data for acoustic and temperature (assuming a 4 bytes number for now)
-	}
-	otherFactor := 1
+	sizeOfData := DATA_SIZE[dataType]
+	var thisFactor int
+	var otherFactor int
 	if setting == "sampling_frequency" {
+		thisFactor = int(settings.SamplingFrequency)
 		otherFactor = int(settings.SamplingDuration)
 	} else {
+		thisFactor = int(settings.SamplingDuration)
 		otherFactor = int(settings.SamplingFrequency)
 	}
 
-	currentCollectionSize -= sizeOfData * otherFactor
-	max := (int(sensor.CollectionCapacity) - currentCollectionSize) / (sizeOfData * otherFactor)
+	max := (int(sensor.CollectionCapacity)-getCollectionSize(sensor))/(sizeOfData*otherFactor) + thisFactor
 	if value > max {
 		return errors.New("invalid value for " + setting + " setting (exceeds collection capacity of sensor (current maximum: " + strconv.Itoa(max) + "))")
 	}

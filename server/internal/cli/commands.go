@@ -184,7 +184,7 @@ func Help(args []string) {
 			"|         |            | \"description\" or composed of    |                                    |\n" +
 			"|         |            | the measurement type and the    |                                    |\n" +
 			"|         |            | setting separated by an \"_\"     |                                    |\n" +
-			"|         |            | eg.: \"acoustic_wake_up_interval\"|                                    |\n" +
+			"|         |            | eg.: \"audio_wake_up_interval\"|                                    |\n" +
 			"+---------+------------+---------------------------------+------------------------------------+\n")
 
 	default:

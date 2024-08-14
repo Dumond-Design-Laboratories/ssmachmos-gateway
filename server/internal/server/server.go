@@ -211,8 +211,8 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 			rawData := measurementData[i+9 : i+9+lengthOfData]
 			i += 9 + lengthOfData
 
+			out.Logger.Println("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 			if dataType == "vibration" {
-				out.Logger.Println("Received vibration data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 				numberOfMeasurements := len(rawData) / 12 // 3 axes, 4 bytes per axis => 12 bytes per measurement
 				x, y, z := make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements)
 				for i := 0; i < numberOfMeasurements; i++ {
@@ -247,15 +247,34 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 						"raw_data":           z,
 					},
 				)
-			} else {
-				out.Logger.Println("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
+			} else if dataType == "temperature" {
+				if len(rawData) != 2 {
+					out.Logger.Println("Invalid temperature data received")
+					continue
+				}
+				temperature, err := parseTemperatureData(binary.LittleEndian.Uint16(rawData))
+				if err != nil {
+					out.Logger.Println("Error:", err)
+					continue
+				}
+
 				measurements = append(measurements,
 					map[string]interface{}{
 						"sensor_id":          model.MacToString(macAddress),
 						"time":               timestamp,
 						"measurement_type":   dataType,
 						"sampling_frequency": samplingFrequency,
-						"raw_data":           rawData, // TODO check the format of the raw data for acoustic and temperature
+						"raw_data":           temperature,
+					},
+				)
+			} else {
+				measurements = append(measurements,
+					map[string]interface{}{
+						"sensor_id":          model.MacToString(macAddress),
+						"time":               timestamp,
+						"measurement_type":   dataType,
+						"sampling_frequency": samplingFrequency,
+						"raw_data":           rawData,
 					},
 				)
 			}

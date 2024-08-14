@@ -5,9 +5,9 @@
 - Have a schedueler on the gateway for next wake up
 
 ## Settings
-- Sampling frequency (vibration & acoustic)
+- Sampling frequency (vibration & audio)
 - Turn on/off some measurement types
-- Length of samples (vibration & acoustic)
+- Length of samples (vibration & audio)
 
 ## openPHM
 - Change the name of the sensor

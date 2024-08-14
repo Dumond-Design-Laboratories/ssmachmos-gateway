@@ -49,7 +49,7 @@ func pairRequest(value []byte) {
 
 	dataTypes := []string{}
 	if value[7]&0x01 == 0x01 {
-		dataTypes = append(dataTypes, "acoustic")
+		dataTypes = append(dataTypes, "audio")
 	}
 	if value[7]&0x02 == 0x02 {
 		dataTypes = append(dataTypes, "temperature")
