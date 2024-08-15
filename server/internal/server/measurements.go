@@ -72,7 +72,7 @@ func sendUnsentMeasurements() {
 }
 
 func parseTemperatureData(data uint16) (float64, error) {
-	const adc_fs = 2 ^ 16 - 1.0
+	adc_fs := math.Pow(2, 15) - 1.0
 	const r_ref = 1500.0
 	const r_0 = 1000.0
 
