@@ -3,7 +3,7 @@
 - Uses 2048 bits RSA keys with SHA256 hash
 - Uses RSA PKCS #1 v1.5 signatures
 - All values must be written in Little Endian
-- "Header": 0x00 if request, 0x01 if response (1 byte) | mac address (FF:FF:FF:FF:FF:FF if broadcasting to everyone) (6 bytes) | content as described below
+- "Header": 0x00 if request (from sensor to gateway), 0x01 if response (from gateway to sensor) (1 byte) | mac address (FF:FF:FF:FF:FF:FF if broadcasting to everyone) (6 bytes) | content as described below
 
 ## Pairing:
 
