@@ -1,0 +1,146 @@
+const PAIR_REQUEST_CHAR = "1ea8c363-a161-3de1-e251-4c4037ecbcb9"
+const PAIR_RESPONSE_CHAR = "029c79b6-af67-823f-8564-405a0598acc3"
+
+function bytes(value, length) {
+  // returns the value in byte representation in little endian with padding to get to the desired length (in bytes)
+}
+
+// when user presses on the button to pair with the gateway
+function pairingOnClick() {
+  key = generateKeyPair()
+
+  saveKey(key.private)
+
+  publicKey = serializePublicKey(key.public)
+  dataTypes = 0b00000111 // vibration temperature audio (in that order for the last three ones)
+  maximumCollectionSize = 1000000 // max collection size in bytes
+  macAddress = getMacAddress()
+
+  // send pair request to gateway
+  request = [0x00, bytes(macAddress, 6), dataTypes, bytes(maximumCollectionSize, 4), publicKey]
+  writeGATTChar(PAIR_REQUEST_CHAR, message)
+
+  // wait for response from gateway (request has been accepter or ignored)
+  // this while loop should also time out after 30 seconds (time window for the user to accept the request on the gateway)
+  while (true) {
+    res = readGATTChar(PAIR_RESPONSE_CHAR)
+    if (res.slice(1, 7) == bytes(macAddress, 6)) {
+      dataChar = res.slice(7, 23)
+      settingsChar = res.slice(23, 39)
+      break
+    }
+    sleep(1000)
+  }
+
+  // send pair confirmation to gateway
+  confirmation = [0x00, bytes(macAddress, 6), dataChar, settingsChar]
+  writeGATTChar(PAIR_RESPONSE_CHAR, [confirmation, key.sign(confirmation)])
+
+  saveDataChar(dataChar)
+  saveSettingsChar(settingsChar)
+
+  fetchSettings()
+  main()
+}
+
+// to fetch settings from gateway
+function fetchSettings() {
+  settingsChar = getSettingsChar()
+  macAddress = getMacAddress()
+
+  i = 0
+  while (true) {
+    done = false
+    writeGATTChar(settingsChar, [0x00, bytes(macAddress, 6)])
+
+    for (const j = 0; j < 10 + i * 10; j++) {
+      res = readGATTChar(SETTINGS_CHARACTERISTIC_UUID)
+      if (res.slice(1, 7) == bytes(macAddress, 6)) {
+        done = true
+        break
+      }
+      sleep(1000)
+    }
+
+    if (done) {
+      break
+    } else {
+      i++
+    }
+  }
+
+  settingsRes = res.slice(7)
+
+  timeUntilWakeUp = int(settingsRes(0, 4)) // in milliseconds
+  settings = {}  // map
+
+  i = 0
+  while (i * 8 + 4 < settingsRes.length) {
+    baseIndex = i * 8 + 4
+
+    type = settingsRes[baseIndex]
+    active = settingsRes[baseIndex + 1]
+    samplingFrequency = settingsRes(baseIndex + 2, baseIndex + 6)
+    samplingDuration = settingsRes(baseIndex + 6, baseIndex + 8)
+
+    settings[type] = {
+      active: active == 0x01,
+      samplingFrequency: int(samplingFrequency),
+      samplingDuration: int(samplingDuration)
+    }
+
+    i++
+  }
+
+  saveSettings(settings)
+  saveNextWakeUp(timeUntilWakeUp)
+}
+
+// to collect and send data to the gateway
+function collectAndSendData() {
+  batteryLevel = getBatteryLevel() // in percentage
+  macAddress = getMacAddress()
+
+  settings = getSettings()
+
+  message = [0x00, bytes(macAddress, 6), bytes(batteryLevel, 1)]
+  for (key, value in settings) {
+    if (!value.active) {
+      continue
+    }
+    switch (key) {
+      case 0x00:
+        data = collectVibrationData(value.samplingFrequency, value.samplingDuration)
+        break
+      case 0x01:
+        data = collectAudioData(value.samplingFrequency, value.samplingDuration)
+        break
+      case 0x02:
+        data = collectTemperatureData()
+        break
+    }
+
+    if (!data) {
+      continue
+    }
+
+    data = bytes(data)
+
+    message.append(key, bytes(value.samplingFrequency, 4), bytes(data.length, 4), data)
+  }
+
+  writeGATTChar(getDataChar(), [message, key.sign(message)])
+}
+
+// main loop (wait, fetch settings, send data)
+function main() {
+  if (!getDataChar() || !getSettingsChar()) {
+    return
+  }
+
+  while (true) {
+    sleep(getNextWakeUp())
+    fetchSettings()
+    collectAndSendData()
+  }
+}
