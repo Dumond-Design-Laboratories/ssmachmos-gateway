@@ -15,8 +15,8 @@ const SENSORS_FILE = "sensors.json"
 
 var DATA_SIZE = map[string]int{
 	"temperature": 2,
-	"audio":       2,
-	"vibration":   4 * 3,
+	"audio":       3,
+	"vibration":   2 * 3,
 }
 
 type settings struct {

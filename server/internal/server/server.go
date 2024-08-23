@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"math"
 	"os"
 	"os/signal"
 	"time"
@@ -199,66 +198,72 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 			},
 		}
 	}
-	if len(data) > 16 {
-		measurementData := data[8:]
-		var i uint32 = 0
-		for i <= uint32(len(measurementData))-9 {
-			dataType := DATA_TYPES[measurementData[i]]
-			samplingFrequency := binary.LittleEndian.Uint32(measurementData[i+1 : i+5])
-			lengthOfData := binary.LittleEndian.Uint32(measurementData[i+5 : i+9])
-			if i+9+lengthOfData > uint32(len(measurementData)) || lengthOfData == 0 {
-				break
-			}
-			rawData := measurementData[i+9 : i+9+lengthOfData]
-			i += 9 + lengthOfData
 
-			out.Logger.Println("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
-			if dataType == "vibration" {
-				numberOfMeasurements := len(rawData) / 12 // 3 axes, 4 bytes per axis => 12 bytes per measurement
-				x, y, z := make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements), make([]float32, numberOfMeasurements)
-				for i := 0; i < numberOfMeasurements; i++ {
-					x[i] = math.Float32frombits(binary.LittleEndian.Uint32(rawData[i*12 : 4+i*12]))
-					y[i] = math.Float32frombits(binary.LittleEndian.Uint32(rawData[4+i*12 : 8+i*12]))
-					z[i] = math.Float32frombits(binary.LittleEndian.Uint32(rawData[8+i*12 : 12+i*12]))
-				}
+	dataType := DATA_TYPES[data[8]]
+	samplingFrequency := binary.LittleEndian.Uint32(data[9:13])
+	lengthOfData := binary.LittleEndian.Uint32(data[13:17])
 
-				measurements = append(measurements,
-					map[string]interface{}{
-						"sensor_id":          model.MacToString(macAddress),
-						"time":               timestamp,
-						"measurement_type":   dataType,
-						"sampling_frequency": samplingFrequency,
-						"axis":               "x",
-						"raw_data":           x,
-					},
-					map[string]interface{}{
-						"sensor_id":          model.MacToString(macAddress),
-						"time":               timestamp,
-						"measurement_type":   dataType,
-						"sampling_frequency": samplingFrequency,
-						"axis":               "y",
-						"raw_data":           y,
-					},
-					map[string]interface{}{
-						"sensor_id":          model.MacToString(macAddress),
-						"time":               timestamp,
-						"measurement_type":   dataType,
-						"sampling_frequency": samplingFrequency,
-						"axis":               "z",
-						"raw_data":           z,
-					},
-				)
-			} else if dataType == "temperature" {
-				if len(rawData) != 2 {
-					out.Logger.Println("Invalid temperature data received")
-					continue
-				}
-				temperature, err := parseTemperatureData(binary.LittleEndian.Uint16(rawData))
-				if err != nil {
-					out.Logger.Println("Error:", err)
-					continue
-				}
+	// messageID := data[17:20]
+	// offset := binary.LittleEndian.Uint32(data[20:24])
 
+	// if len(data) > 16 {
+	// measurementData := data[8:]
+	// var i uint32 = 0
+	// for i <= uint32(len(measurementData))-9 {
+	// dataType := DATA_TYPES[measurementData[i]]
+	// samplingFrequency := binary.LittleEndian.Uint32(measurementData[i+1 : i+5])
+	// lengthOfData := binary.LittleEndian.Uint32(measurementData[i+5 : i+9])
+	// if i+9+lengthOfData > uint32(len(measurementData)) || lengthOfData == 0 {
+	// break
+	// }
+	// rawData := measurementData[i+9 : i+9+lengthOfData]
+	// i += 9 + lengthOfData
+
+	rawData := data[24:lengthOfData]
+	out.Logger.Println("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
+	if dataType == "vibration" {
+		numberOfMeasurements := len(rawData) / 6 // 3 axes, 2 bytes per axis => 6 bytes per measurement
+		x, y, z := make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements)
+		for i := 0; i < numberOfMeasurements; i++ {
+			x[i] = int16(rawData[i*6]) | int16(i*6+1)<<8
+			y[i] = int16(rawData[i*6+2]) | int16(i*6+3)<<8
+			z[i] = int16(rawData[i*6+4]) | int16(i*6+5)<<8
+		}
+
+		measurements = append(measurements,
+			map[string]interface{}{
+				"sensor_id":          model.MacToString(macAddress),
+				"time":               timestamp,
+				"measurement_type":   dataType,
+				"sampling_frequency": samplingFrequency,
+				"axis":               "x",
+				"raw_data":           x,
+			},
+			map[string]interface{}{
+				"sensor_id":          model.MacToString(macAddress),
+				"time":               timestamp,
+				"measurement_type":   dataType,
+				"sampling_frequency": samplingFrequency,
+				"axis":               "y",
+				"raw_data":           y,
+			},
+			map[string]interface{}{
+				"sensor_id":          model.MacToString(macAddress),
+				"time":               timestamp,
+				"measurement_type":   dataType,
+				"sampling_frequency": samplingFrequency,
+				"axis":               "z",
+				"raw_data":           z,
+			},
+		)
+	} else if dataType == "temperature" {
+		// if len(rawData) != 2 {
+		// 	out.Logger.Println("Invalid temperature data received")
+		//	continue
+		//}
+		if len(rawData) == 2 {
+			temperature, err := parseTemperatureData(binary.LittleEndian.Uint16(rawData))
+			if err == nil {
 				measurements = append(measurements,
 					map[string]interface{}{
 						"sensor_id":          model.MacToString(macAddress),
@@ -269,18 +274,31 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 					},
 				)
 			} else {
-				measurements = append(measurements,
-					map[string]interface{}{
-						"sensor_id":          model.MacToString(macAddress),
-						"time":               timestamp,
-						"measurement_type":   dataType,
-						"sampling_frequency": samplingFrequency,
-						"raw_data":           rawData,
-					},
-				)
+				out.Logger.Println("Error:", err)
 			}
+		} else {
+			out.Logger.Println("Invalid temperature data received")
 		}
+
+		//if err != nil {
+		//	out.Logger.Println("Error:", err)
+		//	continue
+		//}
+
+	} else {
+		measurements = append(measurements,
+			map[string]interface{}{
+				"sensor_id":          model.MacToString(macAddress),
+				"time":               timestamp,
+				"measurement_type":   dataType,
+				"sampling_frequency": samplingFrequency,
+				"raw_data":           rawData,
+			},
+		)
 	}
+
+	// }
+	// }
 
 	jsonData, err := json.Marshal(measurements)
 	if err != nil {
