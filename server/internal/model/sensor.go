@@ -1,7 +1,6 @@
 package model
 
 import (
-	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,7 +35,7 @@ type Sensor struct {
 	WakeUpIntervalMaxOffset int                 `json:"wake_up_interval_max_offset"`
 	NextWakeUp              time.Time           `json:"next_wake_up"`
 	Settings                map[string]settings `json:"settings"`
-	PublicKey               rsa.PublicKey       `json:"key"`
+	// PublicKey               rsa.PublicKey       `json:"key"`
 }
 
 func (s *Sensor) ToString() string {
@@ -130,7 +129,7 @@ func RemoveSensor(mac [6]byte, sensors *[]Sensor) error {
 	return nil
 }
 
-func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32, publicKey *rsa.PublicKey) Sensor {
+func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32 /*, publicKey *rsa.PublicKey*/) Sensor {
 	sensor := Sensor{
 		Mac:                     mac,
 		Name:                    "Sensor " + MacToString(mac),
@@ -141,7 +140,7 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32, pu
 		WakeUpIntervalMaxOffset: 300,
 		NextWakeUp:              time.Now().Add(3600 * time.Second),
 		Settings:                map[string]settings{},
-		PublicKey:               *publicKey,
+		// PublicKey:               *publicKey,
 	}
 
 	for _, t := range types {
@@ -168,12 +167,12 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32, pu
 	return sensor
 }
 
-func AddSensor(mac [6]byte, types []string, collectionCapacity uint32, publicKey *rsa.PublicKey, sensors *[]Sensor) error {
+func AddSensor(mac [6]byte, types []string, collectionCapacity uint32 /*publicKey *rsa.PublicKey,*/, sensors *[]Sensor) error {
 	if sensors == nil {
 		return errors.New("sensors is nil")
 	}
 
-	*sensors = append(*sensors, getDefaultSensor(mac, types, collectionCapacity, publicKey))
+	*sensors = append(*sensors, getDefaultSensor(mac, types, collectionCapacity /*, publicKey*/))
 	err := saveSensors(SENSORS_FILE, sensors)
 	return err
 }
@@ -195,7 +194,7 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 	}
 
 	if setting == "auto" {
-		*sensor = getDefaultSensor(mac, sensor.Types, sensor.CollectionCapacity, &sensor.PublicKey)
+		*sensor = getDefaultSensor(mac, sensor.Types, sensor.CollectionCapacity /*, &sensor.PublicKey*/)
 		return saveSensors(SENSORS_FILE, sensors)
 	}
 

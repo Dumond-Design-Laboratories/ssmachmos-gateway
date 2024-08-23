@@ -1,7 +1,6 @@
 package server
 
 import (
-	"crypto/rsa"
 	"encoding/binary"
 	"time"
 
@@ -10,7 +9,7 @@ import (
 )
 
 type request struct {
-	publicKey          *rsa.PublicKey
+	// publicKey          *rsa.PublicKey
 	dataTypes          []string
 	collectionCapacity uint32
 }
@@ -59,13 +58,13 @@ func pairRequest(value []byte) {
 	}
 
 	collectionCapacity := binary.LittleEndian.Uint32(value[8:12])
-	publicKey, err := model.ParsePublicKey(value[12:])
-	if err != nil {
-		return
-	}
+	// publicKey, err := model.ParsePublicKey(value[12:])
+	// if err != nil {
+	// 	return
+	// }
 
 	state.requested[mac] = request{
-		publicKey:          publicKey,
+		// publicKey:          publicKey,
 		dataTypes:          dataTypes,
 		collectionCapacity: collectionCapacity,
 	}
@@ -83,7 +82,8 @@ func pairRequest(value []byte) {
 
 // see protocol.md to understand what is going on here
 func pairConfirmation(value []byte) {
-	if len(value) != 295 || !state.active {
+	// if len(value) != 295 || !state.active {
+	if len(value) != 39 || !state.active {
 		return
 	}
 
@@ -91,9 +91,9 @@ func pairConfirmation(value []byte) {
 	mac := [6]byte(data[1:7])
 	dataUuid := model.BytesToUuid([16]byte(data[7:23]))
 	settingsUuid := model.BytesToUuid([16]byte(data[23:39]))
-	signature := value[len(value)-256:]
+	// signature := value[len(value)-256:]
 
-	if _, exists := state.requested[mac]; !exists || state.pairing != mac || !model.VerifySignature(data, signature, state.requested[mac].publicKey) {
+	if _, exists := state.requested[mac]; !exists || state.pairing != mac { // || !model.VerifySignature(data, signature, state.requested[mac].publicKey) {
 		return
 	}
 
@@ -107,7 +107,7 @@ func pairConfirmation(value []byte) {
 	}
 	state.pairing = [6]byte{}
 	pairResponseCharacteristic.Write([]byte{})
-	model.AddSensor(mac, state.requested[mac].dataTypes, state.requested[mac].collectionCapacity, state.requested[mac].publicKey, Sensors)
+	model.AddSensor(mac, state.requested[mac].dataTypes, state.requested[mac].collectionCapacity /* state.requested[mac].publicKey, */, Sensors)
 	delete(state.requested, mac)
 
 	out.PairingLog("PAIR-SUCCESS:" + model.MacToString(mac))

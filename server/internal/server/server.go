@@ -155,12 +155,13 @@ func StopAdvertising() {
 // see protocol.md to understand what is going on here
 func handleData(_ bluetooth.Connection, _ int, value []byte) {
 
-	if len(value) < 264 {
+	// if len(value) < 264 {
+	if len(value) < 24 {
 		out.Logger.Println("Invalid data format received")
 		return
 	}
-	data := value[:len(value)-256]
-	signature := value[len(value)-256:]
+	data := value // [:len(value)-256]
+	// signature := value[len(value)-256:]
 
 	macAddress := [6]byte(data[1:7])
 	var sensor *model.Sensor
@@ -175,10 +176,10 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		return
 	}
 
-	if !model.VerifySignature(data, signature, &sensor.PublicKey) {
-		out.Logger.Println("Invalid signature received from " + model.MacToString(macAddress))
-		return
-	}
+	// if !model.VerifySignature(data, signature, &sensor.PublicKey) {
+	// out.Logger.Println("Invalid signature received from " + model.MacToString(macAddress))
+	// return
+	// }
 
 	batteryLevel := int(int8(data[7]))
 	timestamp := time.Now().UTC().Format(ISO8601)
