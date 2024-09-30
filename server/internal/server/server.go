@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"time"
@@ -66,6 +67,8 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				UUID:  dataCharUUID,
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
+					out.Logger.Println("Received data: " + fmt.Sprint(offset) + ", " + fmt.Sprint(len(value)))
+
 					if len(value) > 0 && value[0] == 0x00 {
 						handleData(client, offset, value)
 					}
