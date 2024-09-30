@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"os/signal"
 	"time"
@@ -67,8 +66,6 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				UUID:  dataCharUUID,
 				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
 				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					out.Logger.Println("Received data: " + fmt.Sprint(offset) + ", " + fmt.Sprint(len(value)))
-
 					if len(value) > 0 && value[0] == 0x00 {
 						handleData(client, offset, value)
 					}
@@ -184,30 +181,11 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 	// }
 
 	batteryLevel := int(int8(data[7]))
-	timestamp := time.Now().UTC().Format(ISO8601)
-
-	measurements := []map[string]interface{}{}
-
-	if batteryLevel != -1 {
-		out.Logger.Println("Received battery data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
-		sensor.BatteryLevel = batteryLevel
-		measurements = []map[string]interface{}{
-			{
-				"sensor_id":          model.MacToString(macAddress),
-				"time":               timestamp,
-				"measurement_type":   "battery",
-				"sampling_frequency": 0,
-				"raw_data":           [1]int{batteryLevel},
-			},
-		}
-	}
-
 	dataType := DATA_TYPES[data[8]]
 	samplingFrequency := binary.LittleEndian.Uint32(data[9:13])
 	lengthOfData := binary.LittleEndian.Uint32(data[13:17])
-
-	// messageID := data[17:20]
-	// offset := binary.LittleEndian.Uint32(data[20:24])
+	messageID := *(*[3]byte)(data[17:20])
+	offset := int(binary.LittleEndian.Uint32(data[20:24]))
 
 	// if len(data) > 16 {
 	// measurementData := data[8:]
@@ -222,7 +200,27 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 	// rawData := measurementData[i+9 : i+9+lengthOfData]
 	// i += 9 + lengthOfData
 
-	rawData := data[24:lengthOfData]
+	rawData := savePacket(data[24:lengthOfData], macAddress, batteryLevel, dataType, samplingFrequency, lengthOfData, messageID, offset)
+	if rawData == nil {
+		return
+	}
+
+	timestamp := time.Now().UTC().Format(ISO8601)
+	measurements := []map[string]interface{}{}
+	if batteryLevel != -1 {
+		out.Logger.Println("Received battery data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
+		sensor.BatteryLevel = batteryLevel
+		measurements = []map[string]interface{}{
+			{
+				"sensor_id":          model.MacToString(macAddress),
+				"time":               timestamp,
+				"measurement_type":   "battery",
+				"sampling_frequency": 0,
+				"raw_data":           [1]int{batteryLevel},
+			},
+		}
+	}
+
 	out.Logger.Println("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 	if dataType == "vibration" {
 		numberOfMeasurements := len(rawData) / 6 // 3 axes, 2 bytes per axis => 6 bytes per measurement
@@ -288,16 +286,26 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		//	continue
 		//}
 
-	} else {
-		measurements = append(measurements,
-			map[string]interface{}{
-				"sensor_id":          model.MacToString(macAddress),
-				"time":               timestamp,
-				"measurement_type":   dataType,
-				"sampling_frequency": samplingFrequency,
-				"raw_data":           rawData,
-			},
-		)
+	} else if dataType == "audio" {
+		if len(rawData)%3 == 0 {
+			numberOfMeasurements := len(rawData) / 3
+			amplitude := make([]int, numberOfMeasurements)
+			for i := 0; i < numberOfMeasurements; i++ {
+				amplitude[i] = int(rawData[i*3]) | int(rawData[i*3+1])<<8 | int(rawData[i*3+2])<<16
+			}
+
+			measurements = append(measurements,
+				map[string]interface{}{
+					"sensor_id":          model.MacToString(macAddress),
+					"time":               timestamp,
+					"measurement_type":   dataType,
+					"sampling_frequency": samplingFrequency,
+					"raw_data":           amplitude,
+				},
+			)
+		} else {
+			out.Logger.Println("Invalid temperature data received")
+		}
 	}
 
 	// }
