@@ -200,7 +200,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 	// rawData := measurementData[i+9 : i+9+lengthOfData]
 	// i += 9 + lengthOfData
 
-	rawData := savePacket(data[24:lengthOfData], macAddress, batteryLevel, dataType, samplingFrequency, lengthOfData, messageID, offset)
+	rawData := savePacket(data[24:], macAddress, batteryLevel, dataType, samplingFrequency, lengthOfData, messageID, offset)
 	if rawData == nil {
 		return
 	}
