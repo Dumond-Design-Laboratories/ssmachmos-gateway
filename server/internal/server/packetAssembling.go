@@ -55,7 +55,9 @@ func savePacket(data []byte, macAddress [6]byte, batteryLevel int, dataType stri
 	}
 
 	if transmissions[messageID].currentLength >= int(transmissions[messageID].totalLength) {
-		return assemblePackets(transmissions[messageID])
+		fullRawData := assemblePackets(transmissions[messageID])
+		delete(transmissions, messageID)
+		return fullRawData
 	}
 
 	return nil

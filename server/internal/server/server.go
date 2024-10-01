@@ -305,7 +305,7 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 				},
 			)
 		} else {
-			out.Logger.Println("Invalid temperature data received")
+			out.Logger.Println("Invalid audio data received")
 		}
 	}
 
