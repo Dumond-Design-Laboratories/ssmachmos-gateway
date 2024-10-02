@@ -227,9 +227,9 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		numberOfMeasurements := len(rawData) / 6 // 3 axes, 2 bytes per axis => 6 bytes per measurement
 		x, y, z := make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements)
 		for i := 0; i < numberOfMeasurements; i++ {
-			x[i] = int16(rawData[i*6]) | int16(i*6+1)<<8
-			y[i] = int16(rawData[i*6+2]) | int16(i*6+3)<<8
-			z[i] = int16(rawData[i*6+4]) | int16(i*6+5)<<8
+			x[i] = int16(rawData[i*6]) | int16(rawData[i*6+1])<<8
+			y[i] = int16(rawData[i*6+2]) | int16(rawData[i*6+3])<<8
+			z[i] = int16(rawData[i*6+4]) | int16(rawData[i*6+5])<<8
 		}
 
 		measurements = append(measurements,
