@@ -18,7 +18,13 @@ const DEFAULT_GATEWAY_HTTP_ENDPOINT = "https://openphm.org/gateway_data"
 
 var adapter = bluetooth.DefaultAdapter
 
-var SERVICE_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}                      // same for every gateway fbe7e8cd-940d-16f1-ad5b-474ea07498ca
+var DATA_SERVICE_UUID = bluetooth.MustParseUUID("2deacc71-7b29-4ff4-8fc2-59461c7a73f5")
+var FLUX_DATA_CHRC_UUID = bluetooth.MustParseUUID("68e92ad3-0fb5-4c93-8b99-0d21771576fd")
+var RTD_DATA_CHRC_UUID = bluetooth.MustParseUUID("e64d1230-86ba-46aa-a62d-736d6f58226c")
+var ACCEL_DATA_CHRC_UUID = bluetooth.MustParseUUID("e70ada20-ac8e-45f8-9f5d-593226bb7284")
+var MIC_DATA_CHRC_UUID = bluetooth.MustParseUUID("fee1ed78-2a76-490e-8a7c-9b698c9202d1")
+
+var SERVICE_PAIRING_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}              // same for every gateway fbe7e8cd-940d-16f1-ad5b-474ea07498ca
 var PAIR_REQUEST_CHARACTERISTIC_UUID = [4]uint32{0x37ecbcb9, 0xe2514c40, 0xa1613de1, 0x1ea8c363}  // same for every gateway 1ea8c363-a161-3de1-e251-4c4037ecbcb9
 var PAIR_RESPONSE_CHARACTERISTIC_UUID = [4]uint32{0x0598acc3, 0x8564405a, 0xaf67823f, 0x029c79b6} // same for every gateway 029c79b6-af67-823f-8564-405a0598acc3
 
@@ -27,6 +33,7 @@ var DATA_TYPES = map[byte]string{
 	0x01: "audio",
 	0x02: "temperature",
 	0x03: "battery",
+	0x04: "flux",
 }
 
 const UNSENT_DATA_PATH = "unsent_data/"
@@ -60,8 +67,36 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 		return err
 	}
 
+	data_service := bluetooth.Service{
+		UUID: DATA_SERVICE_UUID,
+		Characteristics: []bluetooth.CharacteristicConfig{
+			{
+				UUID:  ACCEL_DATA_CHRC_UUID,
+				Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
+				WriteEvent: func(connection bluetooth.Connection, address string, offset int, value []byte) {
+					// offset is used for when the MTU is less than 512 bytes, but i don't really care right now....
+					return
+				},
+			},
+			{
+				UUID:  FLUX_DATA_CHRC_UUID,
+				Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
+			},
+			{
+				UUID:  MIC_DATA_CHRC_UUID,
+				Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
+			},
+			{
+				UUID:  RTD_DATA_CHRC_UUID,
+				Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
+			},
+		},
+	}
+
+	adapter.AddService(&data_service)
+
 	service := bluetooth.Service{
-		UUID: SERVICE_UUID,
+		UUID: SERVICE_PAIRING_UUID,
 		Characteristics: []bluetooth.CharacteristicConfig{
 			{
 				UUID:  dataCharUUID,
