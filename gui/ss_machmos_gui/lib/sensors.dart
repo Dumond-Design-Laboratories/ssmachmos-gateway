@@ -158,6 +158,28 @@ class Sensor {
       required this.wakeUpInterval,
       required this.wakeUpIntervalMaxOffset,
       required this.nextWakeUp});
+
+  factory Sensor.fromJson(Map<String, dynamic> s) {
+    Map<String, SensorSettings> settings = {};
+    for (var k in s["settings"].keys) {
+      settings[k] = SensorSettings(
+        active: s["settings"][k]["active"],
+        samplingFrequency: s["settings"][k]["sampling_frequency"],
+        samplingDuration: s["settings"][k]["sampling_duration"],
+      );
+    }
+    return Sensor(
+      mac: Uint8List.fromList(s["mac"].cast<int>()),
+      name: s["name"],
+      types: s["types"].cast<String>(),
+      collectionCapacity: s["collection_capacity"],
+      wakeUpInterval: s["wake_up_interval"],
+      wakeUpIntervalMaxOffset: s["wake_up_interval_max_offset"],
+      nextWakeUp: DateTime.parse(s["next_wake_up"]),
+      batteryLevel: s["battery_level"],
+      settings: settings,
+    );
+  }
 }
 
 String macToString(Uint8List mac) {
