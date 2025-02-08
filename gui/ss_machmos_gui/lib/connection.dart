@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -76,6 +77,9 @@ class Connection {
         for (String message in messages) {
           if (message.isEmpty) {
             continue;
+          }
+          if(kDebugMode == true) {
+            log("SERVER: $message");
           }
           List<String> found = [];
           List<String> parts = message.split(":");
