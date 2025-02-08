@@ -181,8 +181,10 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  // On pairing enable, attach callbacks from server
   Future<void> onPairingToggle(bool p) async {
     if (p) {
+      // Clear state on enable
       _connection.on("PAIR-ENABLE", (_, __) {
         setState(() {
           _pairingEnabled = p;
@@ -191,12 +193,14 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
         });
         return true;
       });
+      // Attempted pairing with a sensor already paired
       _connection.on("REQUEST-SENSOR-EXISTS", (mac, _) {
         showMessage(
             "Pairing request for already paired sensor $mac. First \"Forget\" sensor $mac before pairing again.",
             context);
         return false;
       });
+
       _connection.on("REQUEST-TIMEOUT", (mac, _) {
         if (_pairingWith != mac) {
           setState(() {
@@ -208,12 +212,15 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
         }
         return false;
       });
+      // New pairing request, called on connect for new devices
       _connection.on("REQUEST-NEW", (mac, _) {
         setState(() {
+          log("REQUEST-NEW Called");
           _sensorsNearby.add(mac);
         });
         return false;
       });
+      // BLE agent finished pairing
       _connection.on("PAIR-SUCCESS", (mac, _) {
         _sensorsNearby.remove(mac);
         if (_pairingWith == mac) {
@@ -226,10 +233,12 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
         loadSensors();
         return false;
       });
+      // Pairing disabled, sent by server in response when toggle switch is off
       _connection.on("PAIRING-DISABLED", (_, __) {
         setState(() => _pairingEnabled = false);
         return false;
       });
+      // Attempted to start pairing with a device not pending pairing
       _connection.on("REQUEST-NOT-FOUND", (mac, _) {
         setState(() {
           _sensorsNearby.remove(mac);
@@ -239,6 +248,7 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
         });
         return false;
       });
+      // Cancelled pairing, either by timeout, BLE agent, or user
       _connection.on("PAIRING-CANCELED", (mac, _) {
         if (_pairingWith == mac) {
           setState(() {
@@ -248,10 +258,12 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
         }
         return false;
       });
+      // Start pairing with device
       _connection.on("PAIRING-WITH", (mac, _) {
         setState(() => _pairingWith = mac);
         return false;
       });
+      // Pairing timeout
       _connection.on("PAIRING-TIMEOUT", (mac, _) {
         if (_pairingWith == mac) {
           setState(() {
@@ -262,6 +274,7 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
         showMessage("Pairing timed out with sensor $mac", context);
         return false;
       });
+      // Ask server to enable pairing
       await _connection.send("PAIR-ENABLE");
     } else {
       _connection.on("PAIR-DISABLE", (_, __) {
@@ -294,9 +307,8 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
       try {
         // Deserialize data into a list of sensors
         // Map all objects in map to a Sensor object
-        List<Sensor> sensors = jsonDecode(json).map<Sensor>((s) {
-          return Sensor.fromJson(s);
-        }).toList();
+        List<Sensor> sensors =
+            jsonDecode(json).map<Sensor>((s) => Sensor.fromJson(s)).toList();
         setState(() {
           _sensorsPaired = sensors;
         });
@@ -322,6 +334,7 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
             child: Text("Error: Could not connect to server."),
           ),
           const SizedBox(height: 20),
+          // Button to start the gateway server backend
           TextButton(
             onPressed: () async {
               await _connection.startServer();
@@ -343,6 +356,7 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
         children: [
           Row(
             children: [
+              // Left column displaying sensors available
               Expanded(
                   flex: 3,
                   child: Sensors(
@@ -357,6 +371,7 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
                 width: 0.5,
                 color: Colors.grey,
               ),
+              // Right column displaying sensors awaiting pairing
               Expanded(
                   flex: 2,
                   child: Bluetooth(
@@ -364,6 +379,7 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
                     onPairingToggle: onPairingToggle,
                     sensorsNearby: _sensorsNearby,
                     pairingWith: _pairingWith,
+                    // On selecting a device, send pair command
                     onPairingSelected: (mac) async => {
                       _connection.on("PAIR-ACCEPT", (_, err) {
                         if (err != null) {

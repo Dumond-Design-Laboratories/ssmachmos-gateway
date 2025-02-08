@@ -90,8 +90,11 @@ class Connection {
               }
               continue;
             }
+            // Get to first part, skip LOG/ERR/OK
+            // FIXME make an actual parser, this is unreadable
             String command = parts[1];
             if (_waitingFor.containsKey(command)) {
+              // If callback returns true, mark and remove later
               if (_waitingFor[command]!(
                   parts.length > 2 ? parts.sublist(2).join(":") : "",
                   parts[0] == "ERR"
@@ -114,6 +117,8 @@ class Connection {
     }
   }
 
+  // Add a callback on receiving a prefixed message from server
+  // Callback is automatically removed if function returns true
   void on(String command, bool Function(String, String?) callback) {
     _waitingFor[command] = callback;
   }
