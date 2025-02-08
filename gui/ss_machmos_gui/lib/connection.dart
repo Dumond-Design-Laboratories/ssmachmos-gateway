@@ -21,7 +21,7 @@ class Connection {
   Future<void> startServer() async {
     await Process.run(
       kDebugMode
-          ? "${Directory.current.parent.parent.path}/server/ssmachmos"
+          ? "${Directory.current.path}/ssmachmos"
           : "ssmachmos",
       ["serve", "--no-console"],
     );
