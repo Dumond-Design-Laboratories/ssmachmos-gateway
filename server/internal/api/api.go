@@ -11,6 +11,24 @@ import (
 	"github.com/jukuly/ss_machmos/server/internal/server"
 )
 
+// Command starts with PAIR
+func handlePairCommand(parts []string) string {
+	if len(parts) == 0 {
+		return "ERR empty command"
+	}
+	switch parts[0] {
+	case "LIST":
+		res, err := pairListPending()
+		if err != nil {
+			out.Logger.Println("Error:", err)
+			return "ERR:PAIR-LIST:"+err.Error()
+		}
+		return "OK:PAIR-LIST:"+res
+	default:
+		return "ERR:unknown pair command "+strings.Join(parts, " ")
+	}
+}
+
 func handleCommand(command string, conn *net.Conn) string {
 	parts := strings.Split(command, " ")
 
@@ -35,11 +53,15 @@ func handleCommand(command string, conn *net.Conn) string {
 			return "ERR:VIEW:" + err.Error()
 		}
 		return "OK:VIEW:" + res
+	case "PAIR":
+		return handlePairCommand(parts[1:])
 	case "PAIR-ENABLE":
+		// Save this connection as someone interested in pairing info
 		out.PairingConnections[conn] = true
 		pairEnable()
 		return "OK:PAIR-ENABLE:"
 	case "PAIR-DISABLE":
+		// Remove connection from update list
 		delete(out.PairingConnections, conn)
 		if len(out.PairingConnections) == 0 {
 			pairDisable()
@@ -134,11 +156,12 @@ func handleCommand(command string, conn *net.Conn) string {
 	case "STOP":
 		stop()
 	default:
-		return "ERR:invalid command"
+		return "ERR:invalid command " + command
 	}
 	return "ERR:unknown"
 }
 
+// Handle command and write response
 func handleConnection(conn *net.Conn) {
 	defer (*conn).Close()
 	reader := bufio.NewReader(*conn)
@@ -153,11 +176,19 @@ func handleConnection(conn *net.Conn) {
 				continue
 			}
 			response := handleCommand(c, conn)
+			// Terminate with zero byte
+			// For socat you need to insert the zero byte character to terminate
+			// echo -e "PAIR LIST \0"
+			// or CTRL-V then CTRL-SHIFT-2 to insert ^@ and terminate command
 			(*conn).Write([]byte(response + "\x00"))
 		}
 	}
 }
 
+// Start listening to unix socket
+// any commands received here would be sent to handleConnection and then handleCommand
+// Commands are zero terminated. Unix sockets are bidirectional
+// but I think using them as reply-only is cleaner
 func Start() error {
 	socketPath := "/tmp/ss_machmos.sock"
 	if err := os.RemoveAll(socketPath); err != nil {

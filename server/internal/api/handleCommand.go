@@ -25,6 +25,11 @@ func pairAccept(mac string) error {
 	return nil
 }
 
+func pairListPending() (string, error) {
+	jsonStr, err := json.Marshal(server.ListDevicesPendingPairing())
+	return string(jsonStr), err;
+}
+
 func list() (string, error) {
 	jsonStr, err := json.Marshal(*server.Sensors)
 	return string(jsonStr), err
