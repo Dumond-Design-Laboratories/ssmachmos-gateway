@@ -50,7 +50,6 @@ func serve() {
 }
 
 func main() {
-
 	// the user must provide at least one argument (the command)
 	as := os.Args[1:]
 	if len(as) == 0 {

@@ -1,5 +1,11 @@
 package cli
 
+/*
+ * Command line application to communicate with the server process
+ * if argument is serve, creates new server
+ * if not, sends commands to a currently running server
+ */
+
 import (
 	"bufio"
 	"encoding/json"

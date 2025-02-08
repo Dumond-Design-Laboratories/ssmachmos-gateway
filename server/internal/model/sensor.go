@@ -177,6 +177,7 @@ func AddSensor(mac [6]byte, types []string, collectionCapacity uint32 /*publicKe
 	return err
 }
 
+// Updates a single sensor and stores back to JSON cache
 func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]Sensor) error {
 	if sensors == nil {
 		return errors.New("sensors is nil")
@@ -285,6 +286,9 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 	return saveSensors(SENSORS_FILE, sensors)
 }
 
+// Returns size of a complete sensor collection in bytes
+// For each sensor, calculate sum of the
+// data type size * sample frequency * sample duration
 func getCollectionSize(sensor *Sensor) int {
 	result := 0
 	for dataType, settings := range sensor.Settings {
@@ -300,7 +304,11 @@ func getCollectionSize(sensor *Sensor) int {
 	return result
 }
 
-func isExceedingCollectionCapacity(sensor *Sensor, setting string, value int, dataType string) error {
+// Called when changing sampling_frequency or sampling_duration
+// Takes in a sensor, name of the setting being changed (sampling_frequency or sampling duration)
+// newSettingValue is the value being set to
+// dataType is the name of the datatype the setting is refering to
+func isExceedingCollectionCapacity(sensor *Sensor, setting string, newSettingValue int, dataType string) error {
 	if dataType == "temperature" {
 		return nil
 	}
@@ -322,8 +330,8 @@ func isExceedingCollectionCapacity(sensor *Sensor, setting string, value int, da
 	}
 
 	max := (int(sensor.CollectionCapacity)-getCollectionSize(sensor))/(sizeOfData*otherFactor) + thisFactor
-	if value > max {
-		return errors.New("invalid value for " + setting + " setting (exceeds collection capacity of sensor (current maximum: " + strconv.Itoa(max) + "))")
+	if newSettingValue > max {
+		return errors.New("invalid value " + strconv.Itoa(newSettingValue) + " for " + setting + " setting (exceeds collection capacity of sensor for " + dataType + " (current maximum: " + strconv.Itoa(max) + "))")
 	}
 	return nil
 }
@@ -333,7 +341,7 @@ func saveSensors(fileName string, sensors *[]Sensor) error {
 		return errors.New("sensors is nil")
 	}
 
-	jsonStr, err := json.Marshal(sensors)
+	jsonStr, err := json.MarshalIndent(sensors, "", "\t")
 	if err != nil {
 		return err
 	}

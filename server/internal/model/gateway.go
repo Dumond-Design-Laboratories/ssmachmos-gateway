@@ -97,7 +97,7 @@ func saveSettings(gateway *Gateway, fileName string) error {
 		return errors.New("gateway is nil")
 	}
 
-	jsonStr, err := json.Marshal(gateway)
+	jsonStr, err := json.MarshalIndent(gateway, "", "\t")
 	if err != nil {
 		return err
 	}
