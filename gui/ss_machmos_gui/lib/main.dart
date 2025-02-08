@@ -1,5 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:ss_machmos_gui/bluetooth.dart';
@@ -93,12 +94,15 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
   late GlobalKey _gatewayIdKey;
   late GlobalKey _httpEndpointKey;
 
+  late Timer _pairListTimer;
+
   @override
   void initState() {
     super.initState();
     setState(() {
       _tabController = TabController(
           length: tabs.length, vsync: this, animationDuration: Duration.zero);
+      // Connection to backend
       _connection = Connection();
       _logsScrollController = ScrollController();
       _logs = "";
@@ -124,7 +128,25 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
       _gatewayIdKey = GlobalKey();
       _httpEndpointKey = GlobalKey();
     });
+
+    // Open socket to server
+    // This is a unix socket
     openConnection();
+    _pairListTimer = Timer.periodic(const Duration(seconds: 2), (Timer t) {
+      // Every two seconds poll server for new paired devices
+      if (_pairingEnabled) {
+        _connection.send("PAIR LIST");
+      }
+    });
+
+    _connection.on("PAIR-LIST", (devices, _) {
+      // Server returns list of devices pending pairing
+      setState(() {
+        _sensorsNearby = List<String>.from(jsonDecode(devices));
+      });
+      // return false to keep in event callback
+      return false;
+    });
   }
 
   Future<void> openConnection() {
@@ -149,6 +171,7 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
 
   @override
   void dispose() async {
+    _pairListTimer.cancel();
     await _connection.close();
     await _connection.send("REMOVE-LOGGER");
     _logsConnected = false;
