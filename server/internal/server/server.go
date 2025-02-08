@@ -24,9 +24,10 @@ var RTD_DATA_CHRC_UUID = bluetooth.MustParseUUID("e64d1230-86ba-46aa-a62d-736d6f
 var ACCEL_DATA_CHRC_UUID = bluetooth.MustParseUUID("e70ada20-ac8e-45f8-9f5d-593226bb7284")
 var MIC_DATA_CHRC_UUID = bluetooth.MustParseUUID("fee1ed78-2a76-490e-8a7c-9b698c9202d1")
 
-var SERVICE_PAIRING_UUID = [4]uint32{0xA07498CA, 0xAD5B474E, 0x940D16F1, 0xFBE7E8CD}              // same for every gateway fbe7e8cd-940d-16f1-ad5b-474ea07498ca
-var PAIR_REQUEST_CHARACTERISTIC_UUID = [4]uint32{0x37ecbcb9, 0xe2514c40, 0xa1613de1, 0x1ea8c363}  // same for every gateway 1ea8c363-a161-3de1-e251-4c4037ecbcb9
-var PAIR_RESPONSE_CHARACTERISTIC_UUID = [4]uint32{0x0598acc3, 0x8564405a, 0xaf67823f, 0x029c79b6} // same for every gateway 029c79b6-af67-823f-8564-405a0598acc3
+var CONFIG_SERVICE_UUID, _ = bluetooth.ParseUUID("0ffd06bd-5f9c-4583-b852-e92fdbe8e862")
+var CONFIG_IDENTIFY_CHRC_UUID, _ = bluetooth.ParseUUID("4a488208-f3b9-414f-85c7-17eb16c653b0")
+var configStartSampleCharUUID, _ = bluetooth.ParseUUID("f6344769-e905-4c4d-a6e8-0aa8b63f1153")
+var configWakeAtUUID, _ = bluetooth.ParseUUID("9203c6cb-b4d4-49e2-a84d-415d2cb790f1")
 
 var DATA_TYPES = map[byte]string{
 	0x00: "vibration",
@@ -41,6 +42,8 @@ const UNSENT_DATA_PATH = "unsent_data/"
 var pairResponseCharacteristic bluetooth.Characteristic
 var settingsCharacteristic bluetooth.Characteristic
 var Gateway *model.Gateway
+
+// List of known sensors, displayed by GUI
 var Sensors *[]model.Sensor
 
 func Init(ss *[]model.Sensor, g *model.Gateway) error {
@@ -55,27 +58,21 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 	state = pairingState{
 		active:    false,
 		requested: make(map[[6]byte]request),
-		pairing:   [6]byte{},
 	}
 	transmissions = make(map[[3]byte]Transmission)
-	dataCharUUID, err := model.GetDataCharUUID(Gateway)
-	if err != nil {
-		return err
-	}
-	settingsCharUUID, err := model.GetSettingsCharUUID(Gateway)
-	if err != nil {
-		return err
-	}
 
-	data_service := bluetooth.Service{
+	// Data collection service, requires pairing and bonding for authentication
+	// https://lpccs-docs.renesas.com/Tutorial-DA145x-BLE-Security/ble_security.html
+	// Out of Band could be done with a USB serial connection
+	dataService := bluetooth.Service{
 		UUID: DATA_SERVICE_UUID,
 		Characteristics: []bluetooth.CharacteristicConfig{
 			{
 				UUID:  ACCEL_DATA_CHRC_UUID,
 				Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
 				WriteEvent: func(connection bluetooth.Connection, address string, offset int, value []byte) {
-					// offset is used for when the MTU is less than 512 bytes, but i don't really care right now....
-					return
+					// offset is used for when the MTU is less than 512 bytes, but maybe bluez handles that???
+
 				},
 			},
 			{
@@ -92,65 +89,71 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 			},
 		},
 	}
+	adapter.AddService(&dataService)
 
-	adapter.AddService(&data_service)
-
-	service := bluetooth.Service{
-		UUID: SERVICE_PAIRING_UUID,
+	configService := bluetooth.Service{
+		UUID: CONFIG_SERVICE_UUID,
 		Characteristics: []bluetooth.CharacteristicConfig{
 			{
-				UUID:  dataCharUUID,
-				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
-				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					if len(value) > 0 && value[0] == 0x00 {
-						handleData(client, offset, value)
-					}
-				},
-			},
-			{
+				// Keep this, use for devices to manage settings
 				Handle: &settingsCharacteristic,
-				UUID:   settingsCharUUID,
+				UUID:   CONFIG_IDENTIFY_CHRC_UUID,
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
-				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					if len(value) > 0 && value[0] == 0x00 {
-						sendSettings(value)
+				// WriteEvent to collect device information
+				WriteEvent: func(connection bluetooth.Connection, address string, offset int, value []byte) {
+					mac, err := bluetooth.ParseMAC(address)
+					if err != nil {
+						out.Logger.Println("Failed to parse MAC", address)
+						return
+					}
+					if len(value) > 0 {
+						pairReceiveCapabilities(mac, value)
+					} else {
+						out.Logger.Println("Received zero value write. how.")
 					}
 				},
-			},
-			{
-				UUID:  PAIR_REQUEST_CHARACTERISTIC_UUID,
-				Flags: bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
-				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					if len(value) > 0 && value[0] == 0x00 {
-						pairRequest(value)
-					}
-				},
-			},
-			{
-				Handle: &pairResponseCharacteristic,
-				UUID:   PAIR_RESPONSE_CHARACTERISTIC_UUID,
-				Value:  []byte{},
-				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
-				WriteEvent: func(client bluetooth.Connection, offset int, value []byte) {
-					if len(value) > 0 && value[0] == 0x00 {
-						pairConfirmation(value)
-					}
+				// ReadEvent to return device-appropriate settings
+				// Also how...
+				ReadEvent: func(client bluetooth.Connection, address string, offset int) []byte {
+					// FIXME sendSettings(address)
+					return []byte{0x0}
 				},
 			},
 		},
 	}
-	err = adapter.AddService(&service)
+	err = adapter.AddService(&configService)
 	if err != nil {
 		return err
 	}
+
+	/*
+	 * Signal pairing procedure over serial.
+	 * Share pairing code over serial
+	 * This will need a separate BlueZ BLE agent to handle pairing.
+	 * Could the default agent handle it? Think of supplying a code other than 0000
+	 * Alternative would be to accept pairing only if device sends MAC address over serial
+	 */
+	adapter.SetConnectHandler(func(device bluetooth.Device, connected bool) {
+		if connected {
+			// On connect add to list of devices pending pairing
+			pairDeviceConnected(device.Address.MAC)
+			out.Logger.Println("Bluetooth connection with device", device.Address.MAC.String())
+		} else {
+			pairDeviceDisconnected(device.Address.MAC)
+			out.Logger.Println("Bluetooth disconnected", device.Address.MAC.String())
+		}
+	})
+
+	adapter.Enable()
 
 	adv := adapter.DefaultAdvertisement()
 	if adv == nil {
 		return errors.New("advertisement is nil")
 	}
 	err = adv.Configure(bluetooth.AdvertisementOptions{
-		LocalName:    "Gateway Server",
-		ServiceUUIDs: []bluetooth.UUID{service.UUID},
+		LocalName: "Gateway Server",
+		// BUG can't advertise more than one service UUID
+		ServiceUUIDs: []bluetooth.UUID{DATA_SERVICE_UUID},
 	})
 	if err != nil {
 		return err
