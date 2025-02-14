@@ -6,7 +6,6 @@ import (
 	"errors"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
 	"github.com/jukuly/ss_machmos/server/internal/out"
@@ -26,8 +25,12 @@ var MIC_DATA_CHRC_UUID = bluetooth.MustParseUUID("fee1ed78-2a76-490e-8a7c-9b698c
 
 var CONFIG_SERVICE_UUID, _ = bluetooth.ParseUUID("0ffd06bd-5f9c-4583-b852-e92fdbe8e862")
 var CONFIG_IDENTIFY_CHRC_UUID, _ = bluetooth.ParseUUID("4a488208-f3b9-414f-85c7-17eb16c653b0")
-var configStartSampleCharUUID, _ = bluetooth.ParseUUID("f6344769-e905-4c4d-a6e8-0aa8b63f1153")
-var configWakeAtUUID, _ = bluetooth.ParseUUID("9203c6cb-b4d4-49e2-a84d-415d2cb790f1")
+
+// Chrc to notify a sensor to start sending data immediately.
+var CONFIG_START_SAMPLING_CHRC_UUID, _ = bluetooth.ParseUUID("f6344769-e905-4c4d-a6e8-0aa8b63f1153")
+
+// Chrc to notify a sensor of next wake up time.
+var CONFIG_WAKE_AT_CHRC_UUID, _ = bluetooth.ParseUUID("9203c6cb-b4d4-49e2-a84d-415d2cb790f1")
 
 var DATA_TYPES = map[byte]string{
 	0x00: "vibration",
@@ -41,6 +44,9 @@ const UNSENT_DATA_PATH = "unsent_data/"
 
 var pairResponseCharacteristic bluetooth.Characteristic
 var settingsCharacteristic bluetooth.Characteristic
+var configWakeAtChar bluetooth.Characteristic
+var configStartSampleChar bluetooth.Characteristic
+
 var Gateway *model.Gateway
 
 // List of known sensors, displayed by GUI
@@ -59,7 +65,7 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 		active:    false,
 		requested: make(map[[6]byte]request),
 	}
-	transmissions = make(map[[3]byte]Transmission)
+	//transmissions = make(map[[3]byte]Transmission)
 
 	// Data collection service, requires pairing and bonding for authentication
 	// https://lpccs-docs.renesas.com/Tutorial-DA145x-BLE-Security/ble_security.html
@@ -70,22 +76,31 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 			{
 				UUID:  ACCEL_DATA_CHRC_UUID,
 				Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
-				WriteEvent: func(connection bluetooth.Connection, address string, offset int, value []byte) {
-					// offset is used for when the MTU is less than 512 bytes, but maybe bluez handles that???
-
+				// offset is used for when the MTU is less than 512 bytes, but maybe bluez handles that???
+				WriteEvent: func(client bluetooth.Connection, address string, offset int, value []byte) {
+					handleData("vibration", client, address, offset, value)
 				},
 			},
 			{
 				UUID:  FLUX_DATA_CHRC_UUID,
 				Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
+				WriteEvent: func(client bluetooth.Connection, address string, offset int, value []byte) {
+					handleData("flux", client, address, offset, value)
+				},
 			},
 			{
 				UUID:  MIC_DATA_CHRC_UUID,
 				Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
+				WriteEvent: func(client bluetooth.Connection, address string, offset int, value []byte) {
+					handleData("audio", client, address, offset, value)
+				},
 			},
 			{
 				UUID:  RTD_DATA_CHRC_UUID,
 				Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
+				WriteEvent: func(client bluetooth.Connection, address string, offset int, value []byte) {
+					handleData("temperature", client, address, offset, value)
+				},
 			},
 		},
 	}
@@ -116,7 +131,23 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				// Also how...
 				ReadEvent: func(client bluetooth.Connection, address string, offset int) []byte {
 					// FIXME sendSettings(address)
-					return []byte{0x0}
+					return getSettingsForSensor(address)
+				},
+			},
+			{
+				Handle: &configStartSampleChar,
+				UUID:   CONFIG_START_SAMPLING_CHRC_UUID,
+				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicNotifyPermission,
+				ReadEvent: func(client bluetooth.Connection, address string, offset int) []byte {
+					return []byte{0x3}
+				},
+			},
+			{
+				Handle: &configWakeAtChar,
+				UUID:   CONFIG_WAKE_AT_CHRC_UUID,
+				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicNotifyPermission,
+				ReadEvent: func(client bluetooth.Connection, address string, offset int) []byte {
+					return []byte{0x3}
 				},
 			},
 		},
@@ -137,10 +168,14 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 		if connected {
 			// On connect add to list of devices pending pairing
 			pairDeviceConnected(device.Address.MAC)
-			out.Logger.Println("Bluetooth connection with device", device.Address.MAC.String())
+			out.Logger.Println(device.Address.MAC)
+			// NOTE gobluetooth device mac address here is reversed
+			// god is this library stupid
+			//out.Logger.Println("Bluetooth connection with device", device.Address.MAC.String())
+			out.Logger.Println("Bluetooth connection with device", model.MacToString(device.Address.MAC))
 		} else {
 			pairDeviceDisconnected(device.Address.MAC)
-			out.Logger.Println("Bluetooth disconnected", device.Address.MAC.String())
+			out.Logger.Println("Bluetooth disconnected", model.MacToString(device.Address.MAC))
 		}
 	})
 
@@ -190,165 +225,69 @@ func StopAdvertising() {
 	os.Exit(0)
 }
 
-// see protocol.md to understand what is going on here
-func handleData(_ bluetooth.Connection, _ int, value []byte) {
+func TriggerCollection(address string) {
+	out.Logger.Println("Notifying " + address + " of collection request")
+	// notify a device that we want it to start collecting data
+	mac, _ := model.StringToMac(address)
+	output := make([]byte, 8)
+	for i := range mac {
+		// Write mac address reversed
+		output[i] = mac[len(mac)-i-1]
+	}
+	output[6] = 0x0 // Command byte (whatever that is)
+	output[7] = 0x0 // Targets sensor (lmao)
 
+	configStartSampleChar.Write(output)
+}
+
+/*
+ * Receive a data upload from the sensor
+ * Each sensor data type would have a dedicated characteristic
+ */
+func handleData(dataType string, _ bluetooth.Connection, address string, mtu int, value []byte) {
 	// if len(value) < 264 {
-	if len(value) < 24 {
-		out.Logger.Println("Invalid data format received")
+	if len(value) == 0 {
+		out.Logger.Println("Zero byte array received from " + address + " handling data for " + dataType)
 		return
 	}
-	data := value // [:len(value)-256]
+	//data := value // [:len(value)-256]
 	// signature := value[len(value)-256:]
 
-	macAddress := [6]byte(data[1:7])
-	var sensor *model.Sensor
+	// Find sensor that is sending data
+	macAddress, _ := model.StringToMac(address)
+	var sensor *model.Sensor = nil
 	for i, s := range *Sensors {
 		if s.Mac == macAddress {
 			sensor = &(*Sensors)[i]
 			break
 		}
 	}
+	// Ensure sensor is permitted to send data
+	// TODO only devices that pair with gateway are allowed to access this chrc anyways
 	if sensor == nil {
-		out.Logger.Println("Device " + model.MacToString(macAddress) + " tried to send data, but it is not paired with this gateway")
+		out.Logger.Println("Device " + address + " tried to send data, but it is not paired with this gateway")
 		return
 	}
 
-	// if !model.VerifySignature(data, signature, &sensor.PublicKey) {
-	// out.Logger.Println("Invalid signature received from " + model.MacToString(macAddress))
-	// return
-	// }
-
-	batteryLevel := int(int8(data[7]))
-	dataType := DATA_TYPES[data[8]]
-	samplingFrequency := binary.LittleEndian.Uint32(data[9:13])
-	lengthOfData := binary.LittleEndian.Uint32(data[13:17])
-	messageID := *(*[3]byte)(data[17:20])
-	offset := int(binary.LittleEndian.Uint32(data[20:24]))
-
-	// if len(data) > 16 {
-	// measurementData := data[8:]
-	// var i uint32 = 0
-	// for i <= uint32(len(measurementData))-9 {
-	// dataType := DATA_TYPES[measurementData[i]]
-	// samplingFrequency := binary.LittleEndian.Uint32(measurementData[i+1 : i+5])
-	// lengthOfData := binary.LittleEndian.Uint32(measurementData[i+5 : i+9])
-	// if i+9+lengthOfData > uint32(len(measurementData)) || lengthOfData == 0 {
-	// break
-	// }
-	// rawData := measurementData[i+9 : i+9+lengthOfData]
-	// i += 9 + lengthOfData
-
-	rawData := savePacket(data[24:], macAddress, batteryLevel, dataType, samplingFrequency, lengthOfData, messageID, offset)
-	if rawData == nil {
+	// Append data to total data transmission
+	transmitData, ok := savePacket(value, macAddress, dataType)
+	if !ok {
+		// incomplete data, keep waiting for more
 		return
 	}
 
-	timestamp := time.Now().UTC().Format(ISO8601)
-	measurements := []map[string]interface{}{}
-	if batteryLevel != -1 {
-		out.Logger.Println("Received battery data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
-		sensor.BatteryLevel = batteryLevel
-		measurements = []map[string]interface{}{
-			{
-				"sensor_id":          model.MacToString(macAddress),
-				"time":               timestamp,
-				"measurement_type":   "battery",
-				"sampling_frequency": 0,
-				"raw_data":           [1]int{batteryLevel},
-			},
-		}
-	}
-
+	// Done collecting data, serialize to json and attempt immediate transfer after
 	out.Logger.Println("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
+
+	// Pick apart data and place into json structures
+	var measurements []map[string]interface{}
 	if dataType == "vibration" {
-		numberOfMeasurements := len(rawData) / 6 // 3 axes, 2 bytes per axis => 6 bytes per measurement
-		x, y, z := make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements)
-		for i := 0; i < numberOfMeasurements; i++ {
-			x[i] = int16(rawData[i*6]) | int16(rawData[i*6+1])<<8
-			y[i] = int16(rawData[i*6+2]) | int16(rawData[i*6+3])<<8
-			z[i] = int16(rawData[i*6+4]) | int16(rawData[i*6+5])<<8
-		}
-
-		measurements = append(measurements,
-			map[string]interface{}{
-				"sensor_id":          model.MacToString(macAddress),
-				"time":               timestamp,
-				"measurement_type":   dataType,
-				"sampling_frequency": samplingFrequency,
-				"axis":               "x",
-				"raw_data":           x,
-			},
-			map[string]interface{}{
-				"sensor_id":          model.MacToString(macAddress),
-				"time":               timestamp,
-				"measurement_type":   dataType,
-				"sampling_frequency": samplingFrequency,
-				"axis":               "y",
-				"raw_data":           y,
-			},
-			map[string]interface{}{
-				"sensor_id":          model.MacToString(macAddress),
-				"time":               timestamp,
-				"measurement_type":   dataType,
-				"sampling_frequency": samplingFrequency,
-				"axis":               "z",
-				"raw_data":           z,
-			},
-		)
+		measurements = handleVibrationData(transmitData)
 	} else if dataType == "temperature" {
-		// if len(rawData) != 2 {
-		// 	out.Logger.Println("Invalid temperature data received")
-		//	continue
-		//}
-		if len(rawData) == 2 {
-			temperature, err := parseTemperatureData(binary.LittleEndian.Uint16(rawData))
-			if err == nil {
-				measurements = append(measurements,
-					map[string]interface{}{
-						"sensor_id":          model.MacToString(macAddress),
-						"time":               timestamp,
-						"measurement_type":   dataType,
-						"sampling_frequency": samplingFrequency,
-						"raw_data":           temperature,
-					},
-				)
-			} else {
-				out.Logger.Println("Error:", err)
-			}
-		} else {
-			out.Logger.Println("Invalid temperature data received")
-		}
-
-		//if err != nil {
-		//	out.Logger.Println("Error:", err)
-		//	continue
-		//}
-
+		measurements = handleTemperatureData(transmitData)
 	} else if dataType == "audio" {
-		if len(rawData)%3 == 0 {
-			numberOfMeasurements := len(rawData) / 3
-			amplitude := make([]int, numberOfMeasurements)
-			for i := 0; i < numberOfMeasurements; i++ {
-				amplitude[i] = int(rawData[i*3]) | int(rawData[i*3+1])<<8 | int(rawData[i*3+2])<<16
-			}
-
-			measurements = append(measurements,
-				map[string]interface{}{
-					"sensor_id":          model.MacToString(macAddress),
-					"time":               timestamp,
-					"measurement_type":   dataType,
-					"sampling_frequency": samplingFrequency,
-					"raw_data":           amplitude,
-				},
-			)
-		} else {
-			out.Logger.Println("Invalid audio data received")
-		}
+		measurements = handleAudioData(transmitData)
 	}
-
-	// }
-	// }
 
 	jsonData, err := json.Marshal(measurements)
 	if err != nil {
@@ -356,11 +295,12 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		return
 	}
 
+	// Upload to gateway
 	resp, err := sendMeasurements(jsonData, Gateway)
 
 	if err != nil {
 		out.Logger.Println("Error:", err)
-		if err := saveUnsentMeasurements(jsonData, timestamp); err != nil {
+		if err := saveUnsentMeasurements(jsonData, transmitData.timestamp); err != nil {
 			out.Logger.Println("Error:", err)
 		}
 		return
@@ -372,11 +312,102 @@ func handleData(_ bluetooth.Connection, _ int, value []byte) {
 		defer resp.Body.Close()
 		resp.Body.Read(body)
 		out.Logger.Println(string(body))
-		if err := saveUnsentMeasurements(jsonData, timestamp); err != nil {
+		if err := saveUnsentMeasurements(jsonData, transmitData.timestamp); err != nil {
 			out.Logger.Println(err)
 		}
 		return
 	}
 
 	sendUnsentMeasurements()
+}
+
+// Accelerometer json output
+func handleVibrationData(transmitData Transmission) []map[string]interface{} {
+	rawData := transmitData.packets
+	numberOfMeasurements := len(rawData) / 6 // 3 axes, 2 bytes per axis => 6 bytes per measurement
+	x, y, z := make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements)
+	for i := 0; i < numberOfMeasurements; i++ {
+		x[i] = int16(rawData[i*6]) | int16(rawData[i*6+1])<<8
+		y[i] = int16(rawData[i*6+2]) | int16(rawData[i*6+3])<<8
+		z[i] = int16(rawData[i*6+4]) | int16(rawData[i*6+5])<<8
+	}
+
+	measurements := []map[string]interface{}{}
+	measurements = append(measurements,
+		map[string]interface{}{
+			"sensor_id":          model.MacToString(transmitData.macAddress),
+			"time":               transmitData.timestamp,
+			"measurement_type":   transmitData.dataType,
+			"sampling_frequency": transmitData.samplingFrequency,
+			"axis":               "x",
+			"raw_data":           x,
+		},
+		map[string]interface{}{
+			"sensor_id":          model.MacToString(transmitData.macAddress),
+			"time":               transmitData.timestamp,
+			"measurement_type":   transmitData.dataType,
+			"sampling_frequency": transmitData.samplingFrequency,
+			"axis":               "y",
+			"raw_data":           y,
+		},
+		map[string]interface{}{
+			"sensor_id":          model.MacToString(transmitData.macAddress),
+			"time":               transmitData.timestamp,
+			"measurement_type":   transmitData.dataType,
+			"sampling_frequency": transmitData.samplingFrequency,
+			"axis":               "z",
+			"raw_data":           z,
+		},
+	)
+
+	return measurements
+}
+
+func handleTemperatureData(transmitData Transmission) []map[string]interface{} {
+	measurements := []map[string]interface{}{}
+
+	if len(transmitData.packets) == 2 {
+		temperature, err := parseTemperatureData(binary.LittleEndian.Uint16(transmitData.packets))
+		if err == nil {
+			measurements = append(measurements,
+				map[string]interface{}{
+					"sensor_id":          model.MacToString(transmitData.macAddress),
+					"time":               transmitData.timestamp,
+					"measurement_type":   transmitData.dataType,
+					"sampling_frequency": transmitData.samplingFrequency,
+					"raw_data":           temperature,
+				},
+			)
+		} else {
+			out.Logger.Println("Error:", err)
+		}
+	} else {
+		out.Logger.Println("Invalid temperature data received")
+	}
+
+	return measurements
+}
+
+func handleAudioData(transmitData Transmission) []map[string]interface{} {
+	measurements := []map[string]interface{}{}
+	if len(transmitData.packets)%3 == 0 {
+		numberOfMeasurements := len(transmitData.packets) / 3
+		amplitude := make([]int, numberOfMeasurements)
+		for i := 0; i < numberOfMeasurements; i++ {
+			amplitude[i] = int(transmitData.packets[i*3]) | int(transmitData.packets[i*3+1])<<8 | int(transmitData.packets[i*3+2])<<16
+		}
+
+		measurements = append(measurements,
+			map[string]interface{}{
+				"sensor_id":          model.MacToString(transmitData.macAddress),
+				"time":               transmitData.timestamp,
+				"measurement_type":   transmitData.dataType,
+				"sampling_frequency": transmitData.samplingFrequency,
+				"raw_data":           amplitude,
+			},
+		)
+	} else {
+		out.Logger.Println("Invalid audio data received")
+	}
+	return measurements
 }

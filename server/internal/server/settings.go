@@ -8,11 +8,8 @@ import (
 )
 
 // see protocol.md to understand what is going on here
-func sendSettings(value []byte) {
-	if len(value) < 7 {
-		return
-	}
-	mac := [6]byte(value[1:7])
+func getSettingsForSensor(address string) []byte {
+	mac, _ := model.StringToMac(address);
 	var sensor *model.Sensor
 	for i, s := range *Sensors {
 		if s.Mac == mac {
@@ -21,11 +18,12 @@ func sendSettings(value []byte) {
 		}
 	}
 	if sensor == nil {
-		return
+		return []byte{0x00}
 	}
 
+	// Why not make the first byte a one
 	response := []byte{0x01}
-	response = append(response, mac[:]...)
+	//response = append(response, mac[:]...)
 	response = binary.LittleEndian.AppendUint32(response, setNextWakeUp(sensor))
 
 	for dataType, settings := range sensor.Settings {
@@ -48,8 +46,8 @@ func sendSettings(value []byte) {
 			response = append(response, 0x02, active, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
 		}
 	}
-
-	settingsCharacteristic.Write(response)
+	//settingsCharacteristic.Write(response)
+	return response;
 }
 
 func setNextWakeUp(sensor *model.Sensor) uint32 {

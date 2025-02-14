@@ -134,6 +134,7 @@ func pairReceiveCapabilities(MAC [6]byte, data []byte) bool {
 // see protocol.md to understand what is going on here
 // internal functions to manage pair lifecycle
 // TODO make this triggered by BLE agent on device pair
+// FIXME unused
 func pairRequest(value []byte) {
 	if len(value) < 12 || !state.active {
 		return

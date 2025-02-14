@@ -35,6 +35,11 @@ func list() (string, error) {
 	return string(jsonStr), err
 }
 
+func deviceCollect(address string) (error){
+	server.TriggerCollection(address);
+	return nil
+}
+
 func view(mac string) (string, error) {
 	for _, sensor := range *server.Sensors {
 		if sensor.IsMacEqual(mac) {

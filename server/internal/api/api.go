@@ -11,24 +11,6 @@ import (
 	"github.com/jukuly/ss_machmos/server/internal/server"
 )
 
-// Command starts with PAIR
-func handlePairCommand(parts []string) string {
-	if len(parts) == 0 {
-		return "ERR empty command"
-	}
-	switch parts[0] {
-	case "LIST":
-		res, err := pairListPending()
-		if err != nil {
-			out.Logger.Println("Error:", err)
-			return "ERR:PAIR-LIST:"+err.Error()
-		}
-		return "OK:PAIR-LIST:"+res
-	default:
-		return "ERR:unknown pair command "+strings.Join(parts, " ")
-	}
-}
-
 func handleCommand(command string, conn *net.Conn) string {
 	parts := strings.Split(command, " ")
 
@@ -43,6 +25,16 @@ func handleCommand(command string, conn *net.Conn) string {
 			return "ERR:LIST:" + err.Error()
 		}
 		return "OK:LIST:" + res
+	case "COLLECT":
+		if len(parts) < 2 {
+			return "ERR:COLLECT:Not enough arguments, missing mac address"
+		}
+		err := deviceCollect(parts[1])
+		if err != nil {
+			out.Logger.Println("Error: ", err)
+			return "ERR:COLLECT:" + err.Error()
+		}
+		return "OK:COLLECT:"
 	case "VIEW":
 		if len(parts) < 2 {
 			return "ERR:not enough arguments"
@@ -53,8 +45,13 @@ func handleCommand(command string, conn *net.Conn) string {
 			return "ERR:VIEW:" + err.Error()
 		}
 		return "OK:VIEW:" + res
-	case "PAIR":
-		return handlePairCommand(parts[1:])
+	case "PAIR-LIST":
+		res, err := pairListPending()
+		if err != nil {
+			out.Logger.Println("Error:", err)
+			return "ERR:PAIR-LIST:" + err.Error()
+		}
+		return "OK:PAIR-LIST:" + res
 	case "PAIR-ENABLE":
 		// Save this connection as someone interested in pairing info
 		out.PairingConnections[conn] = true
@@ -188,7 +185,8 @@ func handleConnection(conn *net.Conn) {
 // Start listening to unix socket
 // any commands received here would be sent to handleConnection and then handleCommand
 // Commands are zero terminated. Unix sockets are bidirectional
-// but I think using them as reply-only is cleaner
+// https://beej.us/guide/bgipc/html/index-wide.html#unixsock
+// Client-server IPC
 func Start() error {
 	socketPath := "/tmp/ss_machmos.sock"
 	if err := os.RemoveAll(socketPath); err != nil {
@@ -196,6 +194,7 @@ func Start() error {
 		return err
 	}
 
+	// Setup receiver
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
 		out.Logger.Println("Error:", err)
@@ -204,6 +203,7 @@ func Start() error {
 	defer listener.Close()
 
 	for {
+		// Accept returns another socket descriptor
 		conn, err := listener.Accept()
 		if err != nil {
 			out.Logger.Println("Error:", err)
