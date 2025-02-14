@@ -388,6 +388,19 @@ func Stop(conn net.Conn) {
 	}
 }
 
+func Read(conn net.Conn) {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		command, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println(err.Error())
+			break
+		}
+		// Strip the newline
+		sendCommand(command[:len(command)-1], conn)
+	}
+}
+
 func parseResponse(res string) string {
 	parts := strings.Split(res, ":")
 	if len(parts) == 0 || len(parts) == 1 {

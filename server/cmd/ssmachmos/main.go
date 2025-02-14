@@ -130,6 +130,8 @@ func main() {
 		cli.Config(options, args, conn)
 	case "stop":
 		cli.Stop(conn)
+	case "ctl":
+		cli.Read(conn)
 	default:
 		fmt.Printf("Unknown command: %s\n", as[0])
 	}
