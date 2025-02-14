@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:ss_machmos_gui/bluetooth.dart';
 import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/gateway.dart';
@@ -12,7 +13,9 @@ import 'package:ss_machmos_gui/sensors.dart';
 import 'package:ss_machmos_gui/utils.dart';
 
 void main() {
-  runApp(const MainApp());
+  // Global state because why not
+  runApp(ChangeNotifierProvider(
+      create: (context) => Connection(), child: const MainApp()));
 }
 
 class MainApp extends StatelessWidget {
@@ -54,11 +57,100 @@ class MainApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const Root(),
+      home: Consumer<Connection>(builder: (context, connection, child) => AppRoot(connState: connection.state)),
     );
   }
 }
 
+class AppRoot extends StatelessWidget {
+  final ConnState connState;
+  const AppRoot({super.key, required this.connState});
+
+  static final GlobalKey _sensorTypesKey = GlobalKey();
+  static final GlobalKey _wakeUpIntervalKey = GlobalKey();
+  static final GlobalKey _gatewayIdKey = GlobalKey();
+  static final GlobalKey _httpEndpointKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    const List<Tab> tabs = [
+      Tab(text: "Sensors"),
+      Tab(text: "Gateway"),
+      Tab(text: "Logs"),
+      Tab(icon: Icon(Icons.help_outline)),
+    ];
+
+    var conn = context.read<Connection>();
+    Widget body;
+    if (connState != ConnState.connected) {
+      // Placeholder until connection restarts...
+      body = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Center(
+            child: Text("Error: Could not connect to server."),
+          ),
+          const SizedBox(height: 20),
+          // Button to start the gateway server backend
+          TextButton(
+            onPressed: () async {
+              // Start server backend. Once it is up and running, a provider state triggers to redraw tree
+              await conn.startServer();
+              conn.openConnection();
+            },
+            child: const Text("Start Server"),
+          ),
+        ],
+      );
+    } else {
+      body = TabBarView(
+        children: [
+          // Left column displaying sensors available
+          // Right column displaying sensors awaiting pairing
+          Row(
+            children: [
+              Expanded(flex: 3, child: Sensors()),
+              Container(width: 0.5, color: Colors.grey),
+              Expanded(flex: 2, child: Bluetooth()),
+            ],
+          ),
+          GatewayView(),
+          Logs(
+              //logsScrollController: _logsScrollController,
+              //logs: _logs,
+              //connection: _connection
+              ),
+          Help(
+            sensorTypesKey: _sensorTypesKey,
+            wakeUpIntervalKey: _wakeUpIntervalKey,
+            gatewayIdKey: _gatewayIdKey,
+            httpEndpointKey: _httpEndpointKey,
+          ),
+        ],
+      );
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Can't call this in build
+      while (conn.toastQueue.isNotEmpty) {
+        showMessage(conn.toastQueue.removeFirst(), context);
+      }
+    });
+
+    return DefaultTabController(
+      animationDuration: Duration.zero,
+      length: tabs.length,
+      child: Scaffold(
+        appBar: AppBar(
+          bottom: const TabBar(tabs: tabs),
+        ),
+        body: body,
+      ),
+    );
+  }
+}
+
+// TODO delete this
 class Root extends StatefulWidget {
   const Root({
     super.key,
@@ -182,6 +274,7 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
   }
 
   // On pairing enable, attach callbacks from server
+  // TODO move this to [Connection]
   Future<void> onPairingToggle(bool p) async {
     if (p) {
       // Clear state on enable
@@ -327,6 +420,7 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
     if (_connection.state == 0) {
       body = const Center(child: CircularProgressIndicator());
     } else if (_connection.state == 1) {
+      // Button to start server
       body = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -337,14 +431,14 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
           // Button to start the gateway server backend
           TextButton(
             onPressed: () async {
-              await _connection.startServer();
-              for (int i = 0; i < 30; i++) {
-                await openConnection();
-                await Future.delayed(const Duration(seconds: 1));
-                if (_logsConnected) {
-                  break;
-                }
-              }
+              // await _connection.startServer();
+              // for (int i = 0; i < 30; i++) {
+              //   await openConnection();
+              //   await Future.delayed(const Duration(seconds: 1));
+              //   if (_logsConnected) {
+              //     break;
+              //   }
+              // }
             },
             child: const Text("Start Server"),
           ),
@@ -354,19 +448,20 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
       body = TabBarView(
         controller: _tabController,
         children: [
+          // First tab is the sensor display
           Row(
             children: [
               // Left column displaying sensors available
               Expanded(
                   flex: 3,
                   child: Sensors(
-                    sensors: _sensorsPaired,
-                    loadSensors: loadSensors,
-                    connection: _connection,
-                    tabController: _tabController,
-                    typesKey: _sensorTypesKey,
-                    wakeUpIntervalKey: _wakeUpIntervalKey,
-                  )),
+                      // sensors: _sensorsPaired,
+                      // loadSensors: loadSensors,
+                      // connection: _connection,
+                      // tabController: _tabController,
+                      // typesKey: _sensorTypesKey,
+                      // wakeUpIntervalKey: _wakeUpIntervalKey,
+                      )),
               Container(
                 width: 0.5,
                 color: Colors.grey,
@@ -375,34 +470,37 @@ class _RootState extends State<Root> with SingleTickerProviderStateMixin {
               Expanded(
                   flex: 2,
                   child: Bluetooth(
-                    pairingEnabled: _pairingEnabled,
-                    onPairingToggle: onPairingToggle,
-                    sensorsNearby: _sensorsNearby,
-                    pairingWith: _pairingWith,
-                    // On selecting a device, send pair command
-                    onPairingSelected: (mac) async => {
-                      _connection.on("PAIR-ACCEPT", (_, err) {
-                        if (err != null) {
-                          return true;
-                        }
-                        setState(() => _pairingWith = mac);
-                        return true;
-                      }),
-                      await _connection.send("PAIR-ACCEPT $mac"),
-                    },
-                  )),
+                      // pairingEnabled: _pairingEnabled,
+                      //   onPairingToggle: onPairingToggle,
+                      //   sensorsNearby: _sensorsNearby,
+                      //   pairingWith: _pairingWith,
+                      //   // On selecting a device, send pair command
+                      //   onPairingSelected: (mac) async => {
+                      //     // BUG this doesn't get cleared out on select.
+                      //     // Happens when forgetting device then repairing
+                      //     _connection.on("PAIR-ACCEPT", (_, err) {
+                      //       if (err != null) {
+                      //         return true;
+                      //       }
+                      //       setState(() => _pairingWith = mac);
+                      //       return true;
+                      //     }),
+                      //     await _connection.send("PAIR-ACCEPT $mac"),
+                      //   },
+                      )),
             ],
           ),
-          Gateway(
-            connection: _connection,
-            tabController: _tabController,
-            idKey: _gatewayIdKey,
-            httpEndpointKey: _httpEndpointKey,
-          ),
-          Logs(
-              logsScrollController: _logsScrollController,
-              logs: _logs,
-              connection: _connection),
+          // Second tab is gateway information
+          GatewayView(
+              // connection: _connection,
+              // tabController: _tabController,
+              // idKey: _gatewayIdKey,
+              // httpEndpointKey: _httpEndpointKey,
+              ),
+          // Logs(
+          //     logsScrollController: _logsScrollController,
+          //     logs: _logs,
+          //     connection: _connection),
           Help(
             sensorTypesKey: _sensorTypesKey,
             wakeUpIntervalKey: _wakeUpIntervalKey,

@@ -1,33 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:ss_machmos_gui/connection.dart';
 
-class Bluetooth extends StatefulWidget {
-  final bool pairingEnabled;
-  final void Function(bool) onPairingToggle;
-
-  final List<String> sensorsNearby;
-  final String? pairingWith;
-  final void Function(String) onPairingSelected;
-
-  const Bluetooth(
-      {super.key,
-      required this.pairingEnabled,
-      required this.onPairingToggle,
-      required this.sensorsNearby,
-      required this.pairingWith,
-      required this.onPairingSelected});
-
-  @override
-  State<Bluetooth> createState() => _BluetoothState();
-}
-
-class _BluetoothState extends State<Bluetooth> {
-  @override
-  void initState() {
-    super.initState();
-  }
+class Bluetooth extends StatelessWidget {
+  const Bluetooth({super.key});
 
   @override
   Widget build(BuildContext context) {
+    Connection _conn = context.watch<Connection>();
+    bool pairingEnabled = _conn.pairingEnabled;
+    String pairingWith = _conn.pairingWith;
+    List<String> sensorsNearby = _conn.sensorsNearby;
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
       child: Column(
@@ -41,13 +24,13 @@ class _BluetoothState extends State<Bluetooth> {
               const Text("Discover Sensors"),
               const Spacer(),
               Switch(
-                value: widget.pairingEnabled,
-                onChanged: widget.onPairingToggle,
+                value: pairingEnabled,
+                onChanged: (value) => _conn.setPairingState(value),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          if (widget.pairingEnabled)
+          if (pairingEnabled)
             Expanded(
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -55,11 +38,12 @@ class _BluetoothState extends State<Bluetooth> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: ListView.separated(
-                  itemCount: widget.sensorsNearby.length + 1,
+                  itemCount: sensorsNearby.length + 1,
                   separatorBuilder: (_, __) => const Divider(
                       color: Colors.grey, height: 0.5, thickness: 0.5),
                   itemBuilder: (BuildContext context, int index) {
-                    if (index == widget.sensorsNearby.length) {
+                    // Last item is the spinner at the bottom
+                    if (index == sensorsNearby.length) {
                       return const Center(
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 30),
@@ -74,11 +58,10 @@ class _BluetoothState extends State<Bluetooth> {
                       );
                     }
                     return SensorListItem(
-                      mac: widget.sensorsNearby[index],
-                      pairing:
-                          widget.pairingWith == widget.sensorsNearby[index],
-                      onPairing: () =>
-                          widget.onPairingSelected(widget.sensorsNearby[index]),
+                      mac: sensorsNearby[index],
+                      pairing: pairingWith == sensorsNearby[index],
+                      onTap: () =>
+                          _conn.acceptPairing(sensorsNearby[index]),
                     );
                   },
                 ),
@@ -90,30 +73,25 @@ class _BluetoothState extends State<Bluetooth> {
   }
 }
 
-class SensorListItem extends StatefulWidget {
+class SensorListItem extends StatelessWidget {
   final String mac;
   final bool pairing;
-  final void Function() onPairing;
+  final void Function() onTap;
 
   const SensorListItem(
       {super.key,
       required this.mac,
       required this.pairing,
-      required this.onPairing});
+      required this.onTap});
 
-  @override
-  State<SensorListItem> createState() => _SensorListItemState();
-}
-
-class _SensorListItemState extends State<SensorListItem> {
   @override
   Widget build(BuildContext context) {
     return ListTile(
       title: Row(
         children: [
-          Text(widget.mac, style: const TextStyle(fontSize: 14)),
+          Text(mac, style: const TextStyle(fontSize: 14)),
           const Spacer(),
-          if (widget.pairing)
+          if (pairing)
             const SizedBox(
               width: 15,
               height: 15,
@@ -124,7 +102,7 @@ class _SensorListItemState extends State<SensorListItem> {
         ],
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-      onTap: widget.pairing ? null : widget.onPairing,
+      onTap: pairing ? null : onTap,
     );
   }
 }

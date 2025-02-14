@@ -2,32 +2,115 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/sensor_details.dart';
 import 'package:ss_machmos_gui/utils.dart';
 
-class Sensors extends StatefulWidget {
-  final List<Sensor> sensors;
-  final Future<void> Function() loadSensors;
-  final Connection connection;
-  final TabController tabController;
-  final GlobalKey typesKey;
-  final GlobalKey wakeUpIntervalKey;
+class Sensors extends StatelessWidget {
+  //final List<Sensor> sensors;
 
   const Sensors({
     super.key,
-    required this.sensors,
-    required this.loadSensors,
-    required this.connection,
-    required this.tabController,
-    required this.typesKey,
-    required this.wakeUpIntervalKey,
+    //required this.sensors,
+    //required this.loadSensors,
+    //required this.connection,
+    //required this.tabController,
+    //required this.typesKey,
+    //required this.wakeUpIntervalKey,
   });
 
   @override
-  State<Sensors> createState() => _SensorsState();
+  Widget build(BuildContext context) {
+    List<Sensor> sensors = context.watch<Connection>().sensors;
+    if (sensors.isEmpty) {
+      return Column(children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 100.0),
+          child: Text("No sensors currently paired with the Gateway"),
+        )
+      ]);
+    }
+
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: DropdownMenu(
+          hintText: "Select Sensor",
+          initialSelection: context.read<Connection>().displayedSensor,
+          onSelected: (selectedSensor) {
+            // Read provider state
+            context.read<Connection>().displayedSensor =
+                selectedSensor as Sensor;
+          },
+          dropdownMenuEntries: context
+              .read<Connection>()
+              .sensors
+              .map((s) => DropdownMenuEntry(value: s, label: s.name))
+              .toList(),
+        ),
+      ),
+      Container(
+        height: 0.5,
+        color: Colors.grey,
+      ),
+      if (context.read<Connection>().displayedSensor != null)
+        SensorDetails(
+          //sensor: context.read<Connection>().displayedSensor!,
+          // onForget: () {
+          //   setState(() {
+          //     widget.sensors.remove(_selectedSensor);
+          //     _selectedSensor = null;
+          //   });
+          // },
+          // loadSensors: () async {
+          //   await widget.loadSensors();
+          //   widget.connection.on("VIEW", (json, err) {
+          //     if (err != null) {
+          //       showMessage("Failed to load sensors", context);
+          //       return true;
+          //     }
+          //     try {
+          //       dynamic s = jsonDecode(json);
+          //       Map<String, SensorSettings> settings = {};
+          //       for (var k in s["settings"].keys) {
+          //         settings[k] = SensorSettings(
+          //           active: s["settings"][k]["active"],
+          //           samplingFrequency: s["settings"][k]["sampling_frequency"],
+          //           samplingDuration: s["settings"][k]["sampling_duration"],
+          //         );
+          //       }
+          //       setState(() {
+          //         _selectedSensor = Sensor(
+          //           mac: Uint8List.fromList(s["mac"].cast<int>()),
+          //           name: s["name"],
+          //           types: s["types"].cast<String>(),
+          //           collectionCapacity: s["collection_capacity"],
+          //           wakeUpInterval: s["wake_up_interval"],
+          //           wakeUpIntervalMaxOffset: s["wake_up_interval_max_offset"],
+          //           nextWakeUp: DateTime.parse(s["next_wake_up"]),
+          //           batteryLevel: s["battery_level"],
+          //           settings: settings,
+          //         );
+          //       });
+          //       return true;
+          //     } catch (e) {
+          //       showMessage("Failed to load sensors: $e", context);
+          //       return true;
+          //     }
+          //   });
+          //   await widget.connection
+          //       .send("VIEW ${macToString(_selectedSensor!.mac)}");
+          // },
+        )
+    ]);
+  }
+
+  // @override
+  // State<Sensors> createState() => _SensorsState();
 }
 
+/*
 class _SensorsState extends State<Sensors> {
   Sensor? _selectedSensor;
 
@@ -116,14 +199,15 @@ class _SensorsState extends State<Sensors> {
                   .send("VIEW ${macToString(_selectedSensor!.mac)}");
             },
             setState: setState,
-            tabController: widget.tabController,
-            typesKey: widget.typesKey,
-            wakeUpIntervalKey: widget.wakeUpIntervalKey,
+            //tabController: widget.tabController,
+            //typesKey: widget.typesKey,
+            //wakeUpIntervalKey: widget.wakeUpIntervalKey,
           ),
       ],
     );
   }
 }
+*/
 
 class SensorSettings {
   bool active;
@@ -171,7 +255,7 @@ class Sensor {
     return Sensor(
       mac: Uint8List.fromList(s["mac"].cast<int>()),
       name: s["name"],
-      types: s["types"].cast<String>(),
+      types: s["types"] != null ? s["types"].cast<String>() : [], // Can be null sometimes
       collectionCapacity: s["collection_capacity"],
       wakeUpInterval: s["wake_up_interval"],
       wakeUpIntervalMaxOffset: s["wake_up_interval_max_offset"],

@@ -1,34 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/help.dart';
 import 'package:ss_machmos_gui/sensors.dart';
 import 'package:ss_machmos_gui/utils.dart';
 
 class SensorDetails extends StatelessWidget {
-  final Sensor sensor;
-  final Connection connection;
-  final void Function() onForget;
-  final Future<void> Function() loadSensors;
-  final void Function(void Function()) setState;
-  final TabController tabController;
-  final GlobalKey typesKey;
-  final GlobalKey wakeUpIntervalKey;
-
-  const SensorDetails({
-    super.key,
-    required this.sensor,
-    required this.connection,
-    required this.onForget,
-    required this.loadSensors,
-    required this.setState,
-    required this.tabController,
-    required this.typesKey,
-    required this.wakeUpIntervalKey,
-  });
+  const SensorDetails({super.key});
 
   @override
   Widget build(BuildContext context) {
+    Sensor sensor = context.read<Connection>().displayedSensor!;
     List<Widget> settingsWidget = [
+      // Autogenerate controls for each setting
       for (String key in sensor.settings.keys)
         Padding(
           padding: const EdgeInsets.only(left: 20, top: 10),
@@ -50,9 +34,8 @@ class SensorDetails extends StatelessWidget {
                         Checkbox(
                           value: sensor.settings[key]!.active,
                           onChanged: (value) {
-                            setState(() {
-                              sensor.settings[key]!.active = value ?? false;
-                            });
+                            // Store changes in memory, don't commit yet
+                            sensor.settings[key]!.active = value ?? false;
                           },
                         ),
                       ],
@@ -89,6 +72,7 @@ class SensorDetails extends StatelessWidget {
             ],
           ),
         ),
+      // Bottom buttons to save, forget, or reset edits
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Row(
@@ -96,7 +80,8 @@ class SensorDetails extends StatelessWidget {
           children: [
             TextButton(
               onPressed: () {
-                connection.on("FORGET", (_, err) {
+                // Send forget command
+                context.read<Connection>().forgetSensor(sensor, (_, err) {
                   if (err != null) {
                     showMessage(
                         "Failed to forget sensor ${macToString(sensor.mac)}: $err",
@@ -104,11 +89,9 @@ class SensorDetails extends StatelessWidget {
                   } else {
                     showMessage(
                         "Forgot sensor ${macToString(sensor.mac)}", context);
-                    onForget();
                   }
                   return true;
                 });
-                connection.send("FORGET ${macToString(sensor.mac)}");
               },
               child: const Text("Forget"),
             ),
@@ -123,6 +106,7 @@ class SensorDetails extends StatelessWidget {
                         "Reset sensor: ${sensor.name}",
                       ),
                       actions: [
+                        // Cancel reset popup
                         TextButton(
                           onPressed: () {
                             Navigator.of(context).pop();
@@ -130,8 +114,10 @@ class SensorDetails extends StatelessWidget {
                           child: const Text("Cancel"),
                         ),
                         TextButton(
+                          // Commit reset
                           onPressed: () {
-                            connection.on("SET-SENSOR-SETTINGS", (_, err) {
+                            context.read<Connection>().resetSensor(sensor,
+                                (_, err) {
                               if (err != null) {
                                 showMessage(
                                     "Failed to save ${sensor.name} settings",
@@ -139,12 +125,11 @@ class SensorDetails extends StatelessWidget {
                               } else {
                                 showMessage(
                                     "${sensor.name} settings saved", context);
-                                loadSensors();
+                                // FIXME when does this run now?
+                                //loadSensors();
                               }
                               return true;
                             });
-                            connection.send(
-                                "SET-SENSOR-SETTINGS ${macToString(sensor.mac)} auto auto");
                             Navigator.of(context).pop();
                           },
                           child: const Text("Confirm"),
@@ -157,28 +142,18 @@ class SensorDetails extends StatelessWidget {
               child: const Text("Reset"),
             ),
             const SizedBox(width: 10),
+            // Save current settings of this sensor
             TextButton(
               onPressed: () {
-                connection.on("SET-SENSOR-SETTINGS", (_, err) {
+                context.read<Connection>().saveSensor(sensor, (_, err) {
                   if (err != null) {
                     showMessage(
                         "Failed to save ${sensor.name} settings", context);
                   } else {
                     showMessage("${sensor.name} settings saved", context);
-                    loadSensors();
                   }
                   return true;
                 });
-                connection.send("SET-SENSOR-SETTINGS ${macToString(sensor.mac)}"
-                    " name ${sensor.name.replaceAll(" ", "_")}"
-                    " wake_up_interval ${sensor.wakeUpInterval}"
-                    " wake_up_interval_max_offset ${sensor.wakeUpIntervalMaxOffset}"
-                    " ${sensor.settings.keys.map((k) {
-                  var s = sensor.settings[k]!;
-                  return "${k}_active ${s.active}"
-                      " ${k}_sampling_frequency ${s.samplingFrequency}"
-                      " ${k}_sampling_duration ${s.samplingDuration}";
-                }).join(" ")}");
               },
               child: const Text("Save"),
             ),
@@ -194,6 +169,7 @@ class SensorDetails extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              TextButton(child: Text("Collect now"), onPressed: () => context.read<Connection>().collectFromSensor(sensor)),
               SensorDetailField(
                 name: "Name",
                 value: sensor.name,
@@ -210,8 +186,8 @@ class SensorDetails extends StatelessWidget {
                 name: "Types",
                 value: sensor.types.join(", "),
                 readOnly: true,
-                tabController: tabController,
-                page: typesKey,
+                // tabController: tabController,
+                // page: typesKey,
               ),
               SensorDetailField(
                 name: "Battery Level",
@@ -240,8 +216,8 @@ class SensorDetails extends StatelessWidget {
                   } catch (_) {}
                 },
                 units: "seconds",
-                tabController: tabController,
-                page: wakeUpIntervalKey,
+                // tabController: tabController,
+                // page: wakeUpIntervalKey,
               ),
               SensorDetailField(
                 name: "Next Wake-Up",

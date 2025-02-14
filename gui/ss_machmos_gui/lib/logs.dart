@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:ss_machmos_gui/connection.dart';
 
 class Logs extends StatelessWidget {
   const Logs({
     super.key,
-    required ScrollController logsScrollController,
-    required String logs,
-    required Connection connection,
-  })  : _logsScrollController = logsScrollController,
-        _logs = logs,
-        _connection = connection;
-
-  final ScrollController _logsScrollController;
-  final String _logs;
-  final Connection _connection;
+    // required ScrollController logsScrollController,
+    // required String logs,
+    // required Connection connection,
+  });
+  static final ScrollController _logsScrollController = ScrollController();
+  // final String _logs;
+  // final Connection _connection;
 
   @override
   Widget build(BuildContext context) {
+    String logs = context.watch<Connection>().logs;
     return Stack(
       children: [
         Container(
@@ -31,9 +30,7 @@ class Logs extends StatelessWidget {
             controller: _logsScrollController,
             child: Row(
               children: [
-                SelectableText(
-                  _logs,
-                ),
+                SelectableText(logs),
               ],
             ),
           ),
@@ -62,7 +59,8 @@ class Logs extends StatelessWidget {
                       ),
                       TextButton(
                         onPressed: () {
-                          _connection.send("STOP");
+                          context.read<Connection>().stopServer();
+                          //_connection.send("STOP");
                           Navigator.of(context).pop();
                         },
                         child: const Text("Confirm"),
