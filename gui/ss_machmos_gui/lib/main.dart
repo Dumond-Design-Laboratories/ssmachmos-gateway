@@ -57,16 +57,13 @@ class MainApp extends StatelessWidget {
           ),
         ),
       ),
-      home: Consumer<Connection>(
-          builder: (context, connection, child) =>
-              AppRoot(connState: connection.state)),
+      home: AppRoot(),
     );
   }
 }
 
 class AppRoot extends StatelessWidget {
-  final ConnState connState;
-  const AppRoot({super.key, required this.connState});
+  const AppRoot({super.key});
 
   static final GlobalKey _sensorTypesKey = GlobalKey();
   static final GlobalKey _wakeUpIntervalKey = GlobalKey();
@@ -82,9 +79,9 @@ class AppRoot extends StatelessWidget {
       Tab(icon: Icon(Icons.help_outline)),
     ];
 
-    var conn = context.read<Connection>();
+    var conn = context.watch<Connection>();
     Widget body;
-    if (connState != ConnState.connected) {
+    if (conn.state != ConnState.connected) {
       // Placeholder until connection restarts...
       body = Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -117,11 +114,7 @@ class AppRoot extends StatelessWidget {
             ],
           ),
           GatewayView(),
-          Logs(
-              //logsScrollController: _logsScrollController,
-              //logs: _logs,
-              //connection: _connection
-              ),
+          Logs(),
           Help(
             sensorTypesKey: _sensorTypesKey,
             wakeUpIntervalKey: _wakeUpIntervalKey,
