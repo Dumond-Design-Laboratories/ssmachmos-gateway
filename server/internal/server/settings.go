@@ -5,11 +5,13 @@ import (
 	"time"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
+	"github.com/jukuly/ss_machmos/server/internal/out"
 )
 
 // see protocol.md to understand what is going on here
+/* 0x01 | mac address | Sleep until | repeat {dataTypeByte | active | Sampling Frequency | SamplingDuration}  */
 func getSettingsForSensor(address string) []byte {
-	mac, _ := model.StringToMac(address);
+	mac, _ := model.StringToMac(address)
 	var sensor *model.Sensor
 	for i, s := range *Sensors {
 		if s.Mac == mac {
@@ -18,12 +20,13 @@ func getSettingsForSensor(address string) []byte {
 		}
 	}
 	if sensor == nil {
+		out.Logger.Println("Device", address, "not found in settings, reject")
 		return []byte{0x00}
 	}
 
 	// Why not make the first byte a one
 	response := []byte{0x01}
-	//response = append(response, mac[:]...)
+	response = append(response, mac[:]...)
 	response = binary.LittleEndian.AppendUint32(response, setNextWakeUp(sensor))
 
 	for dataType, settings := range sensor.Settings {
@@ -35,19 +38,24 @@ func getSettingsForSensor(address string) []byte {
 		}
 		switch dataType {
 		case "vibration":
+			// 1 + 1 + 4 + 2 = 8
 			response = append(response, 0x00, active)
 			response = binary.LittleEndian.AppendUint32(response, settings.SamplingFrequency)
 			response = binary.LittleEndian.AppendUint16(response, settings.SamplingDuration)
 		case "audio":
+			// 1 + 1 + 4 + 2 = 8
 			response = append(response, 0x01, active)
 			response = binary.LittleEndian.AppendUint32(response, settings.SamplingFrequency)
 			response = binary.LittleEndian.AppendUint16(response, settings.SamplingDuration)
 		case "temperature":
+			// 							1	  2       3		4	  5	    6	  7     8
 			response = append(response, 0x02, active, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+		default:
+			out.Logger.Println("Unknown data type", dataType)
 		}
 	}
-	//settingsCharacteristic.Write(response)
-	return response;
+
+	return response
 }
 
 func setNextWakeUp(sensor *model.Sensor) uint32 {

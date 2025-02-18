@@ -68,7 +68,6 @@ func pairDeviceConnected(MAC [6]byte) bool {
 
 	out.Logger.Println("Connected device address " + model.MacToString(MAC))
 
-
 	// Send out request to GUI
 	out.PairingLog("REQUEST-NEW:" + model.MacToString(MAC))
 
@@ -100,6 +99,7 @@ func pairReceiveCapabilities(MAC [6]byte, data []byte) bool {
 			announcedSensors: false, // Depends on sensor giving out details
 		}
 		req = state.requested[MAC]
+		out.Logger.Println("New device", model.MacToString(MAC), "requests pairing")
 	}
 
 	if len(data) != 5 {
@@ -128,6 +128,7 @@ func pairReceiveCapabilities(MAC [6]byte, data []byte) bool {
 	req.announcedSensors = true
 	state.requested[MAC] = req
 
+	out.Logger.Println("Identified sensor", model.MacToString(MAC), ", waiting for pair confirmation")
 	return true
 }
 
@@ -175,7 +176,8 @@ func pairRequest(value []byte) {
 }
 
 // see protocol.md to understand what is going on here
-// Triggered by sensor to indicate pair done. Remove
+// Triggered by sensor to indicate pair done. Remove from pending list
+// and notify sensor to collect gateway data
 func pairConfirmation(mac [6]byte) {
 	if _, exists := state.requested[mac]; !exists {
 		out.Logger.Println("ERR:Device does not exist")

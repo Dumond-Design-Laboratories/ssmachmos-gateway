@@ -135,10 +135,9 @@ class Connection with ChangeNotifier {
       return false;
     });
     // New pairing request, called on connect for new devices
+    // TODO rename this to PAIR-NEW
     on("REQUEST-NEW", (mac, _) {
-      log("REQUEST-NEW Called");
-      sensorsNearby.add(mac);
-      notifyListeners();
+      send("PAIR-LIST");
       return false;
     });
     on("PAIR-LIST", (devices, _) {
@@ -151,7 +150,7 @@ class Connection with ChangeNotifier {
     });
     // BLE agent finished pairing
     on("PAIR-SUCCESS", (mac, _) {
-      sensorsNearby.remove(mac);
+      send("PAIR-LIST");
       if (pairingWith == mac) {
         pairingWith = "";
       }

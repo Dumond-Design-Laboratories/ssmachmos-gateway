@@ -47,10 +47,14 @@ var settingsCharacteristic bluetooth.Characteristic
 var configWakeAtChar bluetooth.Characteristic
 var configStartSampleChar bluetooth.Characteristic
 
+// Gateway config
 var Gateway *model.Gateway
 
 // List of known sensors, displayed by GUI
 var Sensors *[]model.Sensor
+
+// List of devices flagged for collection
+var flaggedForCollect []string
 
 func Init(ss *[]model.Sensor, g *model.Gateway) error {
 	Gateway = g
@@ -130,16 +134,26 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				// ReadEvent to return device-appropriate settings
 				// Also how...
 				ReadEvent: func(client bluetooth.Connection, address string, offset int) []byte {
-					// FIXME sendSettings(address)
+					out.Logger.Println("Device", address, "requested settings")
 					return getSettingsForSensor(address)
 				},
 			},
 			{
+				// Signals to devices if they should start sampling immediately
+				// works if device is awake and connected, mostly for debugging transmission speed
 				Handle: &configStartSampleChar,
 				UUID:   CONFIG_START_SAMPLING_CHRC_UUID,
 				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicNotifyPermission,
 				ReadEvent: func(client bluetooth.Connection, address string, offset int) []byte {
-					return []byte{0x3}
+					for i, dev := range flaggedForCollect {
+						if dev == address {
+							// Remove flag
+							flaggedForCollect[i] = flaggedForCollect[len(flaggedForCollect)-1]
+							flaggedForCollect = flaggedForCollect[:len(flaggedForCollect)-1]
+							return []byte{0x1}
+						}
+					}
+					return []byte{0x0}
 				},
 			},
 			{
@@ -166,16 +180,14 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 	 */
 	adapter.SetConnectHandler(func(device bluetooth.Device, connected bool) {
 		if connected {
+			// NOTE upstream go bluetooth MAC address arrays are reversed
+			// This here works if using the patched branch
 			// On connect add to list of devices pending pairing
 			pairDeviceConnected(device.Address.MAC)
-			out.Logger.Println(device.Address.MAC)
-			// NOTE gobluetooth device mac address here is reversed
-			// god is this library stupid
-			//out.Logger.Println("Bluetooth connection with device", device.Address.MAC.String())
-			out.Logger.Println("Bluetooth connection with device", model.MacToString(device.Address.MAC))
+			out.Logger.Println("Bluetooth connection with device", device.Address.MAC.String())
 		} else {
 			pairDeviceDisconnected(device.Address.MAC)
-			out.Logger.Println("Bluetooth disconnected", model.MacToString(device.Address.MAC))
+			out.Logger.Println("Bluetooth disconnected", device.Address.MAC.String())
 		}
 	})
 
@@ -234,9 +246,10 @@ func TriggerCollection(address string) {
 		// Write mac address reversed
 		output[i] = mac[len(mac)-i-1]
 	}
-	output[6] = 0x0 // Command byte (whatever that is)
-	output[7] = 0x0 // Targets sensor (lmao)
+	output[6] = 0x0 // Command byte
+	output[7] = 0x0 // Targets sensor
 
+	// Notify
 	configStartSampleChar.Write(output)
 }
 
@@ -265,6 +278,7 @@ func handleData(dataType string, _ bluetooth.Connection, address string, mtu int
 	// Ensure sensor is permitted to send data
 	// TODO only devices that pair with gateway are allowed to access this chrc anyways
 	if sensor == nil {
+		// BUG the MAC address received here is reversed somehow...
 		out.Logger.Println("Device " + address + " tried to send data, but it is not paired with this gateway")
 		return
 	}
