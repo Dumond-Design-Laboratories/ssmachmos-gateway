@@ -86,12 +86,19 @@ class Connection with ChangeNotifier {
   Future<void> openConnection() async {
     _state = ConnState.inprogress;
     String socketPath = "/tmp/ss_machmos.sock";
-    try {
-      // FIXME server doesn't immediately start socket.
-      // And this is unreliable
-      sleep(Duration(seconds: 8));
-      _socket = await Socket.connect(
-          InternetAddress(socketPath, type: InternetAddressType.unix), 0);
+
+    // Try 5 times
+    for (var i = 0; i < 5; i++) {
+      try {
+        _socket = await Socket.connect(
+            InternetAddress(socketPath, type: InternetAddressType.unix), 0,
+            timeout: Duration(seconds: 8));
+      } catch (e) {
+        // If socket error, wait a second
+        await Future.delayed(Duration(seconds: 1));
+        continue;
+      }
+      // No error, setup state and exit
       _state = ConnState.connected;
       listen();
       log("Server connected");
@@ -99,13 +106,14 @@ class Connection with ChangeNotifier {
       loadGateway();
       loadSensors();
       notifyListeners();
-    } catch (e) {
-      _state = ConnState.failed;
-      log("Failed to connect to server $e");
-      notifyListeners();
-      if (onError != null) {
-        onError!();
-      }
+      return;
+    }
+    // Tried 5 times but no connection created
+    _state = ConnState.failed;
+    log("Failed to connect to server");
+    notifyListeners();
+    if (onError != null) {
+      onError!();
     }
   }
 
@@ -310,7 +318,8 @@ class Connection with ChangeNotifier {
         // Deserialize data into a list of sensors
         // Map all objects in map to a Sensor object
         List<dynamic> decode = jsonDecode(json);
-        List<Sensor> decodedSensors = decode.map<Sensor>((dynamic s) => Sensor.fromJson(s)).toList();
+        List<Sensor> decodedSensors =
+            decode.map<Sensor>((dynamic s) => Sensor.fromJson(s)).toList();
         sensors.clear();
         sensors.addAll(decodedSensors);
       } catch (e) {
