@@ -67,6 +67,8 @@ class Sensor {
   int wakeUpInterval;
   int wakeUpIntervalMaxOffset;
   DateTime nextWakeUp;
+  bool deviceActive; // Should the sensor start sampling or stay idle
+  DateTime lastSeen;
   Map<String, SensorSettings> settings;
 
   Sensor(
@@ -78,6 +80,8 @@ class Sensor {
       required this.settings,
       required this.wakeUpInterval,
       required this.wakeUpIntervalMaxOffset,
+      required this.deviceActive,
+      required this.lastSeen,
       required this.nextWakeUp});
 
   factory Sensor.fromJson(Map<String, dynamic> s) {
@@ -100,8 +104,26 @@ class Sensor {
       wakeUpIntervalMaxOffset: s["wake_up_interval_max_offset"],
       nextWakeUp: DateTime.parse(s["next_wake_up"]),
       batteryLevel: s["battery_level"],
+      deviceActive: s["device_active"] as bool,
+      lastSeen: DateTime.parse(s["last_seen"]),
       settings: settings,
     );
+  }
+
+  String get sensorSettingsCommand {
+    var subSettings = settings.entries
+        .map<String>((e) => "${e.key}_active ${e.value.active}"
+            " ${e.key}_sampling_frequency ${e.value.samplingFrequency}"
+            " ${e.key}_sampling_duration ${e.value.samplingDuration}")
+        .join(" ");
+
+    // Convert name spaces to underscores
+    return "${macToString(mac)}"
+        " name ${name.replaceAll(' ', '_')}"
+        " device_active $deviceActive"
+        " wake_up_interval $wakeUpInterval"
+        " wake_up_interval_max_offset $wakeUpIntervalMaxOffset"
+        " $subSettings";
   }
 }
 

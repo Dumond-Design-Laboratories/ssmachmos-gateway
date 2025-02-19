@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/binary"
+	"time"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
 	"github.com/jukuly/ss_machmos/server/internal/out"
@@ -60,8 +61,10 @@ func pairDeviceConnected(MAC [6]byte) bool {
 	for i := range *Sensors {
 		// If device is already written down
 		if (*Sensors)[i].Mac == MAC {
-			// Fun fact the GUI reads the pairing logs for info. this is awful tbh...
 			out.Logger.Println("pairConnectedDevice " + model.MacToString(MAC) + " already exists.")
+			(*Sensors)[i].LastSeen = time.Now();
+			// Log that device already exists
+			out.PairingLog("SENSOR-CONNECTED:"+model.MacToString(MAC))
 			return false
 		}
 	}

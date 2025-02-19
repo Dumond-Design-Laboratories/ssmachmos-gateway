@@ -440,6 +440,8 @@ func parseResponse(res string) string {
 				return "Error: " + err.Error()
 			}
 			return "Gateway ID: " + gateway.Id + "\nHTTP Endpoint: " + gateway.HTTPEndpoint
+		default:
+			return res // return entire thing if incomprehensible
 		}
 	} else if parts[0] == "ERR" {
 		if len(parts) < 3 {

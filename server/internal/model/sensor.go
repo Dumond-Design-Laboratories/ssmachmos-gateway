@@ -28,12 +28,14 @@ type settings struct {
 type Sensor struct {
 	Mac                     [6]byte             `json:"mac"`
 	Name                    string              `json:"name"`
+	LastSeen                time.Time           `json:"last_seen"` // For local purposes only
 	Types                   []string            `json:"types"`
 	BatteryLevel            int                 `json:"battery_level"`
 	CollectionCapacity      uint32              `json:"collection_capacity"`
 	WakeUpInterval          int                 `json:"wake_up_interval"`
 	WakeUpIntervalMaxOffset int                 `json:"wake_up_interval_max_offset"`
 	NextWakeUp              time.Time           `json:"next_wake_up"`
+	DeviceActive			bool 				`json:"device_active"`
 	Settings                map[string]settings `json:"settings"`
 	// PublicKey               rsa.PublicKey       `json:"key"`
 }
@@ -57,6 +59,7 @@ func (s *Sensor) ToString() string {
 	str += "Collection Capacity: " + strconv.Itoa(int(s.CollectionCapacity)) + " bytes\n"
 	str += "Wake Up Interval: " + strconv.Itoa(s.WakeUpInterval) + " +- " + strconv.Itoa(s.WakeUpIntervalMaxOffset) + " seconds\n"
 	str += "Next Wake Up: " + s.NextWakeUp.Local().Format(time.RFC3339) + "\n"
+	str += "\t\tDevice is Active: " + strconv.FormatBool(s.DeviceActive)
 	str += "Settings:\n"
 	for setting, value := range s.Settings {
 		str += "\t" + setting + ":\n"
@@ -139,6 +142,7 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32 /*,
 		WakeUpInterval:          3600,
 		WakeUpIntervalMaxOffset: 300,
 		NextWakeUp:              time.Now().Add(3600 * time.Second),
+		DeviceActive: 			 false,
 		Settings:                map[string]settings{},
 		// PublicKey:               *publicKey,
 	}
@@ -201,6 +205,15 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 
 	if setting == "name" {
 		sensor.Name = value
+		return saveSensors(SENSORS_FILE, sensors)
+	}
+
+	if setting == "device_active" {
+		deviceActive, err := strconv.ParseBool(value)
+		if err != nil {
+			return errors.New("invalid boolean for device_active " + value)
+		}
+		sensor.DeviceActive = deviceActive
 		return saveSensors(SENSORS_FILE, sensors)
 	}
 

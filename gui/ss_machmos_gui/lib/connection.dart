@@ -354,22 +354,18 @@ class Connection with ChangeNotifier {
   }
 
   void saveSensor(Sensor sensor, ConnectionCallback callback) {
-    on("SET-SENSOR-SETTINGS", callback);
-    // FIXME what is this
-    send("SET-SENSOR-SETTINGS ${macToString(sensor.mac)}"
-        " name ${sensor.name.replaceAll(" ", "_")}"
-        " wake_up_interval ${sensor.wakeUpInterval}"
-        " wake_up_interval_max_offset ${sensor.wakeUpIntervalMaxOffset}"
-        " ${sensor.settings.keys.map((k) {
-      var s = sensor.settings[k]!;
-      return "${k}_active ${s.active}"
-          " ${k}_sampling_frequency ${s.samplingFrequency}"
-          " ${k}_sampling_duration ${s.samplingDuration}";
-    }).join(" ")}");
+    on("SET-SENSOR-SETTINGS", (a, b) {
+        loadSensors();
+        return callback(a,b);
+      });
+    send("SET-SENSOR-SETTINGS ${sensor.sensorSettingsCommand}");
   }
 
   void resetSensor(Sensor sensor, ConnectionCallback callback) {
-    on("SET-SENSOR-SETTINGS", callback);
+    on("SET-SENSOR-SETTINGS", (a,b) {
+        loadSensors();
+        return callback(a,b);
+    });
     send("SET-SENSOR-SETTINGS ${macToString(sensor.mac)} auto auto");
   }
 

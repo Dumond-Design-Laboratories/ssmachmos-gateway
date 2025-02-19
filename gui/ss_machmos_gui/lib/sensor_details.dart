@@ -169,7 +169,10 @@ class SensorDetails extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextButton(child: Text("Collect now"), onPressed: () => context.read<Connection>().collectFromSensor(sensor)),
+              TextButton(
+                  child: Text("Collect now"),
+                  onPressed: () =>
+                      context.read<Connection>().collectFromSensor(sensor)),
               SensorDetailField(
                 name: "Name",
                 value: sensor.name,
@@ -182,6 +185,8 @@ class SensorDetails extends StatelessWidget {
                 value: macToString(sensor.mac),
                 readOnly: true,
               ),
+              SensorDetailCheckbox(name: "Device active",
+                value: sensor.deviceActive, onChanged: (value) => sensor.deviceActive = value ?? sensor.deviceActive),
               SensorDetailField(
                 name: "Types",
                 value: sensor.types.join(", "),
@@ -237,6 +242,36 @@ class SensorDetails extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class SensorDetailCheckbox extends StatefulWidget {
+  final String name;
+  bool value;
+  final void Function(bool?) onChanged;
+  final bool readOnly;
+
+  SensorDetailCheckbox({super.key, required this.name, this.value = false, required this.onChanged, this.readOnly = false});
+
+  @override
+  State<StatefulWidget> createState() => _SensorDetailCheckboxState();
+
+}
+
+class _SensorDetailCheckboxState extends State<SensorDetailCheckbox> {
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    return Row(children: [
+                const SizedBox(width: 30),
+                Text(widget.name,
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(width: 10),
+                Checkbox(value: widget.value, onChanged: (value) {
+                    setState((){widget.value = value!; });
+                    widget.onChanged(value);
+                }),
+              ]);
   }
 }
 

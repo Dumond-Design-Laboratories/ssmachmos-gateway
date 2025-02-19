@@ -117,18 +117,18 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				// Keep this, use for devices to manage settings
 				Handle: &settingsCharacteristic,
 				UUID:   CONFIG_IDENTIFY_CHRC_UUID,
-				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission,
+				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicNotifyPermission,
 				// WriteEvent to collect device information
 				WriteEvent: func(connection bluetooth.Connection, address string, offset int, value []byte) {
 					mac, err := bluetooth.ParseMAC(address)
 					if err != nil {
-						out.Logger.Println("Failed to parse MAC", address)
+						out.Logger.Println("SettingsCharacteristic: Failed to parse MAC", address)
 						return
 					}
 					if len(value) > 0 {
 						pairReceiveCapabilities(mac, value)
 					} else {
-						out.Logger.Println("Received zero value write. how.")
+						out.Logger.Println("Settings characteristic: Received zero value from device", address, " how.")
 					}
 				},
 				// ReadEvent to return device-appropriate settings
@@ -154,14 +154,6 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 						}
 					}
 					return []byte{0x0}
-				},
-			},
-			{
-				Handle: &configWakeAtChar,
-				UUID:   CONFIG_WAKE_AT_CHRC_UUID,
-				Flags:  bluetooth.CharacteristicReadPermission | bluetooth.CharacteristicNotifyPermission,
-				ReadEvent: func(client bluetooth.Connection, address string, offset int) []byte {
-					return []byte{0x3}
 				},
 			},
 		},
@@ -235,6 +227,14 @@ func StopAdvertising() {
 	adapter.DefaultAdvertisement().Stop()
 	out.Logger.Println("Stopping server")
 	os.Exit(0)
+}
+
+// Notify all connected devices to read configuration again
+func TriggerSettingCollection() {
+	out.Logger.Println("Notifying all connected devices of new configs");
+	// NOTE: this triggers our own ReadEvent callback
+	// because this library has no way to direct notify...
+	settingsCharacteristic.Write([]byte{0x0});
 }
 
 func TriggerCollection(address string) {

@@ -25,7 +25,12 @@ func getSettingsForSensor(address string) []byte {
 	}
 
 	// Why not make the first byte a one
-	response := []byte{0x01}
+	response := []byte{}
+	if sensor.DeviceActive {
+		response = append(response, 0x01)
+	} else {
+		response = append(response, 0x00)
+	}
 	response = append(response, mac[:]...)
 	response = binary.LittleEndian.AppendUint32(response, setNextWakeUp(sensor))
 

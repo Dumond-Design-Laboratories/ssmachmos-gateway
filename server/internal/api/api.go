@@ -135,14 +135,18 @@ func handleCommand(command string, conn *net.Conn) string {
 			out.Logger.Println("Error:", err)
 			return "ERR:SET-SENSOR-SETTING:" + err.Error()
 		}
+		// Parts is split by spaces
+		// For each part we call UpdateSensorSetting
 		nbrOfSettings := (len(parts) - 2) / 2
 		for i := 0; i < nbrOfSettings; i++ {
+			// FIXME: Replace this with JSON instead
 			err = model.UpdateSensorSetting(mac, parts[2+i*2], parts[3+i*2], server.Sensors)
 			if err != nil {
 				out.Logger.Println("Error:", err)
 				return "ERR:SET-SENSOR-SETTINGS:" + err.Error()
 			}
 		}
+		server.TriggerSettingCollection();
 		return "OK:SET-SENSOR-SETTINGS:"
 	case "ADD-LOGGER":
 		out.LoggingConnections[conn] = true
