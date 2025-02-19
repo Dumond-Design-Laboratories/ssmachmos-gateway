@@ -6,16 +6,14 @@ class Logs extends StatelessWidget {
   const Logs({
     super.key,
     // required ScrollController logsScrollController,
-    // required String logs,
-    // required Connection connection,
+    required this.logs,
   });
+  final List<String> logs;
   static final ScrollController _logsScrollController = ScrollController();
-  // final String _logs;
-  // final Connection _connection;
 
   @override
   Widget build(BuildContext context) {
-    String logs = context.watch<Connection>().logs;
+    //String logs = context.watch<Connection>().logs;
     return Stack(
       children: [
         Container(
@@ -30,7 +28,7 @@ class Logs extends StatelessWidget {
             controller: _logsScrollController,
             child: Row(
               children: [
-                SelectableText(logs),
+                SelectableText(logs.join("")),
               ],
             ),
           ),

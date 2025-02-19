@@ -80,50 +80,47 @@ class AppRoot extends StatelessWidget {
     ];
 
     var conn = context.watch<Connection>();
-    Widget body;
-    if (conn.state != ConnState.connected) {
-      // Placeholder until connection restarts...
-      body = Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Center(
-            child: Text("Error: Could not connect to server."),
-          ),
-          const SizedBox(height: 20),
-          // Button to start the gateway server backend
-          TextButton(
-            onPressed: () async {
-              // Start server backend. Once it is up and running, a provider state triggers to redraw tree
-              await conn.startServer();
-              conn.openConnection();
-            },
-            child: const Text("Start Server"),
-          ),
-        ],
-      );
-    } else {
-      body = TabBarView(
-        children: [
-          // Left column displaying sensors available
-          // Right column displaying sensors awaiting pairing
-          Row(
-            children: [
+    var enableServerButton = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Center(child: Text("Error: Could not connect to server.")),
+        const SizedBox(height: 20),
+        // Button to start the gateway server backend
+        TextButton(
+          onPressed: () {
+            // Start server backend. Once it is up and running, a provider state triggers to redraw tree
+            conn.startServer();
+            conn.openConnection();
+          },
+          child: const Text("Start Server"),
+        ),
+      ],
+    );
+
+    Widget body = TabBarView(children: [
+      // Left column displaying sensors available
+      // Right column displaying sensors awaiting pairing
+      conn.state != ConnState.connected
+          ? enableServerButton
+          : Row(children: [
               Expanded(flex: 3, child: Sensors()),
               Container(width: 0.5, color: Colors.grey),
               Expanded(flex: 2, child: Bluetooth()),
-            ],
-          ),
-          GatewayView(),
-          Logs(),
-          Help(
-            sensorTypesKey: _sensorTypesKey,
-            wakeUpIntervalKey: _wakeUpIntervalKey,
-            gatewayIdKey: _gatewayIdKey,
-            httpEndpointKey: _httpEndpointKey,
-          ),
-        ],
-      );
-    }
+            ]),
+      conn.state != ConnState.connected ? enableServerButton : GatewayView(),
+      Selector<Connection, List<String>>(
+        selector: (_, conn) => conn.logs,
+        builder: (_, logs, __) => Logs(logs: logs),
+      ),
+      conn.state != ConnState.connected
+          ? enableServerButton
+          : Help(
+              sensorTypesKey: _sensorTypesKey,
+              wakeUpIntervalKey: _wakeUpIntervalKey,
+              gatewayIdKey: _gatewayIdKey,
+              httpEndpointKey: _httpEndpointKey,
+            ),
+    ]);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Can't call this in build

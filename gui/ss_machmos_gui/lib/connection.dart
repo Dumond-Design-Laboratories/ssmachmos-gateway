@@ -65,7 +65,7 @@ class Connection with ChangeNotifier {
 
   void Function(String message)? onLog;
   void Function()? onError;
-  String logs = "";
+  List<String> logs = [];
 
   Connection() {
     _state = ConnState.disabled;
@@ -73,10 +73,21 @@ class Connection with ChangeNotifier {
   }
 
   Future<void> startServer() async {
-    await Process.start(
+    var proc = await Process.start(
       kDebugMode ? "${Directory.current.path}/ssmachmos" : "ssmachmos",
-      ["serve", "--no-console"],
+      // This used to have --no-console. Is that necessary anymore?
+      ["serve"],
     );
+
+    // Append stdout to logs list
+    proc.stdout.transform(utf8.decoder).listen((l) {
+        logs.add(l);
+        notifyListeners();
+    });
+    proc.stderr.transform(utf8.decoder).listen((l) {
+        logs.add(l);
+        notifyListeners();
+    });
   }
 
   void stopServer() {
