@@ -26,7 +26,7 @@ type Transmission struct {
 
 // https://go.dev/doc/faq#atomic_maps
 // :^)
-var transmissions map[[6]byte]Transmission
+var transmissions map[[6]byte]Transmission = make(map[[6]byte]Transmission)
 
 // Collect all packets into a single array after finishing transmit and return
 // func (t *Transmission) AssemblePackets() []byte {
