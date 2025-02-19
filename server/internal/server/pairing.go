@@ -131,6 +131,8 @@ func pairReceiveCapabilities(MAC [6]byte, data []byte) bool {
 	req.announcedSensors = true
 	state.requested[MAC] = req
 
+	// Announce new sensor pending pairing
+	out.PairingLog("REQUEST-NEW:" + model.MacToString(MAC))
 	out.Logger.Println("Identified sensor", model.MacToString(MAC), ", waiting for pair confirmation")
 	return true
 }
