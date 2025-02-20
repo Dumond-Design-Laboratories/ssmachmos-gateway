@@ -40,8 +40,6 @@ var DATA_TYPES = map[byte]string{
 	0x04: "flux",
 }
 
-const UNSENT_DATA_PATH = "unsent_data/"
-
 var pairResponseCharacteristic bluetooth.Characteristic
 var settingsCharacteristic bluetooth.Characteristic
 var configWakeAtChar bluetooth.Characteristic
@@ -258,13 +256,10 @@ func TriggerCollection(address string) {
  * Each sensor data type would have a dedicated characteristic
  */
 func handleData(dataType string, _ bluetooth.Connection, address string, mtu int, value []byte) {
-	// if len(value) < 264 {
 	if len(value) == 0 {
 		out.Logger.Println("Zero byte array received from " + address + " handling data for " + dataType)
 		return
 	}
-	//data := value // [:len(value)-256]
-	// signature := value[len(value)-256:]
 
 	// Find sensor that is sending data
 	macAddress, _ := model.StringToMac(address)
@@ -291,7 +286,8 @@ func handleData(dataType string, _ bluetooth.Connection, address string, mtu int
 	}
 
 	// Done collecting data, serialize to json and attempt immediate transfer after
-	out.Logger.Println("Received " + dataType + " data from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
+	// BUG this is always vibration datatype.
+	out.Logger.Println("Received " + dataType + " data transmission from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 
 	// Pick apart data and place into json structures
 	var measurements []map[string]interface{}
@@ -301,6 +297,9 @@ func handleData(dataType string, _ bluetooth.Connection, address string, mtu int
 		measurements = handleTemperatureData(transmitData)
 	} else if dataType == "audio" {
 		measurements = handleAudioData(transmitData)
+	} else {
+		out.Logger.Println("unknown data type", dataType)
+		return;
 	}
 
 	jsonData, err := json.Marshal(measurements)
@@ -339,11 +338,13 @@ func handleData(dataType string, _ bluetooth.Connection, address string, mtu int
 func handleVibrationData(transmitData Transmission) []map[string]interface{} {
 	rawData := transmitData.packets
 	numberOfMeasurements := len(rawData) / 6 // 3 axes, 2 bytes per axis => 6 bytes per measurement
+	out.Logger.Println("Vibration data consists of", len(rawData), "bytes =", numberOfMeasurements, "measurements.")
 	x, y, z := make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements)
-	for i := 0; i < numberOfMeasurements; i++ {
-		x[i] = int16(rawData[i*6]) | int16(rawData[i*6+1])<<8
-		y[i] = int16(rawData[i*6+2]) | int16(rawData[i*6+3])<<8
-		z[i] = int16(rawData[i*6+4]) | int16(rawData[i*6+5])<<8
+	for i := 0; i < len(rawData); i += 6 {
+		//out.Logger.Println(rawData[i:i+6])
+		x[i/6] = int16(binary.LittleEndian.Uint16(rawData[i:i+2]))
+		y[i/6] = int16(binary.LittleEndian.Uint16(rawData[i+2:i+4]))
+		z[i/6] = int16(binary.LittleEndian.Uint16(rawData[i+4:i+6]))
 	}
 
 	measurements := []map[string]interface{}{}
@@ -421,7 +422,7 @@ func handleAudioData(transmitData Transmission) []map[string]interface{} {
 			},
 		)
 	} else {
-		out.Logger.Println("Invalid audio data received")
+		out.Logger.Println("Invalid audio data received. Packets of length", len(transmitData.packets), "not multiple of 3.")
 	}
 	return measurements
 }

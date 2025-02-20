@@ -19,6 +19,10 @@ type requestBody struct {
 	Measurements    []map[string]interface{} `json:"measurements"`
 }
 
+func unsentDataDir() string {
+	return path.Join(os.TempDir(), "/ss_machmos/", "/unsent_data/");
+}
+
 func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, error) {
 	body := requestBody{
 		GatewayId:       gateway.Id,
@@ -37,23 +41,23 @@ func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, 
 }
 
 func saveUnsentMeasurements(data []byte, timestamp string) error {
-	err := os.MkdirAll(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH), 0777)
+	err := os.MkdirAll(unsentDataDir(), 0775); // rwx rwx r-x
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, timestamp+".json"), data, 0777)
+	return os.WriteFile(path.Join(unsentDataDir(), timestamp+".json"), data, 0775)
 }
 
 func sendUnsentMeasurements() {
-	files, err := os.ReadDir(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH))
+	files, err := os.ReadDir(unsentDataDir())
 	if err != nil {
 		out.Logger.Println("Error:", err)
 		return
 	}
 
 	for _, file := range files {
-		data, err := os.ReadFile(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, file.Name()))
+		data, err := os.ReadFile(path.Join(unsentDataDir(), file.Name()))
 		if err != nil {
 			out.Logger.Println("Error:", err)
 			continue
@@ -66,7 +70,7 @@ func sendUnsentMeasurements() {
 		}
 
 		if resp.StatusCode == 200 {
-			os.Remove(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, file.Name()))
+			os.Remove(path.Join(unsentDataDir(), file.Name()))
 		}
 	}
 }

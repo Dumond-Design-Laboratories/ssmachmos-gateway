@@ -66,23 +66,26 @@ func savePacket(data []byte, macAddress [6]byte, dataType string) (t Transmissio
 			samplingFrequency: samplingFrequency,
 			currentLength:     0,
 			totalLength:       totalLength,
-			packets:           make([]byte, totalLength),
+			packets:           make([]byte, 0),
 		}
+		out.Logger.Println("Received collection header")
+		out.Logger.Println("DataType:", transmissions[macAddress].dataType)
+		out.Logger.Println("Total expected length:", transmissions[macAddress].totalLength)
 	} else {
 		// Other packets are raw data
 		transmission := transmissions[macAddress]
-		// increase current byte count
-		transmission.currentLength += len(data)
 		// Append data to end of stream
 		transmission.packets = append(transmission.packets, data...)
+		// increase current byte count
+		transmission.currentLength += len(data)
 		transmissions[macAddress] = transmission
 		out.Logger.Println("Received packet from", model.MacToString(macAddress), "total", transmission.currentLength, "/", transmission.totalLength)
 	}
 
 	// Header includes expected length, expect more from that
 	if transmissions[macAddress].currentLength >= int(transmissions[macAddress].totalLength) {
-		//fullRawData := assemblePackets(transmissions[macAddress])
 		fullTransmit := transmissions[macAddress]
+		//copy(fullTransmit.packets, transmissions[macAddress].packets)
 		delete(transmissions, macAddress)
 		out.Logger.Println("Assembled transmission packets for " + model.MacToString(macAddress))
 		out.Logger.Println("COLLECT-END:" + model.MacToString(macAddress))
