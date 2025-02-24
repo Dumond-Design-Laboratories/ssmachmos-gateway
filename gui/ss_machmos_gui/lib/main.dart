@@ -72,14 +72,15 @@ class AppRoot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var conn = context.watch<Connection>();
+
     const List<Tab> tabs = [
-      Tab(text: "Sensors"),
-      Tab(text: "Gateway"),
-      Tab(text: "Logs"),
-      Tab(icon: Icon(Icons.help_outline)),
+      Tab(text: "Sensors", icon: Icon(Icons.sensors)),
+      Tab(text: "Gateway", icon: Icon(Icons.hub)),
+      Tab(text: "Logs", icon: Icon(Icons.text_snippet)),
+      Tab(text: "Help", icon: Icon(Icons.help_outline)),
     ];
 
-    var conn = context.watch<Connection>();
     var enableServerButton = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -97,30 +98,32 @@ class AppRoot extends StatelessWidget {
       ],
     );
 
-    Widget body = TabBarView(children: [
-      // Left column displaying sensors available
-      // Right column displaying sensors awaiting pairing
-      conn.state != ConnState.connected
-          ? enableServerButton
-          : Row(children: [
-              Expanded(flex: 3, child: Sensors()),
-              Container(width: 0.5, color: Colors.grey),
-              Expanded(flex: 2, child: Bluetooth()),
-            ]),
-      conn.state != ConnState.connected ? enableServerButton : GatewayView(),
-      Selector<Connection, List<String>>(
-        selector: (_, conn) => conn.logs,
-        builder: (_, logs, __) => Logs(logs: logs),
-      ),
-      conn.state != ConnState.connected
-          ? enableServerButton
-          : Help(
-              sensorTypesKey: _sensorTypesKey,
-              wakeUpIntervalKey: _wakeUpIntervalKey,
-              gatewayIdKey: _gatewayIdKey,
-              httpEndpointKey: _httpEndpointKey,
-            ),
-    ]);
+    Widget body = TabBarView(
+      children: [
+        // Left column displaying sensors available
+        // Right column displaying sensors awaiting pairing
+        conn.state != ConnState.connected
+            ? enableServerButton
+            : Row(children: [
+                Expanded(flex: 3, child: Sensors()),
+                Container(width: 0.5, color: Colors.grey),
+                Expanded(flex: 2, child: Bluetooth()),
+              ]),
+        conn.state != ConnState.connected ? enableServerButton : GatewayView(),
+        conn.state != ConnState.connected
+            ? enableServerButton
+            : Selector<Connection, List<String>>(
+                selector: (_, conn) => conn.logs,
+                builder: (_, logs, __) => Logs(logs: logs),
+              ),
+        Help(
+          sensorTypesKey: _sensorTypesKey,
+          wakeUpIntervalKey: _wakeUpIntervalKey,
+          gatewayIdKey: _gatewayIdKey,
+          httpEndpointKey: _httpEndpointKey,
+        ),
+      ],
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Can't call this in build
@@ -135,6 +138,7 @@ class AppRoot extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           bottom: const TabBar(tabs: tabs),
+          toolbarHeight: 0, // Remove the space for the title
         ),
         body: body,
       ),

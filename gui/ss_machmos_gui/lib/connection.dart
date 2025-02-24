@@ -14,12 +14,16 @@ typedef ConnectionCallback = bool Function(String, String?);
 
 class Gateway {
   String id;
-  //String password;
+  String password;
   String httpEndpoint;
-  Gateway({required this.id, required this.httpEndpoint});
+  Gateway(
+      {required this.id, required this.password, required this.httpEndpoint});
 
   factory Gateway.fromJson(Map<String, dynamic> json) {
-    return Gateway(id: json["id"], httpEndpoint: json["http_endpoint"]);
+    return Gateway(
+        id: json["id"],
+        password: json["password"],
+        httpEndpoint: json["http_endpoint"]);
   }
 }
 
@@ -81,12 +85,12 @@ class Connection with ChangeNotifier {
 
     // Append stdout to logs list
     proc.stdout.transform(utf8.decoder).listen((l) {
-        logs.add(l);
-        notifyListeners();
+      logs.add(l);
+      notifyListeners();
     });
     proc.stderr.transform(utf8.decoder).listen((l) {
-        logs.add(l);
-        notifyListeners();
+      logs.add(l);
+      notifyListeners();
     });
   }
 
@@ -254,6 +258,7 @@ class Connection with ChangeNotifier {
 
   void onPairEnable(ConnectionCallback callback) {}
 
+  // Load gateway settings from server
   void loadGateway() {
     on("GET-GATEWAY", (json, err) {
       if (err != null) {
@@ -270,6 +275,7 @@ class Connection with ChangeNotifier {
     send("GET-GATEWAY");
   }
 
+  // Ask server to reset gateway endpoint to default.
   void setGatewayDefault(ConnectionCallback callback) {
     on("SET-GATEWAY-HTTP-ENDPOINT", (verb, err) {
       loadGateway();
@@ -278,6 +284,7 @@ class Connection with ChangeNotifier {
     send("SET-GATEWAY-HTTP-ENDPOINT default");
   }
 
+  // Set gateway login ID
   void setGatewayID(String id, ConnectionCallback callback) {
     on("SET-GATEWAY-ID", (verb, err) {
       loadGateway();
@@ -286,6 +293,7 @@ class Connection with ChangeNotifier {
     send("SET-GATEWAY-ID $id");
   }
 
+  // Set gateway login password
   void setGatewayPassword(String password, ConnectionCallback callback) {
     on("SET-GATEWAY-PASSWORD", (verb, err) {
       loadGateway();
@@ -294,12 +302,24 @@ class Connection with ChangeNotifier {
     send("SET-GATEWAY-PASSWORD $password");
   }
 
+  // Set gateway endpoint
   void setGatewayHttpEndpoint(String endpoint, ConnectionCallback callback) {
     on("SET-GATEWAY-HTTP-ENDPOINT", (verb, err) {
       loadGateway();
       return callback(verb, err);
     });
     send("SET-GATEWAY-HTTP-ENDPOINT $endpoint");
+  }
+
+  // Helper function to set all three parameters at once
+  void setGateway(
+      Gateway newgate,
+      ConnectionCallback idCallback,
+      ConnectionCallback passwordCallback,
+      ConnectionCallback endpointCalllback) {
+    setGatewayID(newgate.id, idCallback);
+    setGatewayPassword(newgate.password, passwordCallback);
+    setGatewayHttpEndpoint(newgate.httpEndpoint, endpointCalllback);
   }
 
   // Send pair acceptance command
@@ -366,16 +386,16 @@ class Connection with ChangeNotifier {
 
   void saveSensor(Sensor sensor, ConnectionCallback callback) {
     on("SET-SENSOR-SETTINGS", (a, b) {
-        loadSensors();
-        return callback(a,b);
-      });
+      loadSensors();
+      return callback(a, b);
+    });
     send("SET-SENSOR-SETTINGS ${sensor.sensorSettingsCommand}");
   }
 
   void resetSensor(Sensor sensor, ConnectionCallback callback) {
-    on("SET-SENSOR-SETTINGS", (a,b) {
-        loadSensors();
-        return callback(a,b);
+    on("SET-SENSOR-SETTINGS", (a, b) {
+      loadSensors();
+      return callback(a, b);
     });
     send("SET-SENSOR-SETTINGS ${macToString(sensor.mac)} auto auto");
   }
