@@ -15,6 +15,13 @@ type request struct {
 	announcedSensors   bool
 }
 
+type SensorStatus struct {
+	Address string `json:"address"`
+	Name 	string `json:"name"`
+	Connected bool `json:"connected"`
+	LastSeen time.Time `json:"last_seen"`
+}
+
 /*
  * List of devices that are connected but aren't fully done yet.
  * Done here means BLE agent pairs and authenticates
@@ -49,6 +56,30 @@ func ListDevicesPendingPairing() []string {
 		}
 	}
 	return keys
+}
+
+// Returns a list of MAC addresses connected
+// GUI compares that to the sensors last seen
+func ConnectedDevices() []SensorStatus {
+	var devices []SensorStatus = []SensorStatus{};
+	// Get all saved sensors
+	for _, sensor := range *Sensors {
+		connected := false
+		// Intersect with bluetooth connected devices
+		for _, dev := range adapter.GetConnectedDevices() {
+			if sensor.IsMacEqual(dev.Address.MAC.String()) {
+				connected = true;
+				break
+			}
+		}
+		devices = append(devices, SensorStatus{
+			Address: model.MacToString(sensor.Mac),
+			Name: sensor.Name,
+			Connected: connected,
+			LastSeen: sensor.LastSeen,
+		});
+	}
+	return devices;
 }
 
 // Called on device connect

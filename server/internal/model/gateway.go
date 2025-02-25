@@ -15,6 +15,7 @@ type Gateway struct {
 	DataCharUUID     [4]uint32 `json:"data_char_uuid"`
 	SettingsCharUUID [4]uint32 `json:"settings_char_uuid"`
 	HTTPEndpoint     string    `json:"http_endpoint"`
+	AuthError        bool      `json:"-"` // memory only flag for error reporting, special tag to omit from json
 }
 
 func LoadSettings(gateway *Gateway, fileName string) error {

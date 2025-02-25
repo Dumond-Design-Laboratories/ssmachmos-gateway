@@ -14,20 +14,23 @@ var LoggingConnections map[*net.Conn]bool = make(map[*net.Conn]bool)
 
 func (writer logWriter) Write(bytes []byte) (int, error) {
 	log.Writer().Write(bytes)
+	return len(bytes), nil
+}
+
+func Broadcast(msg string) {
 	for conn := range LoggingConnections {
 		if conn == nil || (*conn) == nil {
 			delete(LoggingConnections, conn)
 			fmt.Printf("Removing connection %v from LoggingConnections\n", conn)
 			continue
 		}
-		_, err := (*conn).Write([]byte("LOG:" + string(bytes) + "\x00"))
+		_, err := (*conn).Write([]byte("INFO:"+ msg + "\x00"))
 		if err != nil {
 			delete(LoggingConnections, conn)
 			fmt.Println("Error:", err)
 			fmt.Printf("Removing connection %v from LoggingConnections\n", conn)
 		}
 	}
-	return len(bytes), nil
 }
 
 func SetLogger(logger *log.Logger) {

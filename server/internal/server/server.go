@@ -67,7 +67,14 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 		active:    false,
 		requested: make(map[[6]byte]request),
 	}
-	//transmissions = make(map[[3]byte]Transmission)
+
+	// go func() {
+	// 	for {
+
+	// 	out.Broadcast("UPLOAD-FAILED")
+	// 	time.Sleep(3 * time.Second);
+	// 	}
+	// }()
 
 	// Data collection service, requires pairing and bonding for authentication
 	// https://lpccs-docs.renesas.com/Tutorial-DA145x-BLE-Security/ble_security.html
@@ -311,26 +318,34 @@ func handleData(dataType string, _ bluetooth.Connection, address string, mtu int
 	// Upload to gateway
 	resp, err := sendMeasurements(jsonData, Gateway)
 
+	// catch marshal errors
 	if err != nil {
 		out.Logger.Println("Error:", err)
+		// Save to disk instead
 		if err := saveUnsentMeasurements(jsonData, transmitData.timestamp); err != nil {
 			out.Logger.Println("Error:", err)
 		}
 		return
 	}
 
+	// TODO: we could use this point to verify gateway settings
+
+	// Catch gateway response
 	if resp.StatusCode != 200 {
 		out.Logger.Println("Error sending data to server")
+		// Print out response error
 		body := make([]byte, resp.ContentLength)
 		defer resp.Body.Close()
 		resp.Body.Read(body)
 		out.Logger.Println(string(body))
+		// Save data (again?)
 		if err := saveUnsentMeasurements(jsonData, transmitData.timestamp); err != nil {
 			out.Logger.Println(err)
 		}
 		return
 	}
 
+	// Send everything else in store
 	sendUnsentMeasurements()
 }
 

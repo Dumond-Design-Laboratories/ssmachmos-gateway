@@ -4,12 +4,15 @@ import (
 	"bufio"
 	"net"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
 	"github.com/jukuly/ss_machmos/server/internal/out"
 	"github.com/jukuly/ss_machmos/server/internal/server"
 )
+
+var connectionsAlive []*net.Conn;
 
 func handleCommand(command string, conn *net.Conn) string {
 	parts := strings.Split(command, " ")
@@ -19,12 +22,21 @@ func handleCommand(command string, conn *net.Conn) string {
 	}
 	switch parts[0] {
 	case "LIST":
+		// List devices paired
 		res, err := list()
 		if err != nil {
 			out.Logger.Println("Error:", err)
 			return "ERR:LIST:" + err.Error()
 		}
 		return "OK:LIST:" + res
+	case "LIST-CONNECTED":
+		// List device connection status
+		res, err := listConnected()
+		if err != nil {
+			out.Logger.Println("Error:", err)
+			return "ERR:LIST-CONNECTED:" + err.Error()
+		}
+		return "OK:LIST-CONNECTED:"+res;
 	case "COLLECT":
 		if len(parts) < 2 {
 			return "ERR:COLLECT:Not enough arguments, missing mac address"
@@ -35,6 +47,13 @@ func handleCommand(command string, conn *net.Conn) string {
 			return "ERR:COLLECT:" + err.Error()
 		}
 		return "OK:COLLECT:"
+	case "LIST-PENDING-UPLOADS":
+		res, err := pendingUploads();
+		if err != nil {
+			out.Logger.Println("Error:", err)
+			return "ERR:LIST-PENDING-UPLOADS:"+err.Error()
+		}
+		return "OK:LIST-PENDING-UPLOADS:"+res;
 	case "VIEW":
 		if len(parts) < 2 {
 			return "ERR:not enough arguments"
@@ -165,6 +184,12 @@ func handleCommand(command string, conn *net.Conn) string {
 // Handle command and write response
 func handleConnection(conn *net.Conn) {
 	defer (*conn).Close()
+
+	connectionsAlive = append(connectionsAlive, conn)
+	defer slices.Delete(connectionsAlive,
+		slices.Index(connectionsAlive, conn),
+		slices.Index(connectionsAlive, conn)+1)
+
 	reader := bufio.NewReader(*conn)
 	for {
 		str, err := reader.ReadString('\x00')
@@ -179,18 +204,26 @@ func handleConnection(conn *net.Conn) {
 			response := handleCommand(c, conn)
 			// Terminate with zero byte
 			// For socat you need to insert the zero byte character to terminate
-			// echo -e "PAIR LIST \0"
+			// echo -e "PAIR-LIST\0"
+			// or printf "PAIR-LIST\0"
 			// or CTRL-V then CTRL-SHIFT-2 to insert ^@ and terminate command
 			(*conn).Write([]byte(response + "\x00"))
 		}
 	}
 }
 
+// Send a message to all alive connections
+// func Broadcast(msg string) {
+// 	for _, conn := range connectionsAlive {
+// 		(*conn).Write([]byte(msg + "\x00"))
+// 	}
+// 	out.Logger.Println(msg)
+// }
+
 // Start listening to unix socket
 // any commands received here would be sent to handleConnection and then handleCommand
 // Commands are zero terminated. Unix sockets are bidirectional
 // https://beej.us/guide/bgipc/html/index-wide.html#unixsock
-// Client-server IPC
 func Start() error {
 	socketPath := "/tmp/ss_machmos.sock"
 	if err := os.RemoveAll(socketPath); err != nil {

@@ -19,11 +19,20 @@ type requestBody struct {
 	Measurements    []map[string]interface{} `json:"measurements"`
 }
 
+// Used to notify of any data that wasn't uploaded
+// serialized and sent over pipe
+type UnsentDataError struct {
+	//Reason              string    `json:"reason"`
+	LastAttemptedUpload string `json:"last_attempted_upload"`
+}
+var unsentData []UnsentDataError = []UnsentDataError{};
+
 func unsentDataDir() string {
-	return path.Join(os.TempDir(), "/ss_machmos/", "/unsent_data/");
+	return path.Join(os.TempDir(), "/ss_machmos/", "/unsent_data/")
 }
 
 func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, error) {
+	//gateway.AuthError = false
 	body := requestBody{
 		GatewayId:       gateway.Id,
 		GatewayPassword: gateway.Password,
@@ -40,13 +49,24 @@ func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, 
 	return http.Post(gateway.HTTPEndpoint, "application/json", bytes.NewBuffer([]byte(json)))
 }
 
+// Sending failed, save to disk for later
 func saveUnsentMeasurements(data []byte, timestamp string) error {
-	err := os.MkdirAll(unsentDataDir(), 0775); // rwx rwx r-x
+	err := os.MkdirAll(unsentDataDir(), 0775) // rwx rwx r-x
 	if err != nil {
 		return err
 	}
 
+	unsentData = append(unsentData, UnsentDataError{
+		//Reason: "",
+		LastAttemptedUpload: timestamp,
+	})
+
+	out.Broadcast("UPLOAD-FAILED")
 	return os.WriteFile(path.Join(unsentDataDir(), timestamp+".json"), data, 0775)
+}
+
+func PendingUploads() []UnsentDataError {
+	return unsentData
 }
 
 func sendUnsentMeasurements() {

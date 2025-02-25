@@ -5,6 +5,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 import 'package:ss_machmos_gui/sensors.dart';
 
 // 0: connecting, 1: failed, 2: connected
@@ -24,6 +25,22 @@ class Gateway {
         id: json["id"],
         password: json["password"],
         httpEndpoint: json["http_endpoint"]);
+  }
+}
+
+class SensorStatus {
+  String name;
+  String address;
+  bool connected;
+  String lastSeenTimestamp;
+
+  SensorStatus(this.name, this.address, this.connected, this.lastSeenTimestamp);
+  factory SensorStatus.fromJson(Map<String, dynamic> ss) {
+    return SensorStatus(ss['name'] ?? "no name",
+      ss['address'] ?? "no address",
+      ss['connected'],
+      ss["last_seen"],
+    );
   }
 }
 
@@ -62,6 +79,9 @@ class Connection with ChangeNotifier {
     _displayedSensor = value;
     notifyListeners();
   }
+
+  // List of devices in store, last seen and if connected
+  final List<SensorStatus> connectedSensors = [];
 
   Socket? _socket;
   late Map<String, ConnectionCallback>
@@ -117,6 +137,7 @@ class Connection with ChangeNotifier {
       _state = ConnState.connected;
       listen();
       log("Server connected");
+      _attachListeners();
       _attachPairingListeners();
       loadGateway();
       loadSensors();
@@ -133,9 +154,57 @@ class Connection with ChangeNotifier {
   }
 
   Future<void> close() async {
+    await send("REMOVE-LOGGER");
     if (_socket != null) {
       await _socket!.close();
     }
+  }
+
+  void _attachListeners() {
+    // Attach ourselves to a feed
+    send("ADD-LOGGER");
+
+    on("UPLOAD-FAILED", (_, __) {
+        // An upload failed
+        // Get all uploads pending
+        send("LIST-PENDING-UPLOADS");
+        // TODO: add badges to mark that...
+        toastQueue.add("Failed to upload to gateway");
+        notifyListeners();
+        return false;
+    });
+
+    on("LIST-PENDING-UPLOADS", (info, _) {
+        Map<String, dynamic> uploads = jsonDecode(info);
+        uploads["count"];
+        return false;
+    });
+
+    on("SENSOR-CONNECTED", (info, _) {
+        print("ping");
+        send("LIST-CONNECTED");
+        return false;
+    });
+    on("SENSOR-DISCONNECTED", (info, _) {
+        print("unping");
+        send("LIST-CONNECTED");
+        return false;
+    });
+    on("SENSOR-UPDATED", (_, __) {
+        send("LIST-CONNECTED");
+        return false;
+    });
+
+    on("LIST-CONNECTED", (info, _) {
+        // Clear stored devices
+        connectedSensors.clear();
+        // Parse data
+        List<dynamic> jsons = jsonDecode(info);
+        connectedSensors.addAll(jsons.map((j) => SensorStatus.fromJson(j)));
+        notifyListeners();
+        return false;
+    });
+    send("LIST-CONNECTED");
   }
 
   void _attachPairingListeners() {
@@ -434,16 +503,11 @@ class Connection with ChangeNotifier {
             continue;
           }
           log("SERVER: $message");
+          print("SERVER: $message");
           if (kDebugMode == true) {}
           List<String> found = [];
           List<String> parts = message.split(":");
           if (parts.length > 1) {
-            if (parts[0] == "LOG") {
-              if (onLog != null) {
-                onLog!(parts.sublist(1).join(":"));
-              }
-              continue;
-            }
             // Get to first part, skip LOG/ERR/OK
             // FIXME make an actual parser, this is unreadable
             String command = parts[1];

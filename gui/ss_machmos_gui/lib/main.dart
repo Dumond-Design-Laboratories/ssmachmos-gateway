@@ -10,6 +10,7 @@ import 'package:ss_machmos_gui/gateway.dart';
 import 'package:ss_machmos_gui/help.dart';
 import 'package:ss_machmos_gui/logs.dart';
 import 'package:ss_machmos_gui/sensors.dart';
+import 'package:ss_machmos_gui/status.dart';
 import 'package:ss_machmos_gui/utils.dart';
 
 void main() {
@@ -77,6 +78,7 @@ class AppRoot extends StatelessWidget {
     const List<Tab> tabs = [
       Tab(text: "Sensors", icon: Icon(Icons.sensors)),
       Tab(text: "Gateway", icon: Icon(Icons.hub)),
+      Tab(text: "Login", icon: Icon(Icons.login)),
       Tab(text: "Logs", icon: Icon(Icons.text_snippet)),
       Tab(text: "Help", icon: Icon(Icons.help_outline)),
     ];
@@ -88,10 +90,10 @@ class AppRoot extends StatelessWidget {
         const SizedBox(height: 20),
         // Button to start the gateway server backend
         TextButton(
-          onPressed: () {
+          onPressed: () async {
             // Start server backend. Once it is up and running, a provider state triggers to redraw tree
             conn.startServer();
-            conn.openConnection();
+            await conn.openConnection();
           },
           child: const Text("Start Server"),
         ),
@@ -109,6 +111,7 @@ class AppRoot extends StatelessWidget {
                 Container(width: 0.5, color: Colors.grey),
                 Expanded(flex: 2, child: Bluetooth()),
               ]),
+        conn.state != ConnState.connected ? enableServerButton : Status(),
         conn.state != ConnState.connected ? enableServerButton : GatewayView(),
         conn.state != ConnState.connected
             ? enableServerButton

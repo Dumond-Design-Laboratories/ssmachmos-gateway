@@ -27,7 +27,7 @@ func pairAccept(mac string) error {
 
 func pairListPending() (string, error) {
 	jsonStr, err := json.Marshal(server.ListDevicesPendingPairing())
-	return string(jsonStr), err;
+	return string(jsonStr), err
 }
 
 func list() (string, error) {
@@ -35,9 +35,28 @@ func list() (string, error) {
 	return string(jsonStr), err
 }
 
-func deviceCollect(address string) (error){
-	server.TriggerCollection(address);
+func listConnected() (string, error) {
+	res, err := json.Marshal(server.ConnectedDevices())
+	return string(res), err
+}
+
+func deviceCollect(address string) error {
+	server.TriggerCollection(address)
 	return nil
+}
+
+// List of all measurements pending upload
+func pendingUploads() (string, error) {
+	pending := server.PendingUploads()
+	// anonymous struct yay
+	res, err := json.Marshal(struct {
+		Count   int                      `json:"count"`
+		Pending []server.UnsentDataError `json:"pending"`
+	}{
+		Count:   len(pending),
+		Pending: pending,
+	})
+	return string(res), err
 }
 
 func view(mac string) (string, error) {
