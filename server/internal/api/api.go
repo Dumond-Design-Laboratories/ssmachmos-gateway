@@ -169,6 +169,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		return "OK:SET-SENSOR-SETTINGS:"
 	case "ADD-LOGGER":
 		out.LoggingConnections[conn] = true
+		out.Logger.Println("Adding logger");
 		return "OK:ADD-LOGGER:"
 	case "REMOVE-LOGGER":
 		delete(out.LoggingConnections, conn)

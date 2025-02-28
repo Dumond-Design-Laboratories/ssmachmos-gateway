@@ -14,9 +14,12 @@ type Packet struct {
 }
 
 type Transmission struct {
-	macAddress        [6]byte
-	batteryLevel      int
-	timestamp         string
+	macAddress   [6]byte
+	batteryLevel int
+	// Transmission start time
+	timestamp time.Time
+	// transmission end time
+	endTimestamp      time.Time
 	dataType          string
 	samplingFrequency uint32
 	currentLength     int
@@ -28,28 +31,6 @@ type Transmission struct {
 // :^)
 var transmissions map[[6]byte]Transmission = make(map[[6]byte]Transmission)
 
-// Collect all packets into a single array after finishing transmit and return
-// func (t *Transmission) AssemblePackets() []byte {
-// 	data := make([]byte, transmission.totalLength)
-// 	for _, packet := range transmission.packets {
-// 		if packet.offset+len(packet.data) > len(data) {
-// 			continue
-// 		}
-// 		data = append(append(data[:packet.offset], packet.data...), data[packet.offset+len(packet.data):]...)
-// 	}
-// 	return data
-// }
-
-// Grab packet from network, save to memory
-// We're just recording an octet stream, of which the first ever packet should be a short header
-// The rest is byte soup
-// Grab header from initial packet
-// batteryLevel := int(int8(data[7]))
-// dataType := DATA_TYPES[data[8]]
-// samplingFrequency := binary.LittleEndian.Uint32(data[9:13])
-// lengthOfData := binary.LittleEndian.Uint32(data[13:17])
-// messageID := *(*[3]byte)(data[17:20])
-// offset := int(binary.LittleEndian.Uint32(data[20:24]))
 func savePacket(data []byte, macAddress [6]byte, dataType string) (t Transmission, ok bool) {
 	if _, exists := transmissions[macAddress]; !exists {
 		// New transmission
@@ -60,7 +41,7 @@ func savePacket(data []byte, macAddress [6]byte, dataType string) (t Transmissio
 		batteryLevel := -1
 		transmissions[macAddress] = Transmission{
 			macAddress:        macAddress,
-			timestamp:         time.Now().UTC().Format(ISO8601),
+			timestamp:         time.Now().UTC(),
 			batteryLevel:      batteryLevel,
 			dataType:          dataType,
 			samplingFrequency: samplingFrequency,
@@ -85,9 +66,13 @@ func savePacket(data []byte, macAddress [6]byte, dataType string) (t Transmissio
 	// Header includes expected length, expect more from that
 	if transmissions[macAddress].currentLength >= int(transmissions[macAddress].totalLength) {
 		fullTransmit := transmissions[macAddress]
+		// Plug in end timestamp
+		fullTransmit.endTimestamp = time.Now().UTC()
 		//copy(fullTransmit.packets, transmissions[macAddress].packets)
 		delete(transmissions, macAddress)
-		out.Logger.Println("Assembled transmission packets for " + model.MacToString(macAddress))
+		out.Logger.Println("Assembled transmission packets for", model.MacToString(macAddress),
+			"time taken", fullTransmit.endTimestamp.Sub(fullTransmit.timestamp))
+
 		out.Logger.Println("COLLECT-END:" + model.MacToString(macAddress))
 		return fullTransmit, true
 	}

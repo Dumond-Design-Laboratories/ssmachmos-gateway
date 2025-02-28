@@ -82,6 +82,22 @@ func ConnectedDevices() []SensorStatus {
 	return devices;
 }
 
+// If device is already written down
+func sensorExists(MAC [6]byte) *model.Sensor {
+	for _, sens := range *Sensors {
+		for m := range MAC {
+			if MAC[m] != sens.Mac[m] {
+				// Get next sensor
+				break
+			}
+			// Exact match, early out with true
+			return &sens
+		}
+	}
+	// No sensors matched, false
+	return nil
+}
+
 // Called on device connect
 // if device not paired or saved before, starts pair process
 // and saves to internal state. Does not get written to disk until BLE agent completes pairing.
@@ -89,21 +105,16 @@ func ConnectedDevices() []SensorStatus {
 // If device is already paired, returns false
 func pairDeviceConnected(MAC [6]byte) bool {
 	// Test if MAC address is already stored in settings
-	for i := range *Sensors {
-		// If device is already written down
-		if (*Sensors)[i].Mac == MAC {
-			out.Logger.Println("pairConnectedDevice " + model.MacToString(MAC) + " already exists.")
-			(*Sensors)[i].LastSeen = time.Now();
-			// Log that device already exists
-			out.PairingLog("SENSOR-CONNECTED:"+model.MacToString(MAC))
-			return false
-		}
+	sensor := sensorExists(MAC)
+	if sensor != nil {
+		out.Logger.Println("pairConnectedDevice " + model.MacToString(MAC) + " already exists.")
+		// Update last seen log
+		sensor.LastSeen = time.Now();
+		// Log that device already exists
+		out.Broadcast("SENSOR-CONNECTED:"+model.MacToString(MAC))
+		return false
 	}
-
 	out.Logger.Println("Connected device address " + model.MacToString(MAC))
-
-	// Send out request to GUI
-	out.PairingLog("REQUEST-NEW:" + model.MacToString(MAC))
 
 	return true
 }
@@ -114,12 +125,18 @@ func pairDeviceDisconnected(MAC [6]byte) bool {
 		delete(state.requested, MAC)
 		out.PairingLog("PAIR-DEVICE-DISCONNECTED: " + model.MacToString(MAC))
 	}
+	out.Broadcast("SENSOR-DISCONNECTED:"+model.MacToString(MAC))
 
 	return true
 }
 
 // Device writes out what sensors are on board
 func pairReceiveCapabilities(MAC [6]byte, data []byte) bool {
+	if sensorExists(MAC) != nil {
+		return true;
+	}
+
+	// Go throught with the process only if the sensor is new
 	req, ok := state.requested[MAC]
 
 	// If not found

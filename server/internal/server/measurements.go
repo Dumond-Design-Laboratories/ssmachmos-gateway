@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"time"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
 	"github.com/jukuly/ss_machmos/server/internal/out"
@@ -23,12 +24,18 @@ type requestBody struct {
 // serialized and sent over pipe
 type UnsentDataError struct {
 	//Reason              string    `json:"reason"`
-	LastAttemptedUpload string `json:"last_attempted_upload"`
+	LastAttemptedUpload time.Time `json:"last_attempted_upload"`
 }
 var unsentData []UnsentDataError = []UnsentDataError{};
 
 func unsentDataDir() string {
 	return path.Join(os.TempDir(), "/ss_machmos/", "/unsent_data/")
+}
+
+func archivedDataDir() string {
+	dir := path.Join(os.TempDir(), "/ss_machmos/", "/sent_data/")
+	os.MkdirAll(dir, 777)
+	return dir
 }
 
 func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, error) {
@@ -50,7 +57,7 @@ func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, 
 }
 
 // Sending failed, save to disk for later
-func saveUnsentMeasurements(data []byte, timestamp string) error {
+func saveUnsentMeasurements(data []byte, timestamp time.Time) error {
 	err := os.MkdirAll(unsentDataDir(), 0775) // rwx rwx r-x
 	if err != nil {
 		return err
@@ -62,7 +69,7 @@ func saveUnsentMeasurements(data []byte, timestamp string) error {
 	})
 
 	out.Broadcast("UPLOAD-FAILED")
-	return os.WriteFile(path.Join(unsentDataDir(), timestamp+".json"), data, 0775)
+	return os.WriteFile(path.Join(unsentDataDir(), timestamp.String()+".json"), data, 0775)
 }
 
 func PendingUploads() []UnsentDataError {
@@ -90,7 +97,8 @@ func sendUnsentMeasurements() {
 		}
 
 		if resp.StatusCode == 200 {
-			os.Remove(path.Join(unsentDataDir(), file.Name()))
+			// Don't delete, keep around for debugging
+			os.Rename(path.Join(unsentDataDir(), file.Name()), path.Join(archivedDataDir(), file.Name()))
 		}
 	}
 }
