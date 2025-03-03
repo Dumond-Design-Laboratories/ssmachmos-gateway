@@ -1,6 +1,8 @@
+import 'dart:developer';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/sensor_details.dart';
@@ -105,7 +107,7 @@ class Sensor {
       nextWakeUp: DateTime.parse(s["next_wake_up"]),
       batteryLevel: s["battery_level"],
       deviceActive: s["device_active"] as bool,
-      lastSeen: DateTime.parse(s["last_seen"]),
+      lastSeen: DateTime.parse(s["last_seen"]).toLocal(),
       settings: settings,
     );
   }
@@ -124,6 +126,16 @@ class Sensor {
         " wake_up_interval $wakeUpInterval"
         " wake_up_interval_max_offset $wakeUpIntervalMaxOffset"
         " $subSettings";
+  }
+
+  String get predictedWakeupTime {
+    try {
+      DateTime next = lastSeen.add(Duration(seconds: wakeUpInterval));
+      return DateFormat('yyyy-MM-dd HH:mm:ss').format(next);
+    } catch (e) {
+      log(e.toString());
+      return "Unknown";
+    }
   }
 }
 

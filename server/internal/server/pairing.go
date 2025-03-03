@@ -16,10 +16,11 @@ type request struct {
 }
 
 type SensorStatus struct {
-	Address string `json:"address"`
-	Name 	string `json:"name"`
-	Connected bool `json:"connected"`
-	LastSeen time.Time `json:"last_seen"`
+	Address   string               `json:"address"`
+	Name      string               `json:"name"`
+	Connected bool                 `json:"connected"`
+	LastSeen  time.Time            `json:"last_seen"`
+	Activity  model.SensorActivity `json:"activity"`
 }
 
 /*
@@ -61,25 +62,26 @@ func ListDevicesPendingPairing() []string {
 // Returns a list of MAC addresses connected
 // GUI compares that to the sensors last seen
 func ConnectedDevices() []SensorStatus {
-	var devices []SensorStatus = []SensorStatus{};
+	var devices []SensorStatus = []SensorStatus{}
 	// Get all saved sensors
 	for _, sensor := range *Sensors {
 		connected := false
 		// Intersect with bluetooth connected devices
 		for _, dev := range adapter.GetConnectedDevices() {
 			if sensor.IsMacEqual(dev.Address.MAC.String()) {
-				connected = true;
+				connected = true
 				break
 			}
 		}
 		devices = append(devices, SensorStatus{
-			Address: model.MacToString(sensor.Mac),
-			Name: sensor.Name,
+			Address:   model.MacToString(sensor.Mac),
+			Name:      sensor.Name,
 			Connected: connected,
-			LastSeen: sensor.LastSeen,
-		});
+			LastSeen:  sensor.LastSeen,
+			Activity:  sensor.CurrentActivity,
+		})
 	}
-	return devices;
+	return devices
 }
 
 // If device is already written down
@@ -109,9 +111,9 @@ func pairDeviceConnected(MAC [6]byte) bool {
 	if sensor != nil {
 		out.Logger.Println("pairConnectedDevice " + model.MacToString(MAC) + " already exists.")
 		// Update last seen log
-		sensor.LastSeen = time.Now();
+		sensor.LastSeen = time.Now()
 		// Log that device already exists
-		out.Broadcast("SENSOR-CONNECTED:"+model.MacToString(MAC))
+		out.Broadcast("SENSOR-CONNECTED:" + model.MacToString(MAC))
 		return false
 	}
 	out.Logger.Println("Connected device address " + model.MacToString(MAC))
@@ -125,7 +127,7 @@ func pairDeviceDisconnected(MAC [6]byte) bool {
 		delete(state.requested, MAC)
 		out.PairingLog("PAIR-DEVICE-DISCONNECTED: " + model.MacToString(MAC))
 	}
-	out.Broadcast("SENSOR-DISCONNECTED:"+model.MacToString(MAC))
+	out.Broadcast("SENSOR-DISCONNECTED:" + model.MacToString(MAC))
 
 	return true
 }
@@ -133,7 +135,7 @@ func pairDeviceDisconnected(MAC [6]byte) bool {
 // Device writes out what sensors are on board
 func pairReceiveCapabilities(MAC [6]byte, data []byte) bool {
 	if sensorExists(MAC) != nil {
-		return true;
+		return true
 	}
 
 	// Go throught with the process only if the sensor is new

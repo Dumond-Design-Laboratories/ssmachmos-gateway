@@ -412,21 +412,21 @@ func parseResponse(res string) string {
 		}
 		parts[2] = strings.Join(parts[2:], ":")
 		switch parts[1] {
-		case "LIST":
-			sensors := []model.Sensor{}
-			err := json.Unmarshal([]byte(parts[2]), &sensors)
-			if err != nil {
-				return "Error: " + err.Error()
-			}
-			if len(sensors) == 0 {
-				return "No sensors currently paired with the Gateway"
-			} else {
-				str := ""
-				for _, sensor := range sensors {
-					str += sensor.Name + " - " + model.MacToString(sensor.Mac) + "\n"
-				}
-				return str
-			}
+		// case "LIST":
+		// 	sensors := []model.Sensor{}
+		// 	err := json.Unmarshal([]byte(parts[2]), &sensors)
+		// 	if err != nil {
+		// 		return "Error: " + err.Error()
+		// 	}
+		// 	if len(sensors) == 0 {
+		// 		return "No sensors currently paired with the Gateway"
+		// 	} else {
+		// 		str := ""
+		// 		for _, sensor := range sensors {
+		// 			str += sensor.Name + " - " + model.MacToString(sensor.Mac) + "\n"
+		// 		}
+		// 		return str
+		// 	}
 		case "VIEW":
 			str, err := sensorJSONToString([]byte(parts[2]))
 			if err != nil {

@@ -33,13 +33,15 @@ class SensorStatus {
   String address;
   bool connected;
   String lastSeenTimestamp;
+  String activity;
 
-  SensorStatus(this.name, this.address, this.connected, this.lastSeenTimestamp);
+  SensorStatus(this.name, this.address, this.connected, this.lastSeenTimestamp, this.activity);
   factory SensorStatus.fromJson(Map<String, dynamic> ss) {
     return SensorStatus(ss['name'] ?? "no name",
       ss['address'] ?? "no address",
       ss['connected'],
       ss["last_seen"],
+      ss['activity'],
     );
   }
 }

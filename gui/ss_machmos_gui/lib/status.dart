@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -38,22 +40,18 @@ class _Device extends StatelessWidget {
     String timestamp = ss.lastSeenTimestamp;
     try {
       //print(ss.lastSeenTimestamp);
-      timestamp = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(ss.lastSeenTimestamp));
+      timestamp = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(ss.lastSeenTimestamp).toLocal());
     } catch(e) {
-      print(e);
+      log(e.toString());
     }
     return ListTile(
-      //decoration: BorderDeco
-      //onTap: () {},
-      //padding: EdgeInsets.all(8),
-      //minTileHeight: 30,
       leading:
           ss.connected ? Icon(Icons.cell_tower, color: Colors.green) : Icon(Icons.portable_wifi_off),
       title: Text("${ss.name} - ${ss.address}"),
-      subtitle: Text("Last seen: ${timestamp}"),
+      subtitle: Text("Last seen: $timestamp"),
       trailing: Column(children: [
           ss.connected ? Text("Device connected.") : Text("Device not connected."),
-          if (ss.connected) Text("Idle"),
+          Text(ss.activity),
           ]),
     );
   }

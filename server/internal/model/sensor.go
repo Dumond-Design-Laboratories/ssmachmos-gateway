@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jukuly/ss_machmos/server/internal/out"
 )
 
 const SENSORS_FILE = "sensors.json"
@@ -18,6 +20,14 @@ var DATA_SIZE = map[string]int{
 	"audio":       3,
 	"vibration":   2 * 3,
 }
+
+type SensorActivity string
+
+const (
+	SensorActivityIdle         SensorActivity = "idle"
+	SensorActivityCollecting   SensorActivity = "collecting"
+	SensorActivityTransmitting SensorActivity = "transmitting"
+)
 
 type settings struct {
 	Active            bool   `json:"active"`
@@ -35,9 +45,17 @@ type Sensor struct {
 	WakeUpInterval          int                 `json:"wake_up_interval"`
 	WakeUpIntervalMaxOffset int                 `json:"wake_up_interval_max_offset"`
 	NextWakeUp              time.Time           `json:"next_wake_up"`
-	DeviceActive			bool 				`json:"device_active"`
+	DeviceActive            bool                `json:"device_active"`
+	CurrentActivity         SensorActivity      `json:"current_activity"`
 	Settings                map[string]settings `json:"settings"`
 	// PublicKey               rsa.PublicKey       `json:"key"`
+}
+
+func (s *Sensor) UpdateLastSeen(activity SensorActivity, sensors *[]Sensor) {
+	s.LastSeen = time.Now()
+	s.CurrentActivity = activity
+	saveSensors(SENSORS_FILE, sensors)
+	out.Broadcast("SENSOR-UPDATED")
 }
 
 func (s *Sensor) ToString() string {
@@ -142,7 +160,7 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32 /*,
 		WakeUpInterval:          3600,
 		WakeUpIntervalMaxOffset: 300,
 		NextWakeUp:              time.Now().Add(3600 * time.Second),
-		DeviceActive: 			 false,
+		DeviceActive:            false,
 		Settings:                map[string]settings{},
 		// PublicKey:               *publicKey,
 	}

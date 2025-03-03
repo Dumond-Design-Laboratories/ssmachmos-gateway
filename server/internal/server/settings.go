@@ -8,7 +8,6 @@ import (
 	"github.com/jukuly/ss_machmos/server/internal/out"
 )
 
-// see protocol.md to understand what is going on here
 /* 0x01 | mac address | Sleep until | repeat {dataTypeByte | active | Sampling Frequency | SamplingDuration}  */
 func getSettingsForSensor(address string) []byte {
 	mac, _ := model.StringToMac(address)
@@ -23,8 +22,9 @@ func getSettingsForSensor(address string) []byte {
 		out.Logger.Println("Device", address, "not found in settings, reject")
 		return []byte{0x00}
 	}
+	// Update last seen log
+	sensor.UpdateLastSeen(model.SensorActivityIdle, Sensors)
 
-	// Why not make the first byte a one
 	response := []byte{}
 	if sensor.DeviceActive {
 		response = append(response, 0x01)

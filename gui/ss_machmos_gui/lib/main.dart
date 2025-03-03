@@ -113,12 +113,10 @@ class AppRoot extends StatelessWidget {
               ]),
         conn.state != ConnState.connected ? enableServerButton : Status(),
         conn.state != ConnState.connected ? enableServerButton : GatewayView(),
-        conn.state != ConnState.connected
-            ? enableServerButton
-            : Selector<Connection, List<String>>(
-                selector: (_, conn) => conn.logs,
-                builder: (_, logs, __) => Logs(logs: logs),
-              ),
+        Selector<Connection, List<String>>(
+          selector: (_, conn) => conn.logs,
+          builder: (_, logs, __) => Logs(logs: logs),
+        ),
         Help(
           sensorTypesKey: _sensorTypesKey,
           wakeUpIntervalKey: _wakeUpIntervalKey,

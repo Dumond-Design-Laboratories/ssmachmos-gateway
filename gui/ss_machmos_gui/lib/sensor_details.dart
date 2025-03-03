@@ -107,7 +107,7 @@ class _SensorDetailsState extends State<SensorDetails> {
                     child: TextFormField(
                         controller: wakeupOffset, decoration: InputDecoration(labelText: "Wake-up interval offset", suffixText: "seconds"))),
               ]),
-              Text("Next Wake-up: when???"),
+              Text("Predicted next wake-up: ${sensor.predictedWakeupTime}"),
               //SensorDetailField(name: "Next Wake-Up", value: sensor.nextWakeUp.toLocal().toString(), readOnly: true),
               Divider(),
               const Text("Settings:", style: TextStyle(fontWeight: FontWeight.bold)),

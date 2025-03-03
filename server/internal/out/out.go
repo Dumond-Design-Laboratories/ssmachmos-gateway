@@ -24,7 +24,7 @@ func Broadcast(msg string) {
 			fmt.Printf("Removing connection %v from LoggingConnections\n", conn)
 			continue
 		}
-		_, err := (*conn).Write([]byte("INFO:"+ msg + "\x00"))
+		_, err := (*conn).Write([]byte("MSG:"+ msg + "\x00"))
 		if err != nil {
 			delete(LoggingConnections, conn)
 			fmt.Println("Error:", err)
