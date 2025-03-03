@@ -1,5 +1,9 @@
 package server
 
+/*
+ * Management of measurements on disk
+ */
+
 import (
 	"bytes"
 	"encoding/json"
@@ -34,10 +38,12 @@ func unsentDataDir() string {
 
 func archivedDataDir() string {
 	dir := path.Join(os.TempDir(), "/ss_machmos/", "/sent_data/")
-	os.MkdirAll(dir, 777)
+	os.MkdirAll(dir, 0775)
 	return dir
 }
 
+// FIXME: this should be the only entry point to gateway uploading. Server
+// should NOT handle saving unsent measurements
 func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, error) {
 	//gateway.AuthError = false
 	body := requestBody{
@@ -53,7 +59,16 @@ func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, 
 		return nil, err
 	}
 
-	return http.Post(gateway.HTTPEndpoint, "application/json", bytes.NewBuffer([]byte(json)))
+	resp, err := http.Post(gateway.HTTPEndpoint, "application/json", bytes.NewBuffer([]byte(json)))
+	if err == nil && resp.StatusCode == 200 {
+		// if success, archive
+		err := archiveMeasurements(jsonData, time.Now())
+		if err != nil {
+			out.Logger.Println(err.Error())
+		}
+	}
+
+	return resp, err
 }
 
 // Sending failed, save to disk for later
@@ -70,6 +85,10 @@ func saveUnsentMeasurements(data []byte, timestamp time.Time) error {
 
 	out.Broadcast("UPLOAD-FAILED")
 	return os.WriteFile(path.Join(unsentDataDir(), timestamp.String()+".json"), data, 0775)
+}
+
+func archiveMeasurements(data []byte, timestamp time.Time) error {
+	return os.WriteFile(path.Join(archivedDataDir(), timestamp.String()+".json"), data, 0775)
 }
 
 func PendingUploads() []UnsentDataError {
