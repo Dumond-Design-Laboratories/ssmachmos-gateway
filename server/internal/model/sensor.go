@@ -162,7 +162,6 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32 /*,
 		NextWakeUp:              time.Now().Add(3600 * time.Second),
 		DeviceActive:            false,
 		Settings:                map[string]settings{},
-		// PublicKey:               *publicKey,
 	}
 
 	for _, t := range types {
@@ -170,7 +169,7 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32 /*,
 		case "vibration":
 			sensor.Settings["vibration"] = settings{
 				Active:            true,
-				SamplingFrequency: 100,
+				SamplingFrequency: 8000,
 				SamplingDuration:  1,
 			}
 		case "temperature":
@@ -180,7 +179,7 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32 /*,
 		case "audio":
 			sensor.Settings["audio"] = settings{
 				Active:            true,
-				SamplingFrequency: 8000,
+				SamplingFrequency: 22110,
 				SamplingDuration:  1,
 			}
 		}
@@ -241,9 +240,9 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 			return errors.New("invalid value for wake_up_interval setting (must be an integer (seconds))")
 		}
 		// when converted to milliseconds it will not be a uint32
-		if intValue < sensor.WakeUpIntervalMaxOffset || intValue > 4294967 {
-			return errors.New("invalid value for wake_up_interval setting (must an integer between wake_up_interval_max_offset and 4 294 967)")
-		}
+		// if intValue < sensor.WakeUpIntervalMaxOffset || intValue > 4294967 {
+		// 	return errors.New("invalid value for wake_up_interval setting (must an integer between wake_up_interval_max_offset and 4 294 967)")
+		// }
 		sensor.WakeUpInterval = intValue
 		return saveSensors(SENSORS_FILE, sensors)
 	}
