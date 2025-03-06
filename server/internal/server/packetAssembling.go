@@ -168,7 +168,7 @@ func handleData(dataType string, _ bluetooth.Connection, address string, _mtu in
 		defer resp.Body.Close()
 		resp.Body.Read(body)
 		out.Logger.Println(string(body))
-		// Save data (again?)
+		// Save data
 		if err := saveUnsentMeasurements(jsonData, transmitData.timestamp); err != nil {
 			out.Logger.Println(err)
 		}
@@ -181,15 +181,20 @@ func handleData(dataType string, _ bluetooth.Connection, address string, _mtu in
 
 // Accelerometer json output
 func handleVibrationData(transmitData Transmission) []map[string]interface{} {
+	convRange8G := .000244
 	rawData := transmitData.packets
 	numberOfMeasurements := len(rawData) / 6 // 3 axes, 2 bytes per axis => 6 bytes per measurement
 	out.Logger.Println("Vibration data consists of", len(rawData), "bytes =", numberOfMeasurements, "measurements.")
-	x, y, z := make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements), make([]int16, numberOfMeasurements)
+	x, y, z := make([]float64, numberOfMeasurements), make([]float64, numberOfMeasurements), make([]float64, numberOfMeasurements)
 	for i := 0; i < len(rawData); i += 6 {
 		//out.Logger.Println(rawData[i:i+6])
-		x[i/6] = int16(binary.LittleEndian.Uint16(rawData[i : i+2]))
-		y[i/6] = int16(binary.LittleEndian.Uint16(rawData[i+2 : i+4]))
-		z[i/6] = int16(binary.LittleEndian.Uint16(rawData[i+4 : i+6]))
+		// We're receiving signed integers, of course.
+		//x[i/6] = float64(int16(binary.LittleEndian.Uint16(rawData[i+0:i+2]))) * convRange8G
+		// y[i/6] = float64(int16(binary.LittleEndian.Uint16(rawData[i+2:i+4]))) * convRange8G
+		// z[i/6] = float64(binary.LittleEndian.Uint16(rawData[i+4:i+6])) * convRange8G
+		x[i/6] = float64(int16(transmitData.packets[i+1])<<8|int16(transmitData.packets[i+0])) * convRange8G
+		y[i/6] = float64(int16(transmitData.packets[i+3])<<8|int16(transmitData.packets[i+2])) * convRange8G
+		z[i/6] = float64(int16(transmitData.packets[i+5])<<8|int16(transmitData.packets[i+4])) * convRange8G
 	}
 
 	measurements := []map[string]interface{}{}

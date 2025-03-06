@@ -46,6 +46,7 @@ func OpenConnection() (net.Conn, error) {
 
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
+		out.Logger.Println(err.Error())
 		return nil, err
 	}
 
