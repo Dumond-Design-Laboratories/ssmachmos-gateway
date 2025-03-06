@@ -13,6 +13,7 @@ import (
 )
 
 var connectionsAlive []*net.Conn;
+var shouldExit bool = false;
 
 func handleCommand(command string, conn *net.Conn) string {
 	parts := strings.Split(command, " ")
@@ -21,6 +22,8 @@ func handleCommand(command string, conn *net.Conn) string {
 		return "ERR:empty command"
 	}
 	switch parts[0] {
+	case "PING":
+		return "OK:PING:PONG"
 	case "LIST":
 		// List devices paired
 		res, err := list()
@@ -145,6 +148,13 @@ func handleCommand(command string, conn *net.Conn) string {
 			return "ERR:SET-GATEWAY-PASSWORD:" + err.Error()
 		}
 		return "OK:SET-GATEWAY-PASSWORD:"
+	case "TEST-GATEWAY":
+		err := model.TestGateway(server.Gateway)
+		if err != nil {
+			out.Logger.Println("Error:", err)
+			return "ERR:TEST-GATEWAY:"+err.Error()
+		}
+		return "OK:TEST-GATEWAY"
 	case "SET-SENSOR-SETTINGS":
 		if len(parts) < 2 {
 			return "ERR:SET-SENSOR-SETTINGS:not enough arguments"
@@ -176,6 +186,8 @@ func handleCommand(command string, conn *net.Conn) string {
 		return "OK:REMOVE-LOGGER:"
 	case "STOP":
 		stop()
+		// then exit loop
+		shouldExit = true;
 	default:
 		return "ERR:invalid command " + command
 	}
@@ -240,7 +252,7 @@ func Start() error {
 	}
 	defer listener.Close()
 
-	for {
+	for shouldExit == false {
 		// Accept returns another socket descriptor
 		conn, err := listener.Accept()
 		if err != nil {
@@ -249,4 +261,6 @@ func Start() error {
 		}
 		go handleConnection(&conn)
 	}
+
+	return nil;
 }

@@ -1,8 +1,12 @@
 package model
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path"
 )
@@ -16,6 +20,12 @@ type Gateway struct {
 	SettingsCharUUID [4]uint32 `json:"settings_char_uuid"`
 	HTTPEndpoint     string    `json:"http_endpoint"`
 	AuthError        bool      `json:"-"` // memory only flag for error reporting, special tag to omit from json
+}
+
+type RequestBody struct {
+	GatewayId       string                   `json:"gateway_id"`
+	GatewayPassword string                   `json:"gateway_password"`
+	Measurements    []map[string]interface{} `json:"measurements"`
 }
 
 func LoadSettings(gateway *Gateway, fileName string) error {
@@ -55,6 +65,24 @@ func SetGatewayId(gateway *Gateway, id string) error {
 func SetGatewayPassword(gateway *Gateway, password string) error {
 	gateway.Password = password
 	return saveSettings(gateway, GATEWAY_FILE)
+}
+
+func TestGateway(gateway *Gateway) error {
+	data, _ := json.Marshal(RequestBody{
+		GatewayId:       gateway.Id,
+		GatewayPassword: gateway.Password,
+	})
+	resp, err := http.Post(gateway.HTTPEndpoint, "application/json", bytes.NewBuffer(data))
+
+	if err == nil && resp.StatusCode == http.StatusOK {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	bytes, _ := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	return errors.New(fmt.Sprintf("HTTP Status %d - %s", resp.StatusCode, string(bytes)))
 }
 
 func GetDataCharUUID(gateway *Gateway) ([4]uint32, error) {
