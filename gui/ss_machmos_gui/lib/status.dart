@@ -39,7 +39,6 @@ class _Device extends StatelessWidget {
   Widget build(BuildContext context) {
     String timestamp = ss.lastSeenTimestamp;
     try {
-      //print(ss.lastSeenTimestamp);
       timestamp = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(ss.lastSeenTimestamp).toLocal());
     } catch(e) {
       log(e.toString());

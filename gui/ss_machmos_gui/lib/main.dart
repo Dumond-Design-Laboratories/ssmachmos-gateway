@@ -73,12 +73,12 @@ class AppRoot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var conn = context.watch<Connection>();
+    Connection conn = context.watch<Connection>();
 
-    const List<Tab> tabs = [
+    List<Tab> tabs = [
       Tab(text: "Sensors", icon: Icon(Icons.sensors)),
       Tab(text: "Gateway", icon: Icon(Icons.hub)),
-      Tab(text: "Login", icon: Icon(Icons.login)),
+      Tab(text: "Login", icon: conn.gatewayValid ? Icon(Icons.login) : Badge(label: Icon(Icons.error), backgroundColor: Colors.transparent, child: Icon(Icons.login))),
       Tab(text: "Logs", icon: Icon(Icons.text_snippet)),
       Tab(text: "Help", icon: Icon(Icons.help_outline)),
     ];
@@ -138,7 +138,7 @@ class AppRoot extends StatelessWidget {
       length: tabs.length,
       child: Scaffold(
         appBar: AppBar(
-          bottom: const TabBar(tabs: tabs),
+          bottom: TabBar(tabs: tabs),
           toolbarHeight: 0, // Remove the space for the title
         ),
         body: body,

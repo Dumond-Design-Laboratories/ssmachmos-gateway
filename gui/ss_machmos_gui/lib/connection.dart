@@ -5,7 +5,6 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
 import 'package:ss_machmos_gui/sensors.dart';
 
 // 0: connecting, 1: failed, 2: connected
@@ -35,9 +34,11 @@ class SensorStatus {
   String lastSeenTimestamp;
   String activity;
 
-  SensorStatus(this.name, this.address, this.connected, this.lastSeenTimestamp, this.activity);
+  SensorStatus(this.name, this.address, this.connected, this.lastSeenTimestamp,
+      this.activity);
   factory SensorStatus.fromJson(Map<String, dynamic> ss) {
-    return SensorStatus(ss['name'] ?? "no name",
+    return SensorStatus(
+      ss['name'] ?? "no name",
       ss['address'] ?? "no address",
       ss['connected'],
       ss["last_seen"],
@@ -49,6 +50,7 @@ class SensorStatus {
 // UI state. Manages connection to gateway and collecting information through a socket connection
 // Unix named sockets here, if we're planning on supporting windows we need named pipes too
 class Connection with ChangeNotifier {
+  final String socketPath = "/tmp/ss_machmos.sock";
   // Have a way to pass toast notifications to UI
   // gateway notifies when this is pushed to, and AppRoot pops and displays each
   Queue<String> toastQueue = Queue<String>();
@@ -59,6 +61,7 @@ class Connection with ChangeNotifier {
   ConnState get state => _state;
 
   late Gateway gateway;
+  late bool gatewayValid = true;
 
   // Devices pending pairing
   final List<String> sensorsNearby = [];
@@ -98,6 +101,45 @@ class Connection with ChangeNotifier {
     _waitingFor = {};
   }
 
+  // Entrypoint to ensure backend is started
+  // All this just to delete /tmp/ss_machmos.sock
+  Future<void> startBackend() async {
+    _state = ConnState.inprogress;
+    // test current socket connection
+    try {
+      _socket = await Socket.connect(
+          InternetAddress(socketPath, type: InternetAddressType.unix), 0,
+          timeout: Duration(seconds: 8));
+        send("PING");
+    } catch (e) {
+      // Socket is not open, start server
+      startServer();
+      _socket = null;
+      _state = ConnState.failed;
+    }
+
+    if (_socket == null) {
+      _socket = await Socket.connect(
+          InternetAddress(socketPath, type: InternetAddressType.unix), 0,
+          timeout: Duration(seconds: 8));
+        send("PING");
+    }
+    // If we make it this far I'm assuming we're connected
+    _state = ConnState.connected;
+    // Start listen loop
+    listen();
+    log("Server connected");
+    // Attach various listeners to responses
+    _attachListeners();
+    _attachPairingListeners();
+    // Load initial data
+    loadGateway();
+    loadSensors();
+    // Notify provider to rebuild widget
+    notifyListeners();
+    return;
+  }
+
   Future<void> startServer() async {
     var proc = await Process.start(
       kDebugMode ? "${Directory.current.path}/ssmachmos" : "ssmachmos",
@@ -122,7 +164,6 @@ class Connection with ChangeNotifier {
 
   Future<void> openConnection() async {
     _state = ConnState.inprogress;
-    String socketPath = "/tmp/ss_machmos.sock";
 
     // Try 5 times
     for (var i = 0; i < 5; i++) {
@@ -166,45 +207,49 @@ class Connection with ChangeNotifier {
     // Attach ourselves to a feed
     send("ADD-LOGGER");
 
+    testGateway((_, __) {
+      return false;
+    });
+
     on("UPLOAD-FAILED", (_, __) {
-        // An upload failed
-        // Get all uploads pending
-        send("LIST-PENDING-UPLOADS");
-        // TODO: add badges to mark that...
-        toastQueue.add("Failed to upload to gateway");
-        notifyListeners();
-        return false;
+      // An upload failed
+      // Get all uploads pending
+      send("LIST-PENDING-UPLOADS");
+      // TODO: add badges to mark that...
+      toastQueue.add("Failed to upload to gateway");
+      notifyListeners();
+      return false;
     });
 
     on("LIST-PENDING-UPLOADS", (info, _) {
-        Map<String, dynamic> uploads = jsonDecode(info);
-        uploads["count"];
-        return false;
+      Map<String, dynamic> uploads = jsonDecode(info);
+      uploads["count"];
+      return false;
     });
 
     on("SENSOR-CONNECTED", (info, _) {
-        print("ping");
-        send("LIST-CONNECTED");
-        return false;
+      print("ping");
+      send("LIST-CONNECTED");
+      return false;
     });
     on("SENSOR-DISCONNECTED", (info, _) {
-        print("unping");
-        send("LIST-CONNECTED");
-        return false;
+      print("unping");
+      send("LIST-CONNECTED");
+      return false;
     });
     on("SENSOR-UPDATED", (_, __) {
-        send("LIST-CONNECTED");
-        return false;
+      send("LIST-CONNECTED");
+      return false;
     });
 
     on("LIST-CONNECTED", (info, _) {
-        // Clear stored devices
-        connectedSensors.clear();
-        // Parse data
-        List<dynamic> jsons = jsonDecode(info);
-        connectedSensors.addAll(jsons.map((j) => SensorStatus.fromJson(j)));
-        notifyListeners();
-        return false;
+      // Clear stored devices
+      connectedSensors.clear();
+      // Parse data
+      List<dynamic> jsons = jsonDecode(info);
+      connectedSensors.addAll(jsons.map((j) => SensorStatus.fromJson(j)));
+      notifyListeners();
+      return false;
     });
     send("LIST-CONNECTED");
   }
@@ -391,6 +436,14 @@ class Connection with ChangeNotifier {
     setGatewayID(newgate.id, idCallback);
     setGatewayPassword(newgate.password, passwordCallback);
     setGatewayHttpEndpoint(newgate.httpEndpoint, endpointCalllback);
+  }
+
+  void testGateway(ConnectionCallback callback) {
+    on("TEST-GATEWAY", (a, err) {
+      gatewayValid = (err == null);
+      return callback(a, err);
+    });
+    send("TEST-GATEWAY");
   }
 
   // Send pair acceptance command

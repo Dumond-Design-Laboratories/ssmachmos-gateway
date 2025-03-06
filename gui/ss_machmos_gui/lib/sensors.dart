@@ -107,7 +107,8 @@ class Sensor {
       nextWakeUp: DateTime.parse(s["next_wake_up"]),
       batteryLevel: s["battery_level"],
       deviceActive: s["device_active"] as bool,
-      lastSeen: DateTime.parse(s["last_seen"]).toLocal(),
+      lastSeen: DateTime.parse(s["last_seen"]), // KEEP THIS AS-IS, stored as
+                                                // local time
       settings: settings,
     );
   }
@@ -130,7 +131,7 @@ class Sensor {
 
   String get predictedWakeupTime {
     try {
-      DateTime next = lastSeen.add(Duration(seconds: wakeUpInterval));
+      DateTime next = lastSeen.toLocal().add(Duration(seconds: wakeUpInterval));
       return DateFormat('yyyy-MM-dd HH:mm:ss').format(next);
     } catch (e) {
       log(e.toString());

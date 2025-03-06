@@ -38,37 +38,46 @@ class _GatewayViewState extends State<GatewayView> {
 
   void submitGateway() async {
     if (_formKey.currentState!.validate()) {
+      Connection conn = context.read<Connection>();
       // Form data is valid, send to backend
-      context.read<Connection>().setGatewayID(_idController.text, (_, err) {
+      conn.setGatewayID(_idController.text, (_, err) {
         if (err != null) {
           showMessage("Failed to save Gateway ID", context);
-        } else {
-          showMessage("Gateway ID saved", context,
-              duration: Duration(seconds: 1));
-        }
+        } // else {
+        //   showMessage("Gateway ID saved", context,
+        //       duration: Duration(seconds: 1));
+        // }
         return true;
       });
 
-      context.read<Connection>().setGatewayPassword(_passwordController.text,
+      conn.setGatewayPassword(_passwordController.text,
           (_, err) {
         if (err != null) {
           showMessage("Failed to save Gateway Password", context);
-        } else {
-          showMessage("Gateway Password saved", context,
-              duration: Duration(seconds: 1));
-        }
+        } // else {
+        //   showMessage("Gateway Password saved", context,
+        //       duration: Duration(seconds: 1));
+        // }
         return true;
       });
 
-      context.read<Connection>().setGatewayHttpEndpoint(_httpController.text,
+      conn.setGatewayHttpEndpoint(_httpController.text,
           (_, err) {
         if (err != null) {
           showMessage("Failed to save Gateway HTTP Endpoint", context);
-        } else {
-          showMessage("Gateway HTTP Endpoint saved", context,
-              duration: Duration(seconds: 1));
-        }
+        } // else {
+        //   showMessage("Gateway HTTP Endpoint saved", context,
+        //       duration: Duration(seconds: 1));
+        // }
         return true;
+      });
+
+      conn.testGateway((_, err) {
+          if (err != null) {
+            print(err);
+            showMessage("Gateway invalid: $err", context);
+          }
+          return false;
       });
     }
   }
