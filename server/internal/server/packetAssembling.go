@@ -189,9 +189,6 @@ func handleVibrationData(transmitData Transmission) []map[string]interface{} {
 	for i := 0; i < len(rawData); i += 6 {
 		//out.Logger.Println(rawData[i:i+6])
 		// We're receiving signed integers, of course.
-		//x[i/6] = float64(int16(binary.LittleEndian.Uint16(rawData[i+0:i+2]))) * convRange8G
-		// y[i/6] = float64(int16(binary.LittleEndian.Uint16(rawData[i+2:i+4]))) * convRange8G
-		// z[i/6] = float64(binary.LittleEndian.Uint16(rawData[i+4:i+6])) * convRange8G
 		x[i/6] = float64(int16(transmitData.packets[i+1])<<8|int16(transmitData.packets[i+0])) * convRange8G
 		y[i/6] = float64(int16(transmitData.packets[i+3])<<8|int16(transmitData.packets[i+2])) * convRange8G
 		z[i/6] = float64(int16(transmitData.packets[i+5])<<8|int16(transmitData.packets[i+4])) * convRange8G
@@ -228,19 +225,21 @@ func handleVibrationData(transmitData Transmission) []map[string]interface{} {
 	return measurements
 }
 
-func handleTemperatureData(transmitData Transmission) []map[string]interface{} {
-	measurements := []map[string]interface{}{}
+// Temperature data is a single number in an array
+func handleTemperatureData(transmitData Transmission) []map[string]any {
+	measurements := []map[string]any{}
 
 	if len(transmitData.packets) == 2 {
-		temperature, err := parseTemperatureData(binary.LittleEndian.Uint16(transmitData.packets))
+		temperature, err := parseTemperatureData(int16(transmitData.packets[1])<<8|int16(transmitData.packets[0]))
 		if err == nil {
 			measurements = append(measurements,
-				map[string]interface{}{
+				map[string]any{
 					"sensor_id":          model.MacToString(transmitData.macAddress),
 					"time":               transmitData.timestamp,
 					"measurement_type":   transmitData.dataType,
 					"sampling_frequency": transmitData.samplingFrequency,
-					"raw_data":           temperature,
+					// Has to be an array
+					"raw_data":           []float64{temperature},
 				},
 			)
 		} else {
