@@ -14,11 +14,17 @@ import (
 )
 
 const SENSORS_FILE = "sensors.json"
+const SENSOR_HISTORY_FILE = "sensor_history.json"
 
 var DATA_SIZE = map[string]int{
 	"temperature": 2,
 	"audio":       3,
 	"vibration":   2 * 3,
+}
+
+var SENSOR_MODELS map[byte]string = map[byte]string{
+	0x1: "machmo",
+	0x2: "machmomini",
 }
 
 type SensorActivity string
@@ -29,6 +35,12 @@ const (
 	SensorActivityTransmitting SensorActivity = "transmitting"
 )
 
+type SensorLastSeen struct {
+	Mac          string         `json:"mac"`
+	LastActivity SensorActivity `json:"last_activity"`
+	LastSeen     time.Time      `json:"last_seen"`
+}
+
 type settings struct {
 	Active            bool   `json:"active"`
 	SamplingFrequency uint32 `json:"sampling_frequency"`
@@ -38,7 +50,7 @@ type settings struct {
 type Sensor struct {
 	Mac                     [6]byte             `json:"mac"`
 	Name                    string              `json:"name"`
-	LastSeen                time.Time           `json:"last_seen"` // For local purposes only
+	Model                   string              `json:"model"`
 	Types                   []string            `json:"types"`
 	BatteryLevel            int                 `json:"battery_level"`
 	CollectionCapacity      uint32              `json:"collection_capacity"`
@@ -48,14 +60,28 @@ type Sensor struct {
 	DeviceActive            bool                `json:"device_active"`
 	CurrentActivity         SensorActivity      `json:"current_activity"`
 	Settings                map[string]settings `json:"settings"`
-	// PublicKey               rsa.PublicKey       `json:"key"`
 }
 
+var SensorHistory map[string]SensorLastSeen = map[string]SensorLastSeen{}
+
 func (s *Sensor) UpdateLastSeen(activity SensorActivity, sensors *[]Sensor) {
-	s.LastSeen = time.Now()
-	s.CurrentActivity = activity
-	saveSensors(SENSORS_FILE, sensors)
+	hist, ok := SensorHistory[MacToString(s.Mac)]
+	if !ok {
+		hist = SensorLastSeen{}
+	}
+	hist.LastSeen = time.Now()
+	hist.LastActivity = activity
+	SensorHistory[MacToString(s.Mac)] = hist
+	saveSensorHistory()
 	out.Broadcast("SENSOR-UPDATED")
+}
+
+func (s *Sensor) UpdateLastSeenNow(sensors *[]Sensor) {
+	s.UpdateLastSeen(s.CurrentActivity, sensors)
+}
+
+func (s *Sensor) FetchLastSeen() SensorLastSeen {
+	return SensorHistory[MacToString(s.Mac)]
 }
 
 func (s *Sensor) ToString() string {
@@ -154,6 +180,7 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32 /*,
 	sensor := Sensor{
 		Mac:                     mac,
 		Name:                    "Sensor " + MacToString(mac),
+		Model:                   "machmo",
 		Types:                   types,
 		BatteryLevel:            -1,
 		CollectionCapacity:      collectionCapacity,
@@ -366,6 +393,21 @@ func isExceedingCollectionCapacity(sensor *Sensor, setting string, newSettingVal
 	return nil
 }
 
+func GetConfigDir() (string, error) {
+	configPath, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	err = os.MkdirAll(path.Join(configPath, "ss_machmos"), 0777)
+	if err != nil {
+		return "", err
+	}
+
+	return path.Join(configPath, "ss_machmos"), nil
+}
+
+// Only reason we take as input is because we can't import server ourselves
 func saveSensors(fileName string, sensors *[]Sensor) error {
 	if sensors == nil {
 		return errors.New("sensors is nil")
@@ -376,15 +418,23 @@ func saveSensors(fileName string, sensors *[]Sensor) error {
 		return err
 	}
 
-	configPath, err := os.UserConfigDir()
+	confDir, err := GetConfigDir()
 	if err != nil {
 		return err
 	}
 
-	err = os.MkdirAll(path.Join(configPath, "ss_machmos"), 0777)
+	return os.WriteFile(path.Join(confDir, fileName), jsonStr, 0777)
+}
+
+func saveSensorHistory() error {
+	confDir, err := GetConfigDir()
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(path.Join(configPath, "ss_machmos", fileName), jsonStr, 0777)
+	jsonStr, err := json.MarshalIndent(SensorHistory, "", "\t")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path.Join(confDir, SENSOR_HISTORY_FILE), jsonStr, 0777)
 }

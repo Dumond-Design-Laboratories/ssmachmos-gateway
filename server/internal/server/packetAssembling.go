@@ -20,16 +20,14 @@ type Packet struct {
 }
 
 type Transmission struct {
-	macAddress   [6]byte
-	batteryLevel int
-	// Transmission start time
-	timestamp time.Time
-	// transmission end time
-	endTimestamp      time.Time
-	dataType          string
-	samplingFrequency uint32
-	currentLength     int
-	totalLength       uint32
+	macAddress [6]byte // FIXME make this a string
+	// batteryLevel      int 		// UNUSED
+	timestamp         time.Time // Transmission start time
+	endTimestamp      time.Time // transmission end time
+	dataType          string    // Enum-like
+	samplingFrequency uint32    // Frequency of samples
+	currentLength     int       // Number of packets collected so far
+	totalLength       uint32    // Total amount announced by sensor
 	packets           []byte
 }
 
@@ -44,11 +42,11 @@ func savePacket(data []byte, macAddress [6]byte, dataType string) (t Transmissio
 		// First packet is a header
 		totalLength := binary.LittleEndian.Uint32(data[0:4])
 		samplingFrequency := binary.LittleEndian.Uint32(data[4:8])
-		batteryLevel := -1
+		// batteryLevel := -1
 		transmissions[macAddress] = Transmission{
-			macAddress:        macAddress,
-			timestamp:         time.Now(),
-			batteryLevel:      batteryLevel,
+			macAddress: macAddress,
+			timestamp:  time.Now(),
+			//batteryLevel:      batteryLevel,
 			dataType:          dataType,
 			samplingFrequency: samplingFrequency,
 			currentLength:     0,
@@ -230,7 +228,7 @@ func handleTemperatureData(transmitData Transmission) []map[string]any {
 	measurements := []map[string]any{}
 
 	if len(transmitData.packets) == 2 {
-		temperature, err := parseTemperatureData(int16(transmitData.packets[1])<<8|int16(transmitData.packets[0]))
+		temperature, err := parseTemperatureData(int16(transmitData.packets[1])<<8 | int16(transmitData.packets[0]))
 		if err == nil {
 			measurements = append(measurements,
 				map[string]any{
@@ -239,7 +237,7 @@ func handleTemperatureData(transmitData Transmission) []map[string]any {
 					"measurement_type":   transmitData.dataType,
 					"sampling_frequency": transmitData.samplingFrequency,
 					// Has to be an array
-					"raw_data":           []float64{temperature},
+					"raw_data": []float64{temperature},
 				},
 			)
 		} else {

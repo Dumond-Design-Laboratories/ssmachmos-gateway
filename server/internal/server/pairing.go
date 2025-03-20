@@ -9,6 +9,7 @@ import (
 )
 
 type request struct {
+	announcedModel     string
 	dataTypes          []string
 	collectionCapacity uint32
 	isPaired           bool
@@ -77,8 +78,8 @@ func ConnectedDevices() []SensorStatus {
 			Address:   model.MacToString(sensor.Mac),
 			Name:      sensor.Name,
 			Connected: connected,
-			LastSeen:  sensor.LastSeen,
-			Activity:  sensor.CurrentActivity,
+			LastSeen:  sensor.FetchLastSeen().LastSeen,
+			Activity:  sensor.FetchLastSeen().LastActivity,
 		})
 	}
 	return devices
@@ -111,7 +112,7 @@ func pairDeviceConnected(MAC [6]byte) bool {
 	if sensor != nil {
 		out.Logger.Println("pairConnectedDevice " + model.MacToString(MAC) + " already exists.")
 		// Update last seen log
-		sensor.LastSeen = time.Now()
+		sensor.UpdateLastSeenNow(Sensors)
 		// Log that device already exists
 		out.Broadcast("SENSOR-CONNECTED:" + model.MacToString(MAC))
 		return false
@@ -162,7 +163,7 @@ func pairReceiveCapabilities(MAC [6]byte, data []byte) bool {
 
 	// Parse sensor information
 	// from protocol.md
-	// data types (1 byte) | collection capacity in bytes (4 bytes)
+	// data types (1 byte) | collection capacity in bytes (4 bytes) | sensor model (1 byte)
 	// Data types: b(0 0 0 0 0 vibration temperature audio)
 	// Save sensors to memory
 	bit_types := map[byte]string{
@@ -178,6 +179,13 @@ func pairReceiveCapabilities(MAC [6]byte, data []byte) bool {
 		}
 	}
 	req.collectionCapacity = binary.LittleEndian.Uint32(data[1:5])
+
+	if model, ok := model.SENSOR_MODELS[data[5]]; ok {
+		req.announcedModel = model
+	} else {
+		req.announcedModel = "unknown"
+	}
+
 	req.announcedSensors = true
 	state.requested[MAC] = req
 

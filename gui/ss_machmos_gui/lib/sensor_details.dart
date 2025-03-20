@@ -13,7 +13,7 @@ class SensorDetails extends StatefulWidget {
 }
 
 class _SensorDetailsState extends State<SensorDetails> {
-  // NOTE: There's a mix of controllers and provider state management this is
+  // NOTE: There's a mix of controllers and provider state management. This is
   // becuase I can't access the state in the subwidgets without specifying
   // everything by hand
   final _formKey = GlobalKey<FormState>();
@@ -37,10 +37,10 @@ class _SensorDetailsState extends State<SensorDetails> {
   void onForget(BuildContext context) {
     Connection conn = context.read<Connection>();
     conn.forgetSensor(conn.displayedSensor!, (_, err) {
-        if(err == null) {
-          showMessage("Sensor removed", context);
-        }
-        return false;
+      if (err == null) {
+        showMessage("Sensor removed", context);
+      }
+      return false;
     });
     return;
   }
@@ -138,7 +138,8 @@ class _SensorConfigMultipleSamplesState extends State<SensorConfigMultipleSample
 
   @override
   Widget build(BuildContext context) {
-    SensorSettings display = context.read<Connection>().displayedSensor!.settings[widget.specific]!;
+    //SensorSettings display = context.read<Connection>().displayedSensor!.settings[widget.specific]!;
+    SensorSettings display = widget.sensor.settings[widget.specific]!;
     return Container(
         padding: EdgeInsets.all(8),
         child: Column(
@@ -156,13 +157,19 @@ class _SensorConfigMultipleSamplesState extends State<SensorConfigMultipleSample
             ]),
             Row(spacing: 8, children: [
               Expanded(
-                child: TextFormField(
-                  initialValue: display.samplingFrequency.toString(),
-                  onChanged: (value) => setState(() => display.samplingFrequency = int.tryParse(value) ?? 0),
-                  decoration: InputDecoration(labelText: "Sampling frequency", suffixText: "Hz"),
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ),
+                  child: FrequencySelectionDropdown(
+                      freqs: widget.sensor.samplingFreqsForSetting(widget.specific),
+                      onSelected: (val) {
+                        setState(() => display.samplingFrequency = val);
+                      },
+                      initialSelection: display.samplingFrequency!)
+                  // TextFormField(
+                  //   initialValue: display.samplingFrequency.toString(),
+                  //   onChanged: (value) => setState(() => display.samplingFrequency = int.tryParse(value) ?? 0),
+                  //   decoration: InputDecoration(labelText: "Sampling frequency", suffixText: "Hz"),
+                  //   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  // ),
+                  ),
               Expanded(
                 child: TextFormField(
                   initialValue: display.samplingDuration.toString(),
@@ -175,5 +182,21 @@ class _SensorConfigMultipleSamplesState extends State<SensorConfigMultipleSample
             Divider(),
           ],
         ));
+  }
+}
+
+class FrequencySelectionDropdown extends StatelessWidget {
+  final List<int> freqs;
+  final Function(int?) onSelected;
+  final int initialSelection;
+
+  const FrequencySelectionDropdown({super.key, required this.freqs, required this.onSelected, required this.initialSelection});
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownMenu<int>(
+        onSelected: onSelected,
+        initialSelection: initialSelection,
+        dropdownMenuEntries: freqs.map((x) => DropdownMenuEntry<int>(value: x, label: x.toString())).toList());
   }
 }

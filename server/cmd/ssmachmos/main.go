@@ -13,12 +13,15 @@ import (
 )
 
 func serve() {
-	// if the server is already running, stop it
-	out.Logger.Println("Closing running instances...")
+	var err error
+	// if the server is already running, quit
+	//out.Logger.Println("Closing running instances...")
 	conn, err := cli.OpenConnection()
 	if err == nil {
-		conn.Write([]byte("STOP\x00"))
+		out.Logger.Println("Server already runnning, Quit.");
+		//conn.Write([]byte("STOP\x00"))
 		conn.Close()
+		return
 	}
 
 	out.Logger.Println("Loading local config...")
