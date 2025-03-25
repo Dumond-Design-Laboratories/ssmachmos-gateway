@@ -31,20 +31,22 @@ class SensorStatus {
   String name;
   String address;
   bool connected;
-  String lastSeenTimestamp;
+  DateTime _lastSeen;
   String activity;
 
-  SensorStatus(this.name, this.address, this.connected, this.lastSeenTimestamp,
-      this.activity);
+  SensorStatus(
+      this.name, this.address, this.connected, this._lastSeen, this.activity);
   factory SensorStatus.fromJson(Map<String, dynamic> ss) {
     return SensorStatus(
       ss['name'] ?? "no name",
       ss['address'] ?? "no address",
       ss['connected'],
-      ss["last_seen"],
+      DateTime.parse(ss["last_seen"]),
       ss['activity'],
     );
   }
+
+  DateTime get lastSeen => _lastSeen.toLocal();
 }
 
 // UI state. Manages connection to gateway and collecting information through a socket connection
@@ -86,7 +88,7 @@ class Connection with ChangeNotifier {
   }
 
   // List of devices in store, last seen and if connected
-  final List<SensorStatus> connectedSensors = [];
+  //final List<SensorStatus> connectedSensors = [];
 
   Socket? _socket;
   late Map<String, ConnectionCallback>
@@ -110,7 +112,7 @@ class Connection with ChangeNotifier {
       _socket = await Socket.connect(
           InternetAddress(socketPath, type: InternetAddressType.unix), 0,
           timeout: Duration(seconds: 8));
-        send("PING");
+      send("PING");
     } catch (e) {
       // Socket is not open, start server
       startServer();
@@ -122,7 +124,7 @@ class Connection with ChangeNotifier {
       _socket = await Socket.connect(
           InternetAddress(socketPath, type: InternetAddressType.unix), 0,
           timeout: Duration(seconds: 8));
-        send("PING");
+      send("PING");
     }
     // If we make it this far I'm assuming we're connected
     _state = ConnState.connected;
@@ -228,12 +230,10 @@ class Connection with ChangeNotifier {
     });
 
     on("SENSOR-CONNECTED", (info, _) {
-      print("ping");
       send("LIST-CONNECTED");
       return false;
     });
     on("SENSOR-DISCONNECTED", (info, _) {
-      print("unping");
       send("LIST-CONNECTED");
       return false;
     });
@@ -242,12 +242,46 @@ class Connection with ChangeNotifier {
       return false;
     });
 
+    // List actual sensor data
+    on("LIST", (json, err) {
+      if (err != null) {
+        showMessage("Failed to load sensors");
+        notifyListeners();
+      }
+      try {
+        // Deserialize data into a list of sensors
+        // Map all objects in map to a Sensor object
+        List<dynamic> decode = jsonDecode(json);
+        List<Sensor> decodedSensors =
+            decode.map<Sensor>((dynamic s) => Sensor.fromJson(s)).toList();
+        sensors.clear();
+        sensors.addAll(decodedSensors);
+      } catch (e) {
+        showMessage("Failed to load sensors: $e");
+        log(e.toString());
+        log(json);
+        rethrow;
+      } finally {
+        notifyListeners();
+      }
+      return false;
+    });
+
+    // FIXME: combine this into LIST
     on("LIST-CONNECTED", (info, _) {
       // Clear stored devices
-      connectedSensors.clear();
+      //connectedSensors.clear();
       // Parse data
-      List<dynamic> jsons = jsonDecode(info);
-      connectedSensors.addAll(jsons.map((j) => SensorStatus.fromJson(j)));
+      for (dynamic j in jsonDecode(info)) {
+        SensorStatus ss = SensorStatus.fromJson(j);
+        // find associated sensor and plug in
+        for (Sensor sens in sensors) {
+          if (macToString(sens.mac) == ss.address) {
+            sens.status = ss;
+          }
+        }
+      }
+      //connectedSensors.addAll(jsons.map((j) {}));
       notifyListeners();
       return false;
     });
@@ -463,32 +497,14 @@ class Connection with ChangeNotifier {
     notifyListeners();
   }
 
+  void loadConnectedSensors() {
+    send("LIST-CONNECTED");
+  }
+
   void loadSensors() async {
-    on("LIST", (json, err) {
-      if (err != null) {
-        showMessage("Failed to load sensors");
-        notifyListeners();
-      }
-      try {
-        // Deserialize data into a list of sensors
-        // Map all objects in map to a Sensor object
-        List<dynamic> decode = jsonDecode(json);
-        List<Sensor> decodedSensors =
-            decode.map<Sensor>((dynamic s) => Sensor.fromJson(s)).toList();
-        sensors.clear();
-        sensors.addAll(decodedSensors);
-      } catch (e) {
-        showMessage("Failed to load sensors: $e");
-        log(e.toString());
-        log(json);
-        rethrow;
-      } finally {
-        notifyListeners();
-      }
-      return false;
-    });
     send("LIST");
     send("PAIR-LIST");
+    loadConnectedSensors();
   }
 
   void collectFromSensor(Sensor sensor) {

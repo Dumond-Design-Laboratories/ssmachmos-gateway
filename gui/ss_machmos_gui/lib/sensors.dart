@@ -81,7 +81,8 @@ class Sensor {
   int wakeUpIntervalMaxOffset;
   DateTime nextWakeUp;
   bool deviceActive; // Should the sensor start sampling or stay idle
-  //DateTime lastSeen;
+  //DateTime? lastSeen;
+  SensorStatus? status;
   Map<String, SensorSettings> settings;
 
   Sensor(
@@ -95,7 +96,8 @@ class Sensor {
       required this.wakeUpInterval,
       required this.wakeUpIntervalMaxOffset,
       required this.deviceActive,
-      //required this.lastSeen,
+      this.status,
+      // required this.lastSeen,
       required this.nextWakeUp});
 
   factory Sensor.fromJson(Map<String, dynamic> s) {
@@ -140,14 +142,17 @@ class Sensor {
   }
 
   String get predictedWakeupTime {
-    // try {
-    //   DateTime next = lastSeen.toLocal().add(Duration(seconds: wakeUpInterval));
-    //   return DateFormat('yyyy-MM-dd HH:mm:ss').format(next);
-    // } catch (e) {
-    //   log(e.toString());
-    //   return "Unknown";
-    // }
-    return "I gave up lmao. Unimplemented";
+    try {
+      if (status != null) {
+        DateTime next = status!.lastSeen.toLocal().add(Duration(seconds: wakeUpInterval));
+        return DateFormat('yyyy-MM-dd HH:mm:ss').format(next);
+      } else {
+        return "Never seen before!";
+      }
+    } catch (e) {
+      log(e.toString());
+      return "Unknown";
+    }
   }
 
   List<int> samplingFreqsForSetting(String setting) {
@@ -237,5 +242,5 @@ class Sensor {
 }
 
 String macToString(Uint8List mac) {
-  return mac.map((b) => b.toRadixString(16).padLeft(2, "0")).join(":");
+  return mac.map((b) => b.toRadixString(16).padLeft(2, "0")).join(":").toUpperCase();
 }

@@ -69,7 +69,7 @@ func (s *Sensor) UpdateLastSeen(activity SensorActivity, sensors *[]Sensor) {
 	if !ok {
 		hist = SensorLastSeen{}
 	}
-	hist.LastSeen = time.Now()
+	hist.LastSeen = time.Now().UTC() // Always UTC
 	hist.LastActivity = activity
 	SensorHistory[MacToString(s.Mac)] = hist
 	saveSensorHistory()
@@ -424,6 +424,25 @@ func saveSensors(fileName string, sensors *[]Sensor) error {
 	}
 
 	return os.WriteFile(path.Join(confDir, fileName), jsonStr, 0777)
+}
+
+func LoadSensorHistory() error {
+	confDir, err := GetConfigDir()
+	if err != nil {
+		return err
+	}
+
+	jsonStr, err := os.ReadFile(path.Join(confDir, SENSOR_HISTORY_FILE))
+	if err != nil {
+		SensorHistory = make(map[string]SensorLastSeen)
+		return err
+	}
+
+	err = json.Unmarshal(jsonStr, &SensorHistory)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func saveSensorHistory() error {

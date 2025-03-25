@@ -13,13 +13,22 @@ class Status extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<_Device> devices = context.watch<Connection>().connectedSensors.map((ss) => _Device(ss)).toList();
+    Connection conn = context.read<Connection>();
+    List<_Device> devices = [];
+    for (SensorStatus? ss in context.watch<Connection>().sensors.map((ss) => ss.status)) {
+      if (ss != null) {
+        devices.add(_Device(ss));
+      } else {
+        log("ss is null");
+      }
+    }
 
     return Container(
         margin: const EdgeInsets.fromLTRB(8, 12, 8, 8),
         child: Row(spacing: 8, children: [
           Expanded(
               child: Column(children: [
+            TextButton(child: Text("Refresh"), onPressed: () => conn.loadConnectedSensors()),
             Text("Connected devices"),
             ListView(
               shrinkWrap: true,
@@ -37,21 +46,22 @@ class _Device extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String timestamp = ss.lastSeenTimestamp;
-    try {
-      timestamp = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(ss.lastSeenTimestamp).toLocal());
-    } catch(e) {
-      log(e.toString());
-    }
+    String timestamp = DateFormat('yyyy-MM-dd HH:mm:ss').format(ss.lastSeen);
+    //String timestamp = ss.lastSeen;
+    // try {
+    //   //timestamp = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.parse(ss.lastSeen).toLocal());
+    //   timestamp = DateFormat('yyyy-MM-dd HH:mm:ss').format(ss.lastSeen);
+    // } catch(e) {
+    //   log(e.toString());
+    // }
     return ListTile(
-      leading:
-          ss.connected ? Icon(Icons.cell_tower, color: Colors.green) : Icon(Icons.portable_wifi_off),
+      leading: ss.connected ? Icon(Icons.cell_tower, color: Colors.green) : Icon(Icons.portable_wifi_off),
       title: Text("${ss.name} - ${ss.address}"),
       subtitle: Text("Last seen: $timestamp"),
       trailing: Column(children: [
-          ss.connected ? Text("Device connected.") : Text("Device not connected."),
-          Text(ss.activity),
-          ]),
+        ss.connected ? Text("Device connected.") : Text("Device not connected."),
+        Text(ss.activity),
+      ]),
     );
   }
 }

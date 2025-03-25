@@ -28,6 +28,7 @@ func serve() {
 	var sensors *[]model.Sensor = &[]model.Sensor{}
 	var gateway *model.Gateway = &model.Gateway{}
 	model.LoadSensors(model.SENSORS_FILE, sensors)
+	model.LoadSensorHistory();
 	err = model.LoadSettings(gateway, model.GATEWAY_FILE)
 	if err != nil {
 		out.Logger.Println("Error loading Gateway settings. Run 'ssmachmos config --id <gateway-id>' and 'ssmachmos config --password <gateway-password>' to set the Gateway settings.")
