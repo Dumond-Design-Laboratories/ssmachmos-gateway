@@ -25,29 +25,28 @@ class Sensors extends StatelessWidget {
 
     return Column(children: [
       Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              DropdownMenu(
-                label: Text("Sensor selection:"),
-                hintText: "Select Sensor",
-                initialSelection: conn.displayedSensor,
-                onSelected: (selectedSensor) {
-                  // Read provider state
-                  conn.displayedSensor = selectedSensor as Sensor;
-                },
-                dropdownMenuEntries: conn.sensors.map((s) => DropdownMenuEntry(value: s, label: s.name)).toList(),
-
+          padding: const EdgeInsets.all(8),
+          child:
+              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+            DropdownMenu(
+              label: Text("Sensor selection:"),
+              hintText: "Select Sensor",
+              initialSelection: conn.displayedSensor,
+              onSelected: (selectedSensor) {
+                // Read provider state
+                conn.displayedSensor = selectedSensor as Sensor;
+              },
+              dropdownMenuEntries: conn.sensors
+                  .map((s) => DropdownMenuEntry(value: s, label: s.name))
+                  .toList(),
             ),
             Text(conn.displayedSensor?.address ?? ""),
             Text(conn.displayedSensor?.model.string ?? "")
-
           ])),
-      Container(
-        height: 0.5,
-        color: Colors.grey,
-      ),
+      // Container(
+      //   height: 0.5,
+      //   color: Colors.grey,
+      // ),
       if (conn.displayedSensor != null) SensorDetails()
     ]);
   }
@@ -133,7 +132,9 @@ class Sensor {
       mac: Uint8List.fromList(s["mac"].cast<int>()),
       name: s["name"],
       model: SensorModel.fromString(s["model"] ?? ""),
-      types: s["types"] != null ? s["types"].cast<String>() : [], // Can be null sometimes
+      types: s["types"] != null
+          ? s["types"].cast<String>()
+          : [], // Can be null sometimes
       collectionCapacity: s["collection_capacity"],
       wakeUpInterval: s["wake_up_interval"],
       wakeUpIntervalMaxOffset: s["wake_up_interval_max_offset"],
@@ -164,7 +165,8 @@ class Sensor {
   String get predictedWakeupTime {
     try {
       if (status != null) {
-        DateTime next = status!.lastSeen.toLocal().add(Duration(seconds: wakeUpInterval));
+        DateTime next =
+            status!.lastSeen.toLocal().add(Duration(seconds: wakeUpInterval));
         return DateFormat('yyyy-MM-dd HH:mm:ss').format(next);
       } else {
         return "Never seen before!";
@@ -262,5 +264,8 @@ class Sensor {
 }
 
 String macToString(Uint8List mac) {
-  return mac.map((b) => b.toRadixString(16).padLeft(2, "0")).join(":").toUpperCase();
+  return mac
+      .map((b) => b.toRadixString(16).padLeft(2, "0"))
+      .join(":")
+      .toUpperCase();
 }
