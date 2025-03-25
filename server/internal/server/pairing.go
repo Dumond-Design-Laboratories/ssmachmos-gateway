@@ -110,12 +110,16 @@ func pairDeviceConnected(MAC [6]byte) bool {
 	// Test if MAC address is already stored in settings
 	sensor := sensorExists(MAC)
 	if sensor != nil {
-		out.Logger.Println("pairConnectedDevice " + model.MacToString(MAC) + " already exists.")
+		out.Logger.Println("pairDeviceConnected " + model.MacToString(MAC) + " already exists.")
 		// Update last seen log
 		sensor.UpdateLastSeenNow(Sensors)
 		// Log that device already exists
 		out.Broadcast("SENSOR-CONNECTED:" + model.MacToString(MAC))
 		return false
+	} else {
+		out.Logger.Println("pairConnectedDevice newly discovered " + model.MacToString(MAC))
+		// Device is newly connected, give out notification
+		//out.Broadcast("PAIR-DEVICE-CONNECTED:" + model.MacToString(MAC))
 	}
 	out.Logger.Println("Connected device address " + model.MacToString(MAC))
 
@@ -126,7 +130,7 @@ func pairDeviceDisconnected(MAC [6]byte) bool {
 	_, ok := state.requested[MAC]
 	if ok {
 		delete(state.requested, MAC)
-		out.PairingLog("PAIR-DEVICE-DISCONNECTED: " + model.MacToString(MAC))
+		out.Broadcast("PAIR-DEVICE-DISCONNECTED: " + model.MacToString(MAC))
 	}
 	out.Broadcast("SENSOR-DISCONNECTED:" + model.MacToString(MAC))
 
@@ -154,10 +158,11 @@ func pairReceiveCapabilities(MAC [6]byte, data []byte) bool {
 		}
 		req = state.requested[MAC]
 		out.Logger.Println("New device", model.MacToString(MAC), "requests pairing")
+
 	}
 
-	if len(data) != 5 {
-		out.Logger.Println("pairReceiveCapabilities expect data with 5 bytes, received", len(data), "bytes instead")
+	if len(data) != 6 {
+		out.Logger.Println("pairReceiveCapabilities expect data with 6 bytes, received", len(data), "bytes instead")
 		return false
 	}
 
@@ -196,49 +201,6 @@ func pairReceiveCapabilities(MAC [6]byte, data []byte) bool {
 }
 
 // see protocol.md to understand what is going on here
-// internal functions to manage pair lifecycle
-// TODO make this triggered by BLE agent on device pair
-// FIXME unused
-func pairRequest(value []byte) {
-	if len(value) < 12 || !state.active {
-		return
-	}
-	mac := [6]byte(value[1:7])
-	for _, s := range *Sensors {
-		if s.Mac == mac {
-			// Sensor already paired.
-			out.PairingLog("REQUEST-SENSOR-EXISTS:" + model.MacToString(mac))
-			return
-		}
-	}
-	if _, exists := state.requested[mac]; exists {
-		return
-	}
-
-	dataTypes := []string{}
-	if value[7]&0x01 == 0x01 {
-		dataTypes = append(dataTypes, "audio")
-	}
-	if value[7]&0x02 == 0x02 {
-		dataTypes = append(dataTypes, "temperature")
-	}
-	if value[7]&0x04 == 0x04 {
-		dataTypes = append(dataTypes, "vibration")
-	}
-
-	collectionCapacity := binary.LittleEndian.Uint32(value[8:12])
-
-	state.requested[mac] = request{
-		// publicKey:          publicKey,
-		dataTypes:          dataTypes,
-		collectionCapacity: collectionCapacity,
-	}
-
-	// Announce new sensor pending pairing
-	//out.PairingLog("REQUEST-NEW:" + model.MacToString(mac))
-}
-
-// see protocol.md to understand what is going on here
 // Triggered by sensor to indicate pair done. Remove from pending list
 // and notify sensor to collect gateway data
 func pairConfirmation(mac [6]byte) {
@@ -255,7 +217,7 @@ func pairConfirmation(mac [6]byte) {
 	delete(state.requested, mac)
 
 	// I'm 80% sure GUI reads this for pairing information
-	out.PairingLog("PAIR-SUCCESS:" + model.MacToString(mac))
+	out.Broadcast("PAIR-SUCCESS:" + model.MacToString(mac))
 }
 
 // see protocol.md to understand what is going on here
@@ -266,6 +228,7 @@ func Pair(mac [6]byte) {
 		out.PairingLog("PAIRING-DISABLED")
 		return
 	}
+	out.Logger.Println(state.requested)
 	request, ok := state.requested[mac]
 	if !ok {
 		out.PairingLog("REQUEST-NOT-FOUND " + model.MacToString(mac))
@@ -278,16 +241,6 @@ func Pair(mac [6]byte) {
 	out.PairingLog("PAIRING-WITH:" + model.MacToString(mac))
 	out.Logger.Println("Confirming pairing with device")
 	pairConfirmation(mac)
-
-	// go func() {
-	// 	time.Sleep(30 * time.Second)
-	// 	if state.pairing == mac {
-	// 		state.pairing = [6]byte{}
-	// 		pairResponseCharacteristic.Write([]byte{})
-	// 		delete(state.requested, mac)
-	// 		out.PairingLog("PAIRING-TIMEOUT:" + model.MacToString(mac))
-	// 	}
-	// }()
 }
 
 func DisconnectDevice(mac [6]byte) {

@@ -7,6 +7,7 @@ package server
 import (
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
@@ -20,8 +21,8 @@ type Packet struct {
 }
 
 type Transmission struct {
-	macAddress [6]byte // FIXME make this a string
-	// batteryLevel      int 		// UNUSED
+	macAddress        [6]byte   // FIXME make this a string
+	sensorModel       string    // Board model to choose conversion algorithm
 	timestamp         time.Time // Transmission start time
 	endTimestamp      time.Time // transmission end time
 	dataType          string    // Enum-like
@@ -44,8 +45,9 @@ func savePacket(data []byte, macAddress [6]byte, dataType string) (t Transmissio
 		samplingFrequency := binary.LittleEndian.Uint32(data[4:8])
 		// batteryLevel := -1
 		transmissions[macAddress] = Transmission{
-			macAddress: macAddress,
-			timestamp:  time.Now(),
+			macAddress:  macAddress,
+			sensorModel: sensorExists(macAddress).Model,
+			timestamp:   time.Now(),
 			//batteryLevel:      batteryLevel,
 			dataType:          dataType,
 			samplingFrequency: samplingFrequency,
@@ -228,7 +230,23 @@ func handleTemperatureData(transmitData Transmission) []map[string]any {
 	measurements := []map[string]any{}
 
 	if len(transmitData.packets) == 2 {
-		temperature, err := parseTemperatureData(int16(transmitData.packets[1])<<8 | int16(transmitData.packets[0]))
+		// TODO: Get sensor model from transmission
+		var temperature float64
+		var err error
+		if transmitData.sensorModel == "machmo" {
+			var digitalTemp int16 = int16(transmitData.packets[1])<<8 | int16(transmitData.packets[0])
+			temperature, err = parseTemperatureData(digitalTemp)
+			out.Logger.Println("MachMo temperature reading")
+		} else if transmitData.sensorModel == "machmomini" {
+			var digitalTemp int16 = int16(transmitData.packets[1])<<8 | int16(transmitData.packets[0])
+			err = nil
+			temperature = float64(digitalTemp) * 0.0625
+			out.Logger.Println(transmitData.packets)
+			out.Logger.Printf("MachMo mini temperature digital %d celsius %f", digitalTemp, temperature)
+		} else {
+			err = errors.New("Unknown board model " + transmitData.sensorModel)
+		}
+
 		if err == nil {
 			measurements = append(measurements,
 				map[string]any{
@@ -244,7 +262,7 @@ func handleTemperatureData(transmitData Transmission) []map[string]any {
 			out.Logger.Println("Error:", err)
 		}
 	} else {
-		out.Logger.Println("Invalid temperature data received")
+		out.Logger.Println("Invalid temperature data received, expected 2 bytes but received", len(transmitData.packets))
 	}
 
 	return measurements

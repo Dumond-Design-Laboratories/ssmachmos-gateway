@@ -125,6 +125,7 @@ func sendUnsentMeasurements() {
 	}
 }
 
+// Parse and convert raw data received from MachMo boards
 func parseTemperatureData(data int16) (float64, error) {
 	adc_fs := math.Pow(2, 15) - 1.0
 	const r_ref = 1500.0
