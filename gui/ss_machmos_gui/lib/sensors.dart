@@ -25,17 +25,25 @@ class Sensors extends StatelessWidget {
 
     return Column(children: [
       Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: DropdownMenu(
-          hintText: "Select Sensor",
-          initialSelection: conn.displayedSensor,
-          onSelected: (selectedSensor) {
-            // Read provider state
-            conn.displayedSensor = selectedSensor as Sensor;
-          },
-          dropdownMenuEntries: conn.sensors.map((s) => DropdownMenuEntry(value: s, label: s.name)).toList(),
-        ),
-      ),
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              DropdownMenu(
+                label: Text("Sensor selection:"),
+                hintText: "Select Sensor",
+                initialSelection: conn.displayedSensor,
+                onSelected: (selectedSensor) {
+                  // Read provider state
+                  conn.displayedSensor = selectedSensor as Sensor;
+                },
+                dropdownMenuEntries: conn.sensors.map((s) => DropdownMenuEntry(value: s, label: s.name)).toList(),
+
+            ),
+            Text(conn.displayedSensor?.address ?? ""),
+            Text(conn.displayedSensor?.model.string ?? "")
+
+          ])),
       Container(
         height: 0.5,
         color: Colors.grey,
@@ -67,11 +75,23 @@ enum SensorModel {
     if (str == "machmomini") return SensorModel.machmomini;
     return SensorModel.unknown;
   }
+
+  String get string {
+    switch (this) {
+      case SensorModel.machmo:
+        return "MachMo";
+      case SensorModel.machmomini:
+        return "MachMo-Mini";
+      default:
+        return "Unknown";
+    }
+  }
 }
 
 // Data class
 class Sensor {
   Uint8List mac;
+  String get address => macToString(mac);
   String name;
   SensorModel model;
   List<String> types;

@@ -88,16 +88,20 @@ class _SensorDetailsState extends State<SensorDetails> {
             //crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(spacing: 8, children: [
-                Expanded(flex: 1, child: TextFormField(controller: name, decoration: InputDecoration(labelText: "Name"))),
-                Expanded(flex: 1, child: Text(macToString(sensor.mac).toUpperCase())),
+                Expanded(flex: 2, child: TextFormField(controller: name, decoration: InputDecoration(labelText: "Name"))),
+                // Text(macToString(sensor.mac).toUpperCase()),
+                // Expanded(flex: 1, child: Text(sensor.model.string)),
+                Expanded(
+                    flex: 2,
+                    child: CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: Text("Device active?"),
+                        value: deviceActive,
+                        onChanged: (value) => setState(() => deviceActive = value!))),
+                Spacer(flex: 3),
                 TextButton(child: const Text("Collect now"), onPressed: () => context.read<Connection>().collectFromSensor(sensor)),
               ]),
-              CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: Text("Device active?"),
-                  value: deviceActive,
-                  onChanged: (value) => setState(() => deviceActive = value!)),
               Text("Types: ${sensor.types.join(', ')}"),
               Row(spacing: 8, children: [
                 Expanded(
