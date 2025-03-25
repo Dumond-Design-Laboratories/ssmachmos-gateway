@@ -24,12 +24,13 @@ class Logs extends StatelessWidget {
           margin: const EdgeInsets.all(32),
           padding: const EdgeInsets.all(16),
           alignment: Alignment.bottomLeft,
-          child: SingleChildScrollView(
-            controller: _logsScrollController,
-            child: Row(
-              children: [
-                SelectableText(logs.join("")),
-              ],
+          child: SelectionArea(
+            child: ListView.builder(
+              itemCount: logs.length,
+              reverse: true,
+              //prototypeItem: Text(logs.last),
+              controller: _logsScrollController,
+              itemBuilder: (context, index) => Text(logs[logs.length - 1 - index].trim().trim()),
             ),
           ),
         ),
