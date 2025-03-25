@@ -201,38 +201,36 @@ class _SensorConfigMultipleSamplesState
     SensorSettings display = widget.sensor.settings[widget.specific]!;
     return Container(
         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-        child: Column(
-          spacing: 16,
+        child: Row(
+          //spacing: 16,
           children: [
-            CheckboxListTile(
-                controlAffinity: ListTileControlAffinity.leading,
-                value: display.active,
-                title: Text(toBeginningOfSentenceCase(widget.specific),
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text("Activate on next collection?"),
-                // Make sure to use setState to rebuild widgets
-                onChanged: (value) => setState(() => display.active = value!)),
-            Container(
-                margin: EdgeInsets.only(left: 50),
-                child: Row(spacing: 8, children: [
-                  Expanded(
-                      child: FrequencySelectionDropdown(
-                          freqs: widget.sensor
-                              .samplingFreqsForSetting(widget.specific),
-                          onSelected: (val) =>
-                              setState(() => display.samplingFrequency = val),
-                          initialSelection: display.samplingFrequency!)),
-                  Expanded(
-                      child: TextFormField(
-                    initialValue: display.samplingDuration.toString(),
-                    onChanged: (value) => setState(() =>
-                        display.samplingDuration = int.tryParse(value) ?? 0),
-                    decoration: InputDecoration(
-                        labelText: "Sampling duration", suffixText: "seconds"),
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  )),
-                ])),
-            Divider(),
+            Expanded(
+              flex: 2,
+                child: CheckboxListTile(
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: display.active,
+                    title: Text(toBeginningOfSentenceCase(widget.specific),
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text("Activate on next collection?"),
+                    // Make sure to use setState to rebuild widgets
+                    onChanged: (value) =>
+                        setState(() => display.active = value!))),
+            Expanded(
+                child: FrequencySelectionDropdown(
+                    freqs:
+                        widget.sensor.samplingFreqsForSetting(widget.specific),
+                    onSelected: (val) =>
+                        setState(() => display.samplingFrequency = val),
+                    initialSelection: display.samplingFrequency!)),
+            Expanded(
+                child: TextFormField(
+              initialValue: display.samplingDuration.toString(),
+              onChanged: (value) => setState(
+                  () => display.samplingDuration = int.tryParse(value) ?? 0),
+              decoration: InputDecoration(
+                  labelText: "Sampling duration", suffixText: "seconds"),
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            )),
           ],
         ));
   }
@@ -273,6 +271,7 @@ class DividerText extends StatelessWidget {
             style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: MediaQuery.textScalerOf(context).scale(15))),
+        Divider(),
         Expanded(child: Divider())
       ]);
 }
