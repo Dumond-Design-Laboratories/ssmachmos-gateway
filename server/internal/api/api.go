@@ -169,7 +169,7 @@ func handleCommand(command string, conn *net.Conn) string {
 		nbrOfSettings := (len(parts) - 2) / 2
 		for i := 0; i < nbrOfSettings; i++ {
 			// FIXME: Replace this with JSON instead
-			err = model.UpdateSensorSetting(mac, parts[2+i*2], parts[3+i*2], server.Sensors)
+			err = model.UpdateSensorSetting(mac, parts[2+i*2], parts[3+i*2], model.Sensors)
 			if err != nil {
 				out.Logger.Println("Error:", err)
 				return "ERR:SET-SENSOR-SETTINGS:" + err.Error()

@@ -65,7 +65,7 @@ func ListDevicesPendingPairing() []string {
 func ConnectedDevices() []SensorStatus {
 	var devices []SensorStatus = []SensorStatus{}
 	// Get all saved sensors
-	for _, sensor := range *Sensors {
+	for _, sensor := range *model.Sensors {
 		connected := false
 		// Intersect with bluetooth connected devices
 		for _, dev := range adapter.GetConnectedDevices() {
@@ -87,7 +87,7 @@ func ConnectedDevices() []SensorStatus {
 
 // If device is already written down
 func sensorExists(MAC [6]byte) *model.Sensor {
-	for _, sens := range *Sensors {
+	for _, sens := range *model.Sensors {
 		for m := range MAC {
 			if MAC[m] != sens.Mac[m] {
 				// Get next sensor
@@ -112,7 +112,7 @@ func pairDeviceConnected(MAC [6]byte) bool {
 	if sensor != nil {
 		out.Logger.Println("pairDeviceConnected " + model.MacToString(MAC) + " already exists.")
 		// Update last seen log
-		sensor.UpdateLastSeenNow(Sensors)
+		sensor.UpdateLastSeenNow(model.Sensors)
 		// Log that device already exists
 		out.Broadcast("SENSOR-CONNECTED:" + model.MacToString(MAC))
 		return false
@@ -213,7 +213,7 @@ func pairConfirmation(mac [6]byte) {
 	// Display pair code inline with each entry?
 	// Or just do it automatically over serial maybe
 	// Write sensor data to disk
-	model.AddSensor(mac, state.requested[mac].dataTypes, state.requested[mac].collectionCapacity /* state.requested[mac].publicKey, */, Sensors)
+	model.AddSensor(mac, state.requested[mac].dataTypes, state.requested[mac].collectionCapacity /* state.requested[mac].publicKey, */, model.Sensors)
 	delete(state.requested, mac)
 
 	// I'm 80% sure GUI reads this for pairing information

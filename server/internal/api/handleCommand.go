@@ -31,7 +31,7 @@ func pairListPending() (string, error) {
 }
 
 func list() (string, error) {
-	jsonStr, err := json.Marshal(*server.Sensors)
+	jsonStr, err := json.Marshal(*model.Sensors)
 	return string(jsonStr), err
 }
 
@@ -60,7 +60,7 @@ func pendingUploads() (string, error) {
 }
 
 func view(mac string) (string, error) {
-	for _, sensor := range *server.Sensors {
+	for _, sensor := range *model.Sensors {
 		if sensor.IsMacEqual(mac) {
 			jsonStr, err := json.Marshal(sensor)
 			return string(jsonStr), err
@@ -74,7 +74,7 @@ func forget(mac string) error {
 	if err != nil {
 		return err
 	}
-	err = model.RemoveSensor(m, server.Sensors)
+	err = model.RemoveSensor(m, model.Sensors)
 	if err != nil {
 		return err
 	}

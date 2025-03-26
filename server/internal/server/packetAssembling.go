@@ -100,9 +100,9 @@ func handleData(dataType string, _ bluetooth.Connection, address string, _mtu in
 	// Find sensor that is sending data
 	macAddress, _ := model.StringToMac(address)
 	var sensor *model.Sensor = nil
-	for i, s := range *Sensors {
+	for i, s := range *model.Sensors {
 		if s.Mac == macAddress {
-			sensor = &(*Sensors)[i]
+			sensor = &(*model.Sensors)[i]
 			break
 		}
 	}
@@ -114,7 +114,7 @@ func handleData(dataType string, _ bluetooth.Connection, address string, _mtu in
 		return
 	}
 	// Keep status updated
-	sensor.UpdateLastSeen(model.SensorActivityTransmitting, Sensors)
+	sensor.UpdateLastSeen(model.SensorActivityTransmitting, model.Sensors)
 	// Append data to total data transmission
 	transmitData, ok := savePacket(value, macAddress, dataType)
 	if !ok {
@@ -124,7 +124,7 @@ func handleData(dataType string, _ bluetooth.Connection, address string, _mtu in
 
 	// Done collecting data, serialize to json and attempt immediate transfer after
 	out.Logger.Println("Received " + dataType + " data transmission from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
-	sensor.UpdateLastSeen(model.SensorActivityIdle, Sensors)
+	sensor.UpdateLastSeen(model.SensorActivityIdle, model.Sensors)
 
 	// Pick apart data and place into json structures
 	var measurements []map[string]interface{}

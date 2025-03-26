@@ -51,16 +51,12 @@ var configStartSampleChar bluetooth.Characteristic
 // Gateway config
 var Gateway *model.Gateway
 
-// List of known sensors, displayed by GUI
-// FIXME: move these to the model package
-var Sensors *[]model.Sensor
-
 // List of devices flagged for collection
 var flaggedForCollect []string
 
 func Init(ss *[]model.Sensor, g *model.Gateway) error {
 	Gateway = g
-	Sensors = ss
+	model.Sensors = ss
 
 	err := adapter.Enable()
 	if err != nil {

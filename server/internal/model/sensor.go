@@ -62,6 +62,9 @@ type Sensor struct {
 	Settings                map[string]settings `json:"settings"`
 }
 
+
+// List of known sensors and their configs
+var Sensors *[]Sensor
 var SensorHistory map[string]SensorLastSeen = map[string]SensorLastSeen{}
 
 func (s *Sensor) UpdateLastSeen(activity SensorActivity, sensors *[]Sensor) {

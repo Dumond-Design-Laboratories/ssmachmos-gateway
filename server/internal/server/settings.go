@@ -12,9 +12,9 @@ import (
 func getSettingsForSensor(address string) []byte {
 	mac, _ := model.StringToMac(address)
 	var sensor *model.Sensor
-	for i, s := range *Sensors {
+	for i, s := range *model.Sensors {
 		if s.Mac == mac {
-			sensor = &(*Sensors)[i]
+			sensor = &(*model.Sensors)[i]
 			break
 		}
 	}
@@ -23,7 +23,7 @@ func getSettingsForSensor(address string) []byte {
 		return []byte{0x00}
 	}
 	// Update last seen log
-	sensor.UpdateLastSeen(model.SensorActivityIdle, Sensors)
+	sensor.UpdateLastSeen(model.SensorActivityIdle, model.Sensors)
 
 	response := []byte{}
 	if sensor.DeviceActive {
@@ -73,8 +73,8 @@ func setNextWakeUp(sensor *model.Sensor) uint32 {
 	nextWakeUpLow := nextWakeUpCenter
 	var offsetLow time.Duration
 	i := 0
-	for i < len(*Sensors) {
-		s := (*Sensors)[i]
+	for i < len(*model.Sensors) {
+		s := (*model.Sensors)[i]
 		i++
 		wakeUpDurationOther := getWakeUpDuration(&s)
 
@@ -106,8 +106,8 @@ func setNextWakeUp(sensor *model.Sensor) uint32 {
 	nextWakeUpHigh := nextWakeUpCenter
 	var offsetHigh time.Duration
 	i = 0
-	for i < len(*Sensors) {
-		s := (*Sensors)[i]
+	for i < len(*model.Sensors) {
+		s := (*model.Sensors)[i]
 		i++
 		wakeUpDurationOther := getWakeUpDuration(&s)
 
