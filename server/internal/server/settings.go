@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/binary"
 	"time"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
@@ -25,42 +24,12 @@ func getSettingsForSensor(address string) []byte {
 	// Update last seen log
 	sensor.UpdateLastSeen(model.SensorActivityIdle, model.Sensors)
 
-	response := []byte{}
-	if sensor.DeviceActive {
-		response = append(response, 0x01)
-	} else {
-		response = append(response, 0x00)
-	}
-	response = append(response, mac[:]...)
-	response = binary.LittleEndian.AppendUint32(response, setNextWakeUp(sensor))
+	settings := sensor.SettingsBytes()
 
-	for dataType, settings := range sensor.Settings {
-		var active byte
-		if settings.Active {
-			active = 0x01
-		} else {
-			active = 0x00
-		}
-		switch dataType {
-		case "vibration":
-			// 1 + 1 + 4 + 2 = 8
-			response = append(response, 0x00, active)
-			response = binary.LittleEndian.AppendUint32(response, settings.SamplingFrequency)
-			response = binary.LittleEndian.AppendUint16(response, settings.SamplingDuration)
-		case "audio":
-			// 1 + 1 + 4 + 2 = 8
-			response = append(response, 0x01, active)
-			response = binary.LittleEndian.AppendUint32(response, settings.SamplingFrequency)
-			response = binary.LittleEndian.AppendUint16(response, settings.SamplingDuration)
-		case "temperature":
-			// 							1	  2       3		4	  5	    6	  7     8
-			response = append(response, 0x02, active, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
-		default:
-			out.Logger.Println("Unknown data type", dataType)
-		}
-	}
+	// Debug announce setting returned
+	out.Logger.Printf("%s [%s] receives:\n\t[% x]", sensor.Name, sensor.MacString(), settings)
 
-	return response
+	return settings
 }
 
 func setNextWakeUp(sensor *model.Sensor) uint32 {
@@ -146,9 +115,11 @@ func setNextWakeUp(sensor *model.Sensor) uint32 {
 	}
 }
 
+// How long would the sensor be awake for normally?
 func getWakeUpDuration(sensor *model.Sensor) time.Duration {
 	WAKE_UP_DURATION_BASELINE := time.Second * 30 // baseline to account for transmission time
 
+	// Largest sampling duration of all settings
 	var maxSamplingDuration uint16 = 0
 	for _, setting := range sensor.Settings {
 		if setting.SamplingDuration > maxSamplingDuration {

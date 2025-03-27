@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,14 +55,22 @@ type Sensor struct {
 	Types                   []string            `json:"types"`
 	BatteryLevel            int                 `json:"battery_level"`
 	CollectionCapacity      uint32              `json:"collection_capacity"`
-	WakeUpInterval          int                 `json:"wake_up_interval"`
+	WakeUpInterval          int                 `json:"wake_up_interval"` // Time in seconds to sleep for
 	WakeUpIntervalMaxOffset int                 `json:"wake_up_interval_max_offset"`
-	NextWakeUp              time.Time           `json:"next_wake_up"`
+	NextWakeUp              time.Time           `json:"next_wake_up"` // REVIEW: replaced by sensor status?
 	DeviceActive            bool                `json:"device_active"`
 	CurrentActivity         SensorActivity      `json:"current_activity"`
 	Settings                map[string]settings `json:"settings"`
 }
 
+func (sensor *Sensor) MacString() string {
+	return MacToString(sensor.Mac)
+}
+
+// Returns time for the sensor to sleep in seconds
+func (sensor *Sensor) GetSleepDuration() uint32 {
+	return uint32(sensor.WakeUpInterval)
+}
 
 // List of known sensors and their configs
 var Sensors *[]Sensor
@@ -183,7 +192,7 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32 /*,
 	sensor := Sensor{
 		Mac:                     mac,
 		Name:                    "Sensor " + MacToString(mac),
-		Model:                   "machmo",
+		Model:                   "unknown",
 		Types:                   types,
 		BatteryLevel:            -1,
 		CollectionCapacity:      collectionCapacity,
@@ -226,6 +235,47 @@ func AddSensor(mac [6]byte, types []string, collectionCapacity uint32 /*publicKe
 	*sensors = append(*sensors, getDefaultSensor(mac, types, collectionCapacity /*, publicKey*/))
 	err := saveSensors(SENSORS_FILE, sensors)
 	return err
+}
+
+// Convert sensor settings into a byte stream for transmit
+func (sensor *Sensor) SettingsBytes() []byte {
+	response := []byte{}
+	if sensor.DeviceActive {
+		response = append(response, 0x01)
+	} else {
+		response = append(response, 0x00)
+	}
+	response = append(response, sensor.Mac[:]...)
+	// Place time in seconds
+	response = binary.LittleEndian.AppendUint32(response, sensor.GetSleepDuration())
+
+	for dataType, settings := range sensor.Settings {
+		var active byte
+		if settings.Active {
+			active = 0x01
+		} else {
+			active = 0x00
+		}
+		switch dataType {
+		case "vibration":
+			// 1 + 1 + 4 + 2 = 8
+			response = append(response, 0x00, active)
+			response = binary.LittleEndian.AppendUint32(response, settings.SamplingFrequency)
+			response = binary.LittleEndian.AppendUint16(response, settings.SamplingDuration)
+		case "audio":
+			// 1 + 1 + 4 + 2 = 8
+			response = append(response, 0x01, active)
+			response = binary.LittleEndian.AppendUint32(response, settings.SamplingFrequency)
+			response = binary.LittleEndian.AppendUint16(response, settings.SamplingDuration)
+		case "temperature":
+			// 							1	  2       3		4	  5	    6	  7     8
+			response = append(response, 0x02, active, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
+		default:
+			out.Logger.Printf("%s [%s]: Parsing unknown data type %s", sensor.Name, MacToString(sensor.Mac), dataType)
+		}
+	}
+
+	return response
 }
 
 // Updates a single sensor and stores back to JSON cache
