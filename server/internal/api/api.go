@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
@@ -24,6 +25,8 @@ func handleCommand(command string, conn *net.Conn) string {
 	switch parts[0] {
 	case "PING":
 		return "OK:PING:PONG"
+	case "PID":
+		return "OK:PID:"+strconv.Itoa(os.Getpid())
 	case "LIST":
 		// List devices paired
 		res, err := list()
