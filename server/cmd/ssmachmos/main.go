@@ -15,11 +15,10 @@ import (
 func serve() {
 	var err error
 	// if the server is already running, quit
-	//out.Logger.Println("Closing running instances...")
+	// Do not kill other instances, they might be doing something important.
 	conn, err := cli.OpenConnection()
 	if err == nil {
-		out.Logger.Println("Server already runnning, Quit.");
-		//conn.Write([]byte("STOP\x00"))
+		out.Logger.Println("Server already runnning, Quit.")
 		conn.Close()
 		return
 	}
@@ -28,7 +27,7 @@ func serve() {
 	var sensors *[]model.Sensor = &[]model.Sensor{}
 	var gateway *model.Gateway = &model.Gateway{}
 	model.LoadSensors(model.SENSORS_FILE, sensors)
-	model.LoadSensorHistory();
+	model.LoadSensorHistory()
 	err = model.LoadSettings(gateway, model.GATEWAY_FILE)
 	if err != nil {
 		out.Logger.Println("Error loading Gateway settings. Run 'ssmachmos config --id <gateway-id>' and 'ssmachmos config --password <gateway-password>' to set the Gateway settings.")
@@ -83,23 +82,27 @@ func main() {
 	args = args[:j]
 
 	if as[0] == "serve" {
+		out.InitSyslog()
+		// Daemon attempt
 		if len(options) > 0 && options[0] == "--no-console" {
 			process, err := os.StartProcess(os.Args[0], []string{os.Args[0], "serve"}, &os.ProcAttr{
 				Files: []*os.File{nil, nil, nil},
 				Env:   os.Environ(),
 			})
 			if err != nil {
-				fmt.Println("Error:", err)
+				out.Logger.Println("Error:", err)
 				return
 			}
 			err = process.Release()
 			if err != nil {
-				fmt.Println("Error:", err)
+				out.Logger.Println("Error:", err)
 			}
-			fmt.Println("Server started.")
-			fmt.Println("To stop the server, run 'ssmachmos stop'.")
-			fmt.Println("To view the live server logs, run 'ssmachmos logs'.")
+			out.Logger.Println("ssmachmos started.")
+			// fmt.Println("Server started.")
+			// fmt.Println("To stop the server, run 'ssmachmos stop'.")
+			// fmt.Println("To view the live server logs, run 'ssmachmos logs'.")
 		} else {
+			// Run in TTY
 			serve()
 		}
 		return
