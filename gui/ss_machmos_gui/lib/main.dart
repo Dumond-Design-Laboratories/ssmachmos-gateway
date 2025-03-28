@@ -11,8 +11,7 @@ import 'package:ss_machmos_gui/utils.dart';
 
 void main() {
   // Global state because why not
-  runApp(ChangeNotifierProvider(
-      create: (context) => Connection(), child: const MainApp()));
+  runApp(ChangeNotifierProvider(create: (context) => Connection(), child: const MainApp()));
 }
 
 class MainApp extends StatelessWidget {
@@ -74,7 +73,15 @@ class AppRoot extends StatelessWidget {
     List<Tab> tabs = [
       Tab(text: "Sensors", icon: Icon(Icons.sensors)),
       Tab(text: "Gateway", icon: Icon(Icons.hub)),
-      Tab(text: "Login", icon: conn.gatewayValid ? Icon(Icons.login) : Badge(label: Icon(Icons.error), backgroundColor: Colors.transparent, child: Icon(Icons.login))),
+      Tab(
+          text: "Login",
+          icon: conn.gatewayValid
+              ? Icon(Icons.login)
+              : Badge(
+                  label: Icon(Icons.error),
+                  backgroundColor: Colors.transparent,
+                  child: Icon(Icons.login),
+                )),
       Tab(text: "Logs", icon: Icon(Icons.text_snippet)),
       Tab(text: "Help", icon: Icon(Icons.help_outline)),
     ];
@@ -85,14 +92,8 @@ class AppRoot extends StatelessWidget {
         const Center(child: Text("Error: Could not connect to server.")),
         const SizedBox(height: 20),
         // Button to start the gateway server backend
-        TextButton(
-          onPressed: () async {
-            // Start server backend. Once it is up and running, a provider state triggers to redraw tree
-            conn.startServer();
-            await conn.openConnection();
-          },
-          child: const Text("Start Server"),
-        ),
+        // Start server backend. Once it is up and running, a provider state triggers to redraw tree
+        TextButton(onPressed: () async => conn.startBackend(), child: const Text("Start Server")),
       ],
     );
 

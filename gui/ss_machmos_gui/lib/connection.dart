@@ -16,14 +16,10 @@ class Gateway {
   String id;
   String password;
   String httpEndpoint;
-  Gateway(
-      {required this.id, required this.password, required this.httpEndpoint});
+  Gateway({required this.id, required this.password, required this.httpEndpoint});
 
   factory Gateway.fromJson(Map<String, dynamic> json) {
-    return Gateway(
-        id: json["id"],
-        password: json["password"],
-        httpEndpoint: json["http_endpoint"]);
+    return Gateway(id: json["id"], password: json["password"], httpEndpoint: json["http_endpoint"]);
   }
 }
 
@@ -34,8 +30,7 @@ class SensorStatus {
   DateTime _lastSeen;
   String activity;
 
-  SensorStatus(
-      this.name, this.address, this.connected, this._lastSeen, this.activity);
+  SensorStatus(this.name, this.address, this.connected, this._lastSeen, this.activity);
   factory SensorStatus.fromJson(Map<String, dynamic> ss) {
     return SensorStatus(
       ss['name'] ?? "no name",
@@ -53,6 +48,8 @@ class SensorStatus {
 // Unix named sockets here, if we're planning on supporting windows we need named pipes too
 class Connection with ChangeNotifier {
   final String socketPath = "/tmp/ss_machmos.sock";
+  int? _serverPid;
+  int? get serverPid => _serverPid;
   // Have a way to pass toast notifications to UI
   // gateway notifies when this is pushed to, and AppRoot pops and displays each
   Queue<String> toastQueue = Queue<String>();
@@ -91,9 +88,9 @@ class Connection with ChangeNotifier {
   //final List<SensorStatus> connectedSensors = [];
 
   Socket? _socket;
-  late Map<String, ConnectionCallback>
-      _waitingFor; // callback should return if we should remove the callback
+  late Map<String, ConnectionCallback> _waitingFor; // callback should return if we should remove the callback
 
+  // REVIEW: delete these functions?
   void Function(String message)? onLog;
   void Function()? onError;
   List<String> logs = [];
@@ -101,62 +98,78 @@ class Connection with ChangeNotifier {
   Connection() {
     _state = ConnState.disabled;
     _waitingFor = {};
+    startBackend();
   }
 
   // Entrypoint to ensure backend is started
-  // All this just to delete /tmp/ss_machmos.sock
   Future<void> startBackend() async {
+    startServer();
     _state = ConnState.inprogress;
-    // test current socket connection
     try {
-      _socket = await Socket.connect(
-          InternetAddress(socketPath, type: InternetAddressType.unix), 0,
-          timeout: Duration(seconds: 8));
+      _socket = await Socket.connect(InternetAddress(socketPath, type: InternetAddressType.unix), 0, timeout: Duration(seconds: 8));
       send("PING");
     } catch (e) {
-      // Socket is not open, start server
-      startServer();
       _socket = null;
       _state = ConnState.failed;
+      log(e.toString());
     }
 
-    if (_socket == null) {
-      _socket = await Socket.connect(
-          InternetAddress(socketPath, type: InternetAddressType.unix), 0,
-          timeout: Duration(seconds: 8));
-      send("PING");
+    if (_state == ConnState.failed) {
+      log("Failed to create connection");
+      return;
     }
+
+    // Server should be up and running, get PID
+    _serverPid = null;
+    on("PID", (pid, __) {
+      log("PID returned: $pid");
+      _serverPid = int.parse(pid);
+      return false;
+    });
+    send("PID");
+    log("PID sent");
+
+    // Block until PID is returned
+    //while(_serverPid == null){};
+
     // If we make it this far I'm assuming we're connected
-    _state = ConnState.connected;
     // Start listen loop
+    _state = ConnState.connected;
     listen();
+
     log("Server connected");
+
     // Attach various listeners to responses
     _attachListeners();
     _attachPairingListeners();
+
     // Load initial data
     loadGateway();
     loadSensors();
+
     // Notify provider to rebuild widget
     notifyListeners();
     return;
   }
 
-  Future<void> startServer() async {
-    var proc = await Process.start(
+  void startServer() {
+    // Start process, process dies if duplicate
+    // Use Process.runSync to start non-interactively and block
+    // We later ask for PID and read stdout from that
+    Process.runSync(
       kDebugMode ? "${Directory.current.path}/ssmachmos" : "ssmachmos",
-      // This used to have --no-console. Is that necessary anymore?
-      ["serve"],
+      ["serve", "--no-console"],
     );
 
-    // Append stdout to logs list
-    proc.stdout.transform(utf8.decoder).listen((l) {
-      logs.add(l);
-      notifyListeners();
-    });
-    proc.stderr.transform(utf8.decoder).listen((l) {
-      logs.add(l);
-      notifyListeners();
+    Process.start("${Directory.current.path}/monitor_ssmachmos", []).then((proc) {
+      proc.stdout.transform(utf8.decoder).listen((l) {
+        logs.add(l);
+        notifyListeners();
+      });
+      // proc.stderr.transform(utf8.decoder).listen((l) {
+      //   logs.add(l);
+      //   notifyListeners();
+      // });
     });
   }
 
@@ -170,9 +183,7 @@ class Connection with ChangeNotifier {
     // Try 5 times
     for (var i = 0; i < 5; i++) {
       try {
-        _socket = await Socket.connect(
-            InternetAddress(socketPath, type: InternetAddressType.unix), 0,
-            timeout: Duration(seconds: 8));
+        _socket = await Socket.connect(InternetAddress(socketPath, type: InternetAddressType.unix), 0, timeout: Duration(seconds: 8));
       } catch (e) {
         // If socket error, wait a second
         await Future.delayed(Duration(seconds: 1));
@@ -181,7 +192,7 @@ class Connection with ChangeNotifier {
       // No error, setup state and exit
       _state = ConnState.connected;
       listen();
-      log("Server connected");
+      log("Server connection created");
       _attachListeners();
       _attachPairingListeners();
       loadGateway();
@@ -205,6 +216,7 @@ class Connection with ChangeNotifier {
     }
   }
 
+  // FIXME: Move this to a separate file, as an extension?
   void _attachListeners() {
     // Attach ourselves to a feed
     send("ADD-LOGGER");
@@ -252,8 +264,7 @@ class Connection with ChangeNotifier {
         // Deserialize data into a list of sensors
         // Map all objects in map to a Sensor object
         List<dynamic> decode = jsonDecode(json);
-        List<Sensor> decodedSensors =
-            decode.map<Sensor>((dynamic s) => Sensor.fromJson(s)).toList();
+        List<Sensor> decodedSensors = decode.map<Sensor>((dynamic s) => Sensor.fromJson(s)).toList();
         sensors.clear();
         sensors.addAll(decodedSensors);
       } catch (e) {
@@ -291,8 +302,7 @@ class Connection with ChangeNotifier {
   void _attachPairingListeners() {
     // Attempted pairing with a sensor already paired
     on("REQUEST-SENSOR-EXISTS", (mac, _) {
-      showMessage(
-          "Pairing request for already paired sensor $mac. First \"Forget\" sensor $mac before pairing again.");
+      showMessage("Pairing request for already paired sensor $mac. First \"Forget\" sensor $mac before pairing again.");
       notifyListeners();
       return false;
     });
@@ -462,11 +472,7 @@ class Connection with ChangeNotifier {
   }
 
   // Helper function to set all three parameters at once
-  void setGateway(
-      Gateway newgate,
-      ConnectionCallback idCallback,
-      ConnectionCallback passwordCallback,
-      ConnectionCallback endpointCalllback) {
+  void setGateway(Gateway newgate, ConnectionCallback idCallback, ConnectionCallback passwordCallback, ConnectionCallback endpointCalllback) {
     setGatewayID(newgate.id, idCallback);
     setGatewayPassword(newgate.password, passwordCallback);
     setGatewayHttpEndpoint(newgate.httpEndpoint, endpointCalllback);
@@ -585,10 +591,7 @@ class Connection with ChangeNotifier {
             if (_waitingFor.containsKey(command)) {
               // If callback returns true, mark and remove later
               if (_waitingFor[command]!(
-                  parts.length > 2 ? parts.sublist(2).join(":") : "",
-                  parts[0] == "ERR"
-                      ? "Error: ${parts.sublist(1).join(":")}"
-                      : null)) {
+                  parts.length > 2 ? parts.sublist(2).join(":") : "", parts[0] == "ERR" ? "Error: ${parts.sublist(1).join(":")}" : null)) {
                 found.add(command);
               }
             }
