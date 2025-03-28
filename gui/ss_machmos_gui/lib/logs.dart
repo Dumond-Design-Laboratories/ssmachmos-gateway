@@ -34,6 +34,7 @@ class Logs extends StatelessWidget {
             ),
           ),
         ),
+        /*
         Positioned(
           top: 48.5,
           right: 48.5,
@@ -74,7 +75,8 @@ class Logs extends StatelessWidget {
                   color: Colors.white,
                 )),
           ),
-        ),
+        )
+        */
       ],
     );
   }
