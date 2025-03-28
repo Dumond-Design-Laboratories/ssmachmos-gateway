@@ -105,7 +105,6 @@ class _SensorDetailsState extends State<SensorDetails> {
                         controller: name,
                         decoration: InputDecoration(labelText: "Name"))),
                 Expanded(
-                    flex: 2,
                     child: CheckboxListTile(
                         contentPadding: EdgeInsets.zero,
                         controlAffinity: ListTileControlAffinity.leading,
@@ -113,7 +112,6 @@ class _SensorDetailsState extends State<SensorDetails> {
                         value: deviceActive,
                         onChanged: (value) =>
                             setState(() => deviceActive = value!))),
-                Spacer(flex: 3),
                 TextButton(
                     child: const Text("Collect now"),
                     onPressed: () =>
