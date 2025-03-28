@@ -19,17 +19,16 @@ class Status extends StatelessWidget {
 
     return Container(
         margin: const EdgeInsets.fromLTRB(8, 12, 8, 8),
-        child: Row(spacing: 8, children: [
-          Expanded(
-              child: Column(children: [
-            TextButton(child: Text("Refresh"), onPressed: () => conn.loadConnectedSensors()),
-            Text("Connected devices"),
-            ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.all(8),
-              children: devices,
-            )
-          ]))
+        child: Column(children: [
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            IconButton(icon: const Icon(Icons.refresh), tooltip: "Refresh device list", onPressed: () => conn.loadConnectedSensors()),
+            Text("Process PID ${conn.serverPid ?? 'none'}"),
+          ]),
+          ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.all(8),
+            children: devices,
+          )
         ]));
   }
 }
@@ -45,15 +44,14 @@ class _Device extends StatelessWidget {
     return ListTile(
       leading: ss.connected ? Icon(Icons.cell_tower, color: Colors.green) : Icon(Icons.portable_wifi_off),
       title: Text("${ss.name} - ${sensor.model.string}"),
-      subtitle: Flex(direction: Axis.horizontal,
-        children: [
-          Text(ss.address),
-          VerticalDivider(),
-          Text(sensor.model.string),
-          VerticalDivider(),
-          Text("Last seen at $timestamp"),
-          Spacer(),
-          //Spacer(flex: 4),
+      subtitle: Flex(direction: Axis.horizontal, children: [
+        Text(ss.address),
+        VerticalDivider(),
+        Text(sensor.model.string),
+        VerticalDivider(),
+        Text("Last seen at $timestamp"),
+        Spacer(),
+        //Spacer(flex: 4),
       ]),
       trailing: Column(children: [
         ss.connected ? Text("Device connected.") : Text("Device not connected."),
