@@ -10,12 +10,17 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
 	"github.com/jukuly/ss_machmos/server/internal/out"
 	"tinygo.org/x/bluetooth"
 )
+
+// Maximum time in seconds a transmission can stay idle before being cancelled
+// NOTE: Should this be less than the wake-up time? Or simply extrememly short?
+const TRANSMISSION_TIMEOUT = 30
 
 type Packet struct {
 	offset int
@@ -29,45 +34,100 @@ type Transmission struct {
 	endTimestamp      time.Time // transmission end time
 	dataType          string    // Enum-like
 	samplingFrequency uint32    // Frequency of samples
-	currentLength     int       // Number of packets collected so far
+	currentLength     int       // To compare with totalLength promised by sensor
 	totalLength       uint32    // Total amount announced by sensor
-	packets           []byte
+	packets           []byte    // Byte stream of sent numbers
+	lastActivity      int64     // Last time activity was seen here
+	stale             bool      // Transmission timed out, discard on next touch
 }
 
 // https://go.dev/doc/faq#atomic_maps
-// :^)
-var transmissions map[[6]byte]Transmission = make(map[[6]byte]Transmission)
+// TODO: See if another package like concurrent-map might help here
+var transmissionMutex sync.RWMutex
+
+type TransmissionMap map[[6]byte]Transmission
+
+var transmissions TransmissionMap = make(TransmissionMap)
+
+// func (tm *TransmissionMap) Put(key [6]byte, value Transmission) {
+// 	transmissionMutex.Lock()
+// 	(*tm)[key] = value
+// 	transmissionMutex.Unlock()
+// }
+
+// func (tm *TransmissionMap) Read(key [6]byte) Transmission {
+// 	transmissionMutex.RLock()
+// 	value := (*tm)[key]
+// 	transmissionMutex.RUnlock()
+// 	return value
+// }
+
+// Activity watchdog goroutine timer to delete stale pending transmissions. If a
+// sensor fails during upload or crashes, the gateway would still keep the data
+// in memory. If the sensor starts a new transmission, the new data would be
+// appended into the old data and uploaded, then the rest would get queued in
+// and ruin subsequent uploads.
+func startWatchdog() {
+	for {
+		// Sleep for a second
+		time.Sleep(1 * time.Second)
+		now := time.Now().Unix()
+
+		transmissionMutex.RLock() // Lock read
+		for mac, transmission := range transmissions {
+			transmissionMutex.RUnlock() // unlock after read
+			// Time is up, mark for deletion
+			if now-transmission.lastActivity >= TRANSMISSION_TIMEOUT {
+				transmissionMutex.Lock() // write lock
+				t := transmissions[mac]
+				t.stale = true
+				transmissions[mac] = t
+				transmissionMutex.Unlock() // write unlock
+				out.Logger.Printf("Idle timeout transmission for %s datatype %s", model.MacToString(mac), transmission.dataType)
+			}
+			transmissionMutex.RLock() // lock before read
+		}
+		transmissionMutex.RUnlock()
+	}
+}
 
 func savePacket(data []byte, macAddress [6]byte, dataType string) (t Transmission, ok bool) {
-	if _, exists := transmissions[macAddress]; !exists {
+	transmissionMutex.RLock()
+	transmission, exists := transmissions[macAddress]
+	transmissionMutex.RUnlock()
+	// If new transmission, or replacing stale transmission
+	if exists == false || transmission.stale == true {
 		// New transmission
 		out.Logger.Println("COLLECT-START:" + model.MacToString(macAddress))
-		// First packet is a header
+		// First packet is a header, unpack
 		totalLength := binary.LittleEndian.Uint32(data[0:4])
 		samplingFrequency := binary.LittleEndian.Uint32(data[4:8])
-		// batteryLevel := -1
+		transmissionMutex.Lock()
 		transmissions[macAddress] = Transmission{
-			macAddress:  macAddress,
-			sensorModel: sensorExists(macAddress).Model,
-			timestamp:   time.Now(),
-			//batteryLevel:      batteryLevel,
+			macAddress:        macAddress,
+			sensorModel:       sensorExists(macAddress).Model,
+			timestamp:         time.Now(),
 			dataType:          dataType,
 			samplingFrequency: samplingFrequency,
 			currentLength:     0,
 			totalLength:       totalLength,
 			packets:           make([]byte, 0),
+			lastActivity:      time.Now().Unix(),
+			stale:             false,
 		}
+		transmissionMutex.Unlock()
 		out.Logger.Println("Received collection header")
 		out.Logger.Println("DataType:", transmissions[macAddress].dataType)
 		out.Logger.Println("Total expected length:", transmissions[macAddress].totalLength)
 	} else {
+		transmissionMutex.Lock()
 		// Other packets are raw data
 		transmission := transmissions[macAddress]
-		// Append data to end of stream
-		transmission.packets = append(transmission.packets, data...)
-		// increase current byte count
-		transmission.currentLength += len(data)
+		transmission.packets = append(transmission.packets, data...) // Append data to end of stream
+		transmission.currentLength += len(data)                      // increase current byte count
+		transmission.lastActivity = time.Now().Unix()                // Update idle timer
 		transmissions[macAddress] = transmission
+		transmissionMutex.Unlock()
 		out.Logger.Println("Received packet from", model.MacToString(macAddress), "total", transmission.currentLength, "/", transmission.totalLength)
 	}
 
@@ -111,7 +171,6 @@ func handleData(dataType string, _ bluetooth.Connection, address string, _mtu in
 	// Ensure sensor is permitted to send data
 	// TODO only devices that pair with gateway are allowed to access this chrc anyways
 	if sensor == nil {
-		// BUG the MAC address received here is reversed somehow...
 		out.Logger.Println("Device " + address + " tried to send data, but it is not paired with this gateway")
 		return
 	}

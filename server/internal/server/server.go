@@ -1,12 +1,9 @@
 package server
 
 import (
-	// "encoding/binary"
-	// "encoding/json"
 	"errors"
 	"os"
 	"os/signal"
-	"strings"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
 	"github.com/jukuly/ss_machmos/server/internal/out"
@@ -82,19 +79,11 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 					handleDebugData(address, value)
 				},
 			},
-			{
-				UUID:  CONTROL_DATA_CHRC_UUID,
-				Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
-				WriteEvent: func(client bluetooth.Connection, address string, offset int, value []byte) {
-					// Sensor wants to start/end upload. To start upload sensor
-					// sends a header with expected data size and type. To end
-					// an upload sensor sends a flag, then server validates
-					// data. Maybe for the future we could support upload
-					// resuming in case of a crash?
-
-					// TODO: lol
-				},
-			},
+			// {
+			// 	UUID:  CONTROL_DATA_CHRC_UUID,
+			// 	Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
+			// 	WriteEvent: handleControlCode,
+			// },
 			{
 				UUID:  ACCEL_DATA_CHRC_UUID,
 				Flags: bluetooth.CharacteristicWritePermission | bluetooth.CharacteristicWriteWithoutResponsePermission,
@@ -216,6 +205,10 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 	if err != nil {
 		return err
 	}
+
+	// Setup watchdog timer
+	go startWatchdog()
+
 	return nil
 }
 
