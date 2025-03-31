@@ -8,6 +8,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
@@ -306,4 +308,36 @@ func handleAudioData(transmitData Transmission) []map[string]interface{} {
 		out.Logger.Println("Invalid audio data received. Packets of length", len(transmitData.packets), "not multiple of 3.")
 	}
 	return measurements
+}
+
+// Map device address to byte cache
+var bufferCache map[string][]byte = make(map[string][]byte)
+
+func handleDebugData(address string, value []byte) {
+	buffer, ok := bufferCache[address]
+	//println(value)
+	// If value sent is a single zero, transmission ended
+	if len(value) == 1 && value[0] == 0x00 {
+		if ok {
+			// Write out cache to disk
+			err := os.WriteFile("./"+strings.ReplaceAll(address, ":", "_")+"_debug.bin", buffer, 0644)
+			if err != nil {
+				println("Failed to write out file:")
+				println(err.Error())
+			}
+			// Clear out buffer
+			delete(bufferCache, address)
+			out.Logger.Println("Debug data received of size", len(buffer))
+		} else {
+			out.Logger.Println("Device", address, "attempted to write empty array to disk")
+			//out.Logger.Println(bufferCache)
+		}
+	} else {
+		if ok {
+			// Append received packet to slice
+			bufferCache[address] = append(bufferCache[address], value...)
+		} else {
+			bufferCache[address] = value
+		}
+	}
 }
