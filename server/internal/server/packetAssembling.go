@@ -20,7 +20,7 @@ import (
 
 // Maximum time in seconds a transmission can stay idle before being cancelled
 // NOTE: Should this be less than the wake-up time? Or simply extrememly short?
-const TRANSMISSION_TIMEOUT = 30
+const TRANSMISSION_TIMEOUT = 5 // Seconds
 
 type Packet struct {
 	offset int
@@ -77,10 +77,10 @@ func startWatchdog() {
 		for mac, transmission := range transmissions {
 			transmissionMutex.RUnlock() // unlock after read
 			// Time is up, mark for deletion
-			if now-transmission.lastActivity >= TRANSMISSION_TIMEOUT {
+			if !transmission.stale && now-transmission.lastActivity >= TRANSMISSION_TIMEOUT {
 				transmissionMutex.Lock() // write lock
 				t := transmissions[mac]
-				t.stale = true
+				t.stale = true // Flag as stale
 				transmissions[mac] = t
 				transmissionMutex.Unlock() // write unlock
 				out.Logger.Printf("Idle timeout transmission for %s datatype %s", model.MacToString(mac), transmission.dataType)
