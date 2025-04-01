@@ -78,14 +78,14 @@ class _SensorDetailsState extends State<SensorDetails> {
   Widget build(BuildContext context) {
     Sensor sensor = context.watch<Connection>().displayedSensor!;
     configs.clear();
-    configs.addAll(sensor.settings.keys.map((k) => (k == "temperature")
+    configs.addAll(sensor.model.sensorsAvailable.entries.map((entry) => entry.value.singlePoint
         ? SensorConfigSingleSample(
-            specific: k,
-            value: sensor.settings[k]!.active,
+            specific: entry.key,
+            value: sensor.settings[entry.key]!.active,
             onActivate: (enable) =>
-                setState(() => sensor.settings[k]!.active = enable!),
+                setState(() => sensor.settings[entry.key]!.active = enable!),
           )
-        : SensorConfigMultipleSamples(sensor: sensor, specific: k)));
+        : SensorConfigMultipleSamples(sensor: sensor, specific: entry.key)));
 
     return Expanded(
         child: SingleChildScrollView(

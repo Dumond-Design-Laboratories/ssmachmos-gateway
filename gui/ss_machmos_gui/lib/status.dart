@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -43,11 +41,11 @@ class _Device extends StatelessWidget {
     String timestamp = DateFormat('yyyy-MM-dd HH:mm:ss').format(ss.lastSeen);
     return ListTile(
       leading: ss.connected ? Icon(Icons.cell_tower, color: Colors.green) : Icon(Icons.portable_wifi_off),
-      title: Text("${ss.name} - ${sensor.model.string}"),
+      title: Text("${ss.name} - ${sensor.model.name}"),
       subtitle: Flex(direction: Axis.horizontal, children: [
         Text(ss.address),
         VerticalDivider(),
-        Text(sensor.model.string),
+        Text(sensor.model.name),
         VerticalDivider(),
         Text("Last seen at $timestamp"),
         Spacer(),

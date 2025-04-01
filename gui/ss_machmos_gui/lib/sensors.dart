@@ -1,11 +1,12 @@
 import 'dart:developer';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:ss_machmos_gui/connection.dart';
 import 'package:ss_machmos_gui/sensor_details.dart';
+import 'package:ss_machmos_gui/sensor_models.dart';
 
 class Sensors extends StatelessWidget {
   const Sensors({super.key});
@@ -26,8 +27,7 @@ class Sensors extends StatelessWidget {
     return Column(children: [
       Padding(
           padding: const EdgeInsets.all(8),
-          child:
-              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
             DropdownMenu(
               label: Text("Sensor selection:"),
               hintText: "Select Sensor",
@@ -36,17 +36,12 @@ class Sensors extends StatelessWidget {
                 // Read provider state
                 conn.displayedSensor = selectedSensor as Sensor;
               },
-              dropdownMenuEntries: conn.sensors
-                  .map((s) => DropdownMenuEntry(value: s, label: s.name))
-                  .toList(),
+              dropdownMenuEntries: conn.sensors.map((s) => DropdownMenuEntry(value: s, label: s.name)).toList(),
             ),
             Text(conn.displayedSensor?.address ?? ""),
-            Text(conn.displayedSensor?.model.string ?? "")
+            Text(conn.displayedSensor?.model.name ?? "")
           ])),
-      // Container(
-      //   height: 0.5,
-      //   color: Colors.grey,
-      // ),
+      // Container(height: 0.5, color: Colors.grey),
       if (conn.displayedSensor != null) SensorDetails()
     ]);
   }
@@ -62,29 +57,6 @@ class SensorSettings {
     required this.samplingFrequency,
     required this.samplingDuration,
   });
-}
-
-enum SensorModel {
-  machmo,
-  machmomini,
-  unknown;
-
-  static SensorModel fromString(String str) {
-    if (str == "machmo") return SensorModel.machmo;
-    if (str == "machmomini") return SensorModel.machmomini;
-    return SensorModel.unknown;
-  }
-
-  String get string {
-    switch (this) {
-      case SensorModel.machmo:
-        return "MachMo";
-      case SensorModel.machmomini:
-        return "MachMo-Mini";
-      default:
-        return "Unknown";
-    }
-  }
 }
 
 // Data class
@@ -132,9 +104,7 @@ class Sensor {
       mac: Uint8List.fromList(s["mac"].cast<int>()),
       name: s["name"],
       model: SensorModel.fromString(s["model"] ?? ""),
-      types: s["types"] != null
-          ? s["types"].cast<String>()
-          : [], // Can be null sometimes
+      types: s["types"] != null ? s["types"].cast<String>() : [], // Can be null sometimes
       collectionCapacity: s["collection_capacity"],
       wakeUpInterval: s["wake_up_interval"],
       wakeUpIntervalMaxOffset: s["wake_up_interval_max_offset"],
@@ -165,8 +135,7 @@ class Sensor {
   String get predictedWakeupTime {
     try {
       if (status != null) {
-        DateTime next =
-            status!.lastSeen.toLocal().add(Duration(seconds: wakeUpInterval));
+        DateTime next = status!.lastSeen.toLocal().add(Duration(seconds: wakeUpInterval));
         return DateFormat('yyyy-MM-dd HH:mm:ss').format(next);
       } else {
         return "Never seen before!";
@@ -182,90 +151,10 @@ class Sensor {
       log("Setting $setting no sampling frequencies returned");
       return [];
     }
-    switch (setting) {
-      case "vibration":
-        return accelerometerSamplingFrequencies;
-      case "flux":
-        return fluxSamplingFrequencies;
-      case "audio":
-        return audioSamplingFrequencies;
-    }
-    log("Setting $setting has no sampling frequencies");
-    return [];
-  }
-
-  // FIXME: this should be backend maybe?
-  List<int> get accelerometerSamplingFrequencies {
-    if (model == SensorModel.machmo) {
-      // KX132 ODR values
-      return [
-        25,
-        50,
-        100,
-        200,
-        400,
-        800,
-        1600,
-        3200,
-        6400,
-        12800,
-        25600,
-      ];
-    }
-
-    if (model == SensorModel.machmomini) {
-      // FIXME: some are non-existent
-      // IIM42352 ODR Values
-      return [
-        25,
-        50,
-        100,
-        125,
-        200,
-        500,
-        625,
-        1000,
-        2000,
-        3125,
-        4000,
-        8000,
-        15625,
-        16000,
-        32000,
-      ];
-    }
-    return [];
-  }
-
-  List<int> get fluxSamplingFrequencies {
-    if (model == SensorModel.machmo) {
-      // ADS1120 output data rate values
-      return [
-        20,
-        45,
-        90,
-        175,
-        330,
-        600,
-        1000,
-      ];
-    }
-
-    return [];
-  }
-
-  List<int> get audioSamplingFrequencies {
-    if (model == SensorModel.machmo) {
-      // FIXME: What data rates are we looking for?
-      return [500, 2200, 8000];
-    }
-    return [];
+    return model.sensorsAvailable[setting]?.samplingFrequencies ?? [];
   }
 }
 
 String macToString(Uint8List mac) {
-  return mac
-      .map((b) => b.toRadixString(16).padLeft(2, "0"))
-      .join(":")
-      .toUpperCase();
+  return mac.map((b) => b.toRadixString(16).padLeft(2, "0")).join(":").toUpperCase();
 }
