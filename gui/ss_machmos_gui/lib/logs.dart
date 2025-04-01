@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:ss_machmos_gui/connection.dart';
 
 class Logs extends StatelessWidget {
   const Logs({
