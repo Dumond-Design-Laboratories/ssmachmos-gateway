@@ -102,11 +102,12 @@ func savePacket(data []byte, macAddress [6]byte, dataType string) (t Transmissio
 		// First packet is a header, unpack
 		totalLength := binary.LittleEndian.Uint32(data[0:4])
 		samplingFrequency := binary.LittleEndian.Uint32(data[4:8])
+		timestamp := int64(binary.LittleEndian.Uint64(data[8:16]))
 		transmissionMutex.Lock()
 		transmissions[macAddress] = Transmission{
 			macAddress:        macAddress,
 			sensorModel:       sensorExists(macAddress).Model,
-			timestamp:         time.Now(),
+			timestamp:         time.UnixMicro(timestamp), // time.Now(),
 			dataType:          dataType,
 			samplingFrequency: samplingFrequency,
 			currentLength:     0,

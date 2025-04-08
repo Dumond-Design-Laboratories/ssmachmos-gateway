@@ -1,9 +1,11 @@
 package server
 
 import (
+	"encoding/binary"
 	"errors"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
 	"github.com/jukuly/ss_machmos/server/internal/out"
@@ -25,6 +27,7 @@ var MIC_DATA_CHRC_UUID = bluetooth.MustParseUUID("fee1ed78-2a76-490e-8a7c-9b698c
 
 var CONFIG_SERVICE_UUID, _ = bluetooth.ParseUUID("0ffd06bd-5f9c-4583-b852-e92fdbe8e862")
 var CONFIG_IDENTIFY_CHRC_UUID, _ = bluetooth.ParseUUID("4a488208-f3b9-414f-85c7-17eb16c653b0")
+var CONFIG_TIME_UUID, _ = bluetooth.ParseUUID("7aeb6aa1-5e11-4543-ba04-a6d1d6bf936f")
 
 // Chrc to notify a sensor to start sending data immediately.
 var CONFIG_START_SAMPLING_CHRC_UUID, _ = bluetooth.ParseUUID("f6344769-e905-4c4d-a6e8-0aa8b63f1153")
@@ -44,6 +47,7 @@ var pairResponseCharacteristic bluetooth.Characteristic
 var settingsCharacteristic bluetooth.Characteristic
 var configWakeAtChar bluetooth.Characteristic
 var configStartSampleChar bluetooth.Characteristic
+var configTimeChar bluetooth.Characteristic
 
 // Gateway config
 var Gateway *model.Gateway
@@ -143,6 +147,16 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				ReadEvent: func(client bluetooth.Connection, address string, offset int) []byte {
 					out.Logger.Println("Device", address, "requested settings")
 					return getSettingsForSensor(address)
+				},
+			},
+			{
+				// Separate from settings characteristic to reduce latency
+				Handle: &configTimeChar,
+				UUID:   CONFIG_TIME_UUID,
+				Flags:  bluetooth.CharacteristicReadPermission,
+				ReadEvent: func(_ bluetooth.Connection, _ string, _ int) []byte {
+					var now int64 = time.Now().UnixMicro()
+					return binary.LittleEndian.AppendUint64([]byte{}, uint64(now));
 				},
 			},
 			{
