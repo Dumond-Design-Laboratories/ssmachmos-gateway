@@ -134,6 +134,7 @@ class _SensorDetailsState extends State<SensorDetails> {
               ]),
               Text("Predicted next wake-up: ${sensor.predictedWakeupTime}"),
               DividerText("Individual sensor configurations"),
+              Text("Memory usage: ${sensor.memoryUsage}/1200"),
               ...configs,
               Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -218,8 +219,8 @@ class _SensorConfigMultipleSamplesState
                     freqs:
                         widget.sensor.samplingFreqsForSetting(widget.specific),
                     onSelected: (val) =>
-                        setState(() => display.samplingFrequency = val),
-                    initialSelection: display.samplingFrequency!)),
+                        setState(() => display.samplingFrequency = val ?? 0),
+                    initialSelection: display.samplingFrequency)),
             Expanded(
                 child: TextFormField(
               initialValue: display.samplingDuration.toString(),
@@ -248,11 +249,11 @@ class FrequencySelectionDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownMenu<int>(
-        label: Text("Sampling frequency"),
+        label: Text("Max detectable frequency"),
         onSelected: onSelected,
         initialSelection: freqs.last,
         dropdownMenuEntries: freqs
-            .map((x) => DropdownMenuEntry<int>(value: x, label: "$x Hz"))
+            .map((x) => DropdownMenuEntry<int>(value: x, label: "${x/2} Hz"))
             .toList());
   }
 }

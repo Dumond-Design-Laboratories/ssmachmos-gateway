@@ -49,8 +49,8 @@ class Sensors extends StatelessWidget {
 
 class SensorSettings {
   bool active;
-  int? samplingFrequency;
-  int? samplingDuration;
+  int samplingFrequency;
+  int samplingDuration;
 
   SensorSettings({
     required this.active,
@@ -144,6 +144,20 @@ class Sensor {
       log(e.toString());
       return "Unknown";
     }
+  }
+
+  int get memoryUsage {
+    int totalSamples = 0;
+    for (MapEntry<String, SensorSettings> setting in settings.entries) {
+      if(setting.value.active) {
+        if (model.sensorsAvailable[setting.key]!.singlePoint) {
+          totalSamples += 1;
+        } else {
+          totalSamples += setting.value.samplingDuration * setting.value.samplingFrequency;
+        }
+      }
+    }
+    return totalSamples * 2; // Two bytes per sample
   }
 
   List<int> samplingFreqsForSetting(String setting) {

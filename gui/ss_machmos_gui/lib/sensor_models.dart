@@ -7,7 +7,7 @@ enum SensorModel {
     "flux": (singlePoint: true, samplingFrequencies: []),
   }),
   machmomini(name: "MachMoMini", autoMaxCapacity: false, maxCapacity: 2949120, sensorsAvailable: {
-    "vibration": (singlePoint: false, samplingFrequencies: [25, 50, 100, 200, 1000, 2000, 4000, 8000, 16000]),
+    "vibration": (singlePoint: false, samplingFrequencies: [25, 50, 100, 200, 1000, 2000, 4000, 8000, 16000, 32000]),
     "temperature": (singlePoint: true, samplingFrequencies: []),
   }),
   unknown(name: "Unknown", autoMaxCapacity: false, maxCapacity: 0, sensorsAvailable: {});
