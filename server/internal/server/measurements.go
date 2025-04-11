@@ -1,5 +1,9 @@
 package server
 
+/*
+ * Management of measurements on disk
+ */
+
 import (
 	"bytes"
 	"encoding/json"
@@ -8,19 +12,37 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"time"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
 	"github.com/jukuly/ss_machmos/server/internal/out"
 )
 
-type requestBody struct {
-	GatewayId       string                   `json:"gateway_id"`
-	GatewayPassword string                   `json:"gateway_password"`
-	Measurements    []map[string]interface{} `json:"measurements"`
+// Used to notify of any data that wasn't uploaded
+// serialized and sent over pipe
+type UnsentDataError struct {
+	//Reason              string    `json:"reason"`
+	LastAttemptedUpload time.Time `json:"last_attempted_upload"`
+}
+var unsentData []UnsentDataError = []UnsentDataError{};
+
+func unsentDataDir() string {
+	dir := path.Join(os.TempDir(), "/ss_machmos/", "/unsent_data/")
+	os.MkdirAll(dir, 0777)
+	return dir
 }
 
+func archivedDataDir() string {
+	dir := path.Join(os.TempDir(), "/ss_machmos/", "/sent_data/")
+	os.MkdirAll(dir, 0777)
+	return dir
+}
+
+// FIXME: this should be the only entry point to gateway uploading. Server
+// should NOT handle saving unsent measurements
 func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, error) {
-	body := requestBody{
+	//gateway.AuthError = false
+	body := model.RequestBody{
 		GatewayId:       gateway.Id,
 		GatewayPassword: gateway.Password,
 	}
@@ -33,27 +55,58 @@ func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, 
 		return nil, err
 	}
 
-	return http.Post(gateway.HTTPEndpoint, "application/json", bytes.NewBuffer([]byte(json)))
+	resp, err := http.Post(gateway.HTTPEndpoint, "application/json", bytes.NewBuffer([]byte(json)))
+	if err == nil && resp.StatusCode == http.StatusOK {
+		// if success, archive
+		err := archiveMeasurements(jsonData, time.Now())
+		if err != nil {
+			out.Logger.Println(err.Error())
+		}
+		out.Broadcast("UPLOAD-SUCCESS")
+	}
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		// Unauthorized
+		out.Broadcast("GATEWAY-INVALID")
+	}
+
+	return resp, err
 }
 
-func saveUnsentMeasurements(data []byte, timestamp string) error {
-	err := os.MkdirAll(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH), 0777)
+// Sending failed, save to disk for later
+func saveUnsentMeasurements(data []byte, timestamp time.Time) error {
+	err := os.MkdirAll(unsentDataDir(), 0777)
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, timestamp+".json"), data, 0777)
+	unsentData = append(unsentData, UnsentDataError{
+		//Reason: "",
+		LastAttemptedUpload: timestamp,
+	})
+
+	// Notify GUI of a new unsent measurement
+	out.Broadcast("UPLOAD-FAILED")
+	return os.WriteFile(path.Join(unsentDataDir(), timestamp.String()+".json"), data, 0777)
+}
+
+func archiveMeasurements(data []byte, timestamp time.Time) error {
+	return os.WriteFile(path.Join(archivedDataDir(), timestamp.String()+".json"), data, 0777)
+}
+
+func PendingUploads() []UnsentDataError {
+	return unsentData
 }
 
 func sendUnsentMeasurements() {
-	files, err := os.ReadDir(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH))
+	files, err := os.ReadDir(unsentDataDir())
 	if err != nil {
 		out.Logger.Println("Error:", err)
 		return
 	}
 
 	for _, file := range files {
-		data, err := os.ReadFile(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, file.Name()))
+		data, err := os.ReadFile(path.Join(unsentDataDir(), file.Name()))
 		if err != nil {
 			out.Logger.Println("Error:", err)
 			continue
@@ -66,12 +119,14 @@ func sendUnsentMeasurements() {
 		}
 
 		if resp.StatusCode == 200 {
-			os.Remove(path.Join(os.TempDir(), "ss_machmos", UNSENT_DATA_PATH, file.Name()))
+			// Don't delete, keep around for debugging
+			os.Rename(path.Join(unsentDataDir(), file.Name()), path.Join(archivedDataDir(), file.Name()))
 		}
 	}
 }
 
-func parseTemperatureData(data uint16) (float64, error) {
+// Parse and convert raw data received from MachMo boards
+func parseTemperatureData(data int16) (float64, error) {
 	adc_fs := math.Pow(2, 15) - 1.0
 	const r_ref = 1500.0
 	const r_0 = 1000.0

@@ -25,13 +25,42 @@ func pairAccept(mac string) error {
 	return nil
 }
 
-func list() (string, error) {
-	jsonStr, err := json.Marshal(*server.Sensors)
+func pairListPending() (string, error) {
+	jsonStr, err := json.Marshal(server.ListDevicesPendingPairing())
 	return string(jsonStr), err
 }
 
+func list() (string, error) {
+	jsonStr, err := json.Marshal(*model.Sensors)
+	return string(jsonStr), err
+}
+
+func listConnected() (string, error) {
+	res, err := json.Marshal(server.ConnectedDevices())
+	return string(res), err
+}
+
+func deviceCollect(address string) error {
+	server.TriggerCollection(address)
+	return nil
+}
+
+// List of all measurements pending upload
+func pendingUploads() (string, error) {
+	pending := server.PendingUploads()
+	// anonymous struct yay
+	res, err := json.Marshal(struct {
+		Count   int                      `json:"count"`
+		Pending []server.UnsentDataError `json:"pending"`
+	}{
+		Count:   len(pending),
+		Pending: pending,
+	})
+	return string(res), err
+}
+
 func view(mac string) (string, error) {
-	for _, sensor := range *server.Sensors {
+	for _, sensor := range *model.Sensors {
 		if sensor.IsMacEqual(mac) {
 			jsonStr, err := json.Marshal(sensor)
 			return string(jsonStr), err
@@ -45,7 +74,7 @@ func forget(mac string) error {
 	if err != nil {
 		return err
 	}
-	err = model.RemoveSensor(m, server.Sensors)
+	err = model.RemoveSensor(m, model.Sensors)
 	if err != nil {
 		return err
 	}

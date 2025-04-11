@@ -21,7 +21,6 @@
 ## Data transmission
 
 - The sensor sends the data with a couple of metadata and signs it => battery level in % (1 byte) | data type (1 byte) | sampling frequency in Hz (4 bytes) | length of data (4 bytes) | data | signature (256 bytes)
-- Can send multiple data types at once
 - Data type: 0x00 => vibration, 0x01 => audio, 0x02 => temperature
 - Send -1 as battery level if don't want to send it
 - Sampling frequency must be present even if the data type doesn't have a sampling frequency (temperature) (can be anything since it will not be used at all when decoding the data)

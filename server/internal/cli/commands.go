@@ -1,5 +1,11 @@
 package cli
 
+/*
+ * Command line application to communicate with the server process
+ * if argument is serve, creates new server
+ * if not, sends commands to a currently running server
+ */
+
 import (
 	"bufio"
 	"encoding/json"
@@ -40,6 +46,7 @@ func OpenConnection() (net.Conn, error) {
 
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
+		out.Logger.Println(err.Error())
 		return nil, err
 	}
 
@@ -382,6 +389,19 @@ func Stop(conn net.Conn) {
 	}
 }
 
+func Read(conn net.Conn) {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		command, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println(err.Error())
+			break
+		}
+		// Strip the newline
+		sendCommand(command[:len(command)-1], conn)
+	}
+}
+
 func parseResponse(res string) string {
 	parts := strings.Split(res, ":")
 	if len(parts) == 0 || len(parts) == 1 {
@@ -393,21 +413,21 @@ func parseResponse(res string) string {
 		}
 		parts[2] = strings.Join(parts[2:], ":")
 		switch parts[1] {
-		case "LIST":
-			sensors := []model.Sensor{}
-			err := json.Unmarshal([]byte(parts[2]), &sensors)
-			if err != nil {
-				return "Error: " + err.Error()
-			}
-			if len(sensors) == 0 {
-				return "No sensors currently paired with the Gateway"
-			} else {
-				str := ""
-				for _, sensor := range sensors {
-					str += sensor.Name + " - " + model.MacToString(sensor.Mac) + "\n"
-				}
-				return str
-			}
+		// case "LIST":
+		// 	sensors := []model.Sensor{}
+		// 	err := json.Unmarshal([]byte(parts[2]), &sensors)
+		// 	if err != nil {
+		// 		return "Error: " + err.Error()
+		// 	}
+		// 	if len(sensors) == 0 {
+		// 		return "No sensors currently paired with the Gateway"
+		// 	} else {
+		// 		str := ""
+		// 		for _, sensor := range sensors {
+		// 			str += sensor.Name + " - " + model.MacToString(sensor.Mac) + "\n"
+		// 		}
+		// 		return str
+		// 	}
 		case "VIEW":
 			str, err := sensorJSONToString([]byte(parts[2]))
 			if err != nil {
@@ -421,6 +441,8 @@ func parseResponse(res string) string {
 				return "Error: " + err.Error()
 			}
 			return "Gateway ID: " + gateway.Id + "\nHTTP Endpoint: " + gateway.HTTPEndpoint
+		default:
+			return res // return entire thing if incomprehensible
 		}
 	} else if parts[0] == "ERR" {
 		if len(parts) < 3 {

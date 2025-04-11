@@ -1,55 +1,35 @@
 package server
 
 import (
-	"encoding/binary"
 	"time"
 
 	"github.com/jukuly/ss_machmos/server/internal/model"
+	"github.com/jukuly/ss_machmos/server/internal/out"
 )
 
-// see protocol.md to understand what is going on here
-func sendSettings(value []byte) {
-	if len(value) < 7 {
-		return
-	}
-	mac := [6]byte(value[1:7])
+/* 0x01 | mac address | Sleep until | repeat {dataTypeByte | active | Sampling Frequency | SamplingDuration}  */
+func getSettingsForSensor(address string) []byte {
+	mac, _ := model.StringToMac(address)
 	var sensor *model.Sensor
-	for i, s := range *Sensors {
+	for i, s := range *model.Sensors {
 		if s.Mac == mac {
-			sensor = &(*Sensors)[i]
+			sensor = &(*model.Sensors)[i]
 			break
 		}
 	}
 	if sensor == nil {
-		return
+		out.Logger.Println("Device", address, "not found in settings, reject")
+		return []byte{0x00}
 	}
+	// Update last seen log
+	sensor.UpdateLastSeen(model.SensorActivityIdle, model.Sensors)
 
-	response := []byte{0x01}
-	response = append(response, mac[:]...)
-	response = binary.LittleEndian.AppendUint32(response, setNextWakeUp(sensor))
+	settings := sensor.SettingsBytes()
 
-	for dataType, settings := range sensor.Settings {
-		var active byte
-		if settings.Active {
-			active = 0x01
-		} else {
-			active = 0x00
-		}
-		switch dataType {
-		case "vibration":
-			response = append(response, 0x00, active)
-			response = binary.LittleEndian.AppendUint32(response, settings.SamplingFrequency)
-			response = binary.LittleEndian.AppendUint16(response, settings.SamplingDuration)
-		case "audio":
-			response = append(response, 0x01, active)
-			response = binary.LittleEndian.AppendUint32(response, settings.SamplingFrequency)
-			response = binary.LittleEndian.AppendUint16(response, settings.SamplingDuration)
-		case "temperature":
-			response = append(response, 0x02, active, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
-		}
-	}
+	// Debug announce setting returned
+	out.Logger.Printf("%s [%s] receives:\n\t[% x]", sensor.Name, sensor.MacString(), settings)
 
-	settingsCharacteristic.Write(response)
+	return settings
 }
 
 func setNextWakeUp(sensor *model.Sensor) uint32 {
@@ -62,8 +42,8 @@ func setNextWakeUp(sensor *model.Sensor) uint32 {
 	nextWakeUpLow := nextWakeUpCenter
 	var offsetLow time.Duration
 	i := 0
-	for i < len(*Sensors) {
-		s := (*Sensors)[i]
+	for i < len(*model.Sensors) {
+		s := (*model.Sensors)[i]
 		i++
 		wakeUpDurationOther := getWakeUpDuration(&s)
 
@@ -95,8 +75,8 @@ func setNextWakeUp(sensor *model.Sensor) uint32 {
 	nextWakeUpHigh := nextWakeUpCenter
 	var offsetHigh time.Duration
 	i = 0
-	for i < len(*Sensors) {
-		s := (*Sensors)[i]
+	for i < len(*model.Sensors) {
+		s := (*model.Sensors)[i]
 		i++
 		wakeUpDurationOther := getWakeUpDuration(&s)
 
@@ -135,9 +115,11 @@ func setNextWakeUp(sensor *model.Sensor) uint32 {
 	}
 }
 
+// How long would the sensor be awake for normally?
 func getWakeUpDuration(sensor *model.Sensor) time.Duration {
 	WAKE_UP_DURATION_BASELINE := time.Second * 30 // baseline to account for transmission time
 
+	// Largest sampling duration of all settings
 	var maxSamplingDuration uint16 = 0
 	for _, setting := range sensor.Settings {
 		if setting.SamplingDuration > maxSamplingDuration {

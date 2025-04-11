@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:ss_machmos_gui/connection.dart';
 
 class Logs extends StatelessWidget {
   const Logs({
     super.key,
-    required ScrollController logsScrollController,
-    required String logs,
-    required Connection connection,
-  })  : _logsScrollController = logsScrollController,
-        _logs = logs,
-        _connection = connection;
-
-  final ScrollController _logsScrollController;
-  final String _logs;
-  final Connection _connection;
+    // required ScrollController logsScrollController,
+    required this.logs,
+  });
+  final List<String> logs;
+  static final ScrollController _logsScrollController = ScrollController();
 
   @override
   Widget build(BuildContext context) {
+    //String logs = context.watch<Connection>().logs;
     return Stack(
       children: [
         Container(
@@ -27,17 +22,17 @@ class Logs extends StatelessWidget {
           margin: const EdgeInsets.all(32),
           padding: const EdgeInsets.all(16),
           alignment: Alignment.bottomLeft,
-          child: SingleChildScrollView(
-            controller: _logsScrollController,
-            child: Row(
-              children: [
-                SelectableText(
-                  _logs,
-                ),
-              ],
+          child: SelectionArea(
+            child: ListView.builder(
+              itemCount: logs.length,
+              reverse: true,
+              //prototypeItem: Text(logs.last),
+              controller: _logsScrollController,
+              itemBuilder: (context, index) => Text(logs[logs.length - 1 - index].trim().trim()),
             ),
           ),
         ),
+        /*
         Positioned(
           top: 48.5,
           right: 48.5,
@@ -62,7 +57,8 @@ class Logs extends StatelessWidget {
                       ),
                       TextButton(
                         onPressed: () {
-                          _connection.send("STOP");
+                          context.read<Connection>().stopServer();
+                          //_connection.send("STOP");
                           Navigator.of(context).pop();
                         },
                         child: const Text("Confirm"),
@@ -77,7 +73,8 @@ class Logs extends StatelessWidget {
                   color: Colors.white,
                 )),
           ),
-        ),
+        )
+        */
       ],
     );
   }

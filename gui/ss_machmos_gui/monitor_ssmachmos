@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+# find PID of process
+# returns OK:PID:<pid>
+PID=$(printf "PID\0" | nc -U /tmp/ss_machmos.sock -q 1 | sed -e 's/OK:PID://')
+# capture syslog
+journalctl -f --output=short _PID="$PID" 2>&1

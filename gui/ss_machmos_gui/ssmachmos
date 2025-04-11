@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+set -e # real slippery definition, but error out for any commands here
+cd ../../server
+go build -o ssmachmos ./cmd/ssmachmos/main.go
+# simulate a systemd service
+(./ssmachmos "$@" &) &
+#go run ./cmd/ssmachmos/main.go "$@"
