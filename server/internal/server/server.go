@@ -55,9 +55,8 @@ var Gateway *model.Gateway
 // List of devices flagged for collection
 var flaggedForCollect []string
 
-func Init(ss *[]model.Sensor, g *model.Gateway) error {
+func Init(g *model.Gateway) error {
 	Gateway = g
-	model.Sensors = ss
 
 	err := adapter.Enable()
 	if err != nil {
@@ -156,7 +155,7 @@ func Init(ss *[]model.Sensor, g *model.Gateway) error {
 				Flags:  bluetooth.CharacteristicReadPermission,
 				ReadEvent: func(_ bluetooth.Connection, _ string, _ int) []byte {
 					var now int64 = time.Now().UnixMicro()
-					return binary.LittleEndian.AppendUint64([]byte{}, uint64(now));
+					return binary.LittleEndian.AppendUint64([]byte{}, uint64(now))
 				},
 			},
 			{

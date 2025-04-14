@@ -17,9 +17,12 @@ import (
 const SENSORS_FILE = "sensors.json"
 const SENSOR_HISTORY_FILE = "sensor_history.json"
 
+var sensors []Sensor = []Sensor{}
+
 var DATA_SIZE = map[string]int{
 	"temperature": 2,
 	"audio":       3,
+	"flux":        2,
 	"vibration":   2 * 3,
 }
 
@@ -57,9 +60,7 @@ type Sensor struct {
 	CollectionCapacity      uint32              `json:"collection_capacity"`
 	WakeUpInterval          int                 `json:"wake_up_interval"` // Time in seconds to sleep for
 	WakeUpIntervalMaxOffset int                 `json:"wake_up_interval_max_offset"`
-	NextWakeUp              time.Time           `json:"next_wake_up"` // REVIEW: replaced by sensor status?
 	DeviceActive            bool                `json:"device_active"`
-	CurrentActivity         SensorActivity      `json:"current_activity"`
 	Settings                map[string]settings `json:"settings"`
 }
 
@@ -72,11 +73,31 @@ func (sensor *Sensor) GetSleepDuration() uint32 {
 	return uint32(sensor.WakeUpInterval)
 }
 
+func (sensor *Sensor) Verify() error {
+	var err error = nil
+	if sensor.Name == "" {
+		errors.Join(err, errors.New("Name must not be null"))
+	}
+
+	totalDataUsed := 0
+	for k, v := range sensor.Settings {
+		thisSize := DATA_SIZE[k] * int(v.SamplingDuration) * int(v.SamplingFrequency)
+		totalDataUsed += thisSize
+	}
+	if totalDataUsed > int(sensor.CollectionCapacity) {
+		errors.Join(err, errors.New(fmt.Sprint("Current requested capacity", totalDataUsed, "exceeds maximum capacity", sensor.CollectionCapacity)))
+	}
+
+	return err
+}
+
 // List of known sensors and their configs
 var Sensors *[]Sensor
+
+// List of sensor statuses and uploads
 var SensorHistory map[string]SensorLastSeen = map[string]SensorLastSeen{}
 
-func (s *Sensor) UpdateLastSeen(activity SensorActivity, sensors *[]Sensor) {
+func (s *Sensor) UpdateLastSeen(activity SensorActivity) {
 	hist, ok := SensorHistory[MacToString(s.Mac)]
 	if !ok {
 		hist = SensorLastSeen{}
@@ -86,10 +107,6 @@ func (s *Sensor) UpdateLastSeen(activity SensorActivity, sensors *[]Sensor) {
 	SensorHistory[MacToString(s.Mac)] = hist
 	saveSensorHistory()
 	out.Broadcast("SENSOR-UPDATED")
-}
-
-func (s *Sensor) UpdateLastSeenNow(sensors *[]Sensor) {
-	s.UpdateLastSeen(s.CurrentActivity, sensors)
 }
 
 func (s *Sensor) FetchLastSeen() SensorLastSeen {
@@ -114,7 +131,7 @@ func (s *Sensor) ToString() string {
 	}
 	str += "Collection Capacity: " + strconv.Itoa(int(s.CollectionCapacity)) + " bytes\n"
 	str += "Wake Up Interval: " + strconv.Itoa(s.WakeUpInterval) + " +- " + strconv.Itoa(s.WakeUpIntervalMaxOffset) + " seconds\n"
-	str += "Next Wake Up: " + s.NextWakeUp.Local().Format(time.RFC3339) + "\n"
+	// str += "Next Wake Up: " + s.NextWakeUp.Local().Format(time.RFC3339) + "\n"
 	str += "\t\tDevice is Active: " + strconv.FormatBool(s.DeviceActive)
 	str += "Settings:\n"
 	for setting, value := range s.Settings {
@@ -150,7 +167,8 @@ func MacToString(mac [6]byte) string {
 	return fmt.Sprintf("%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
 }
 
-func LoadSensors(fileName string, sensors *[]Sensor) error {
+func LoadSensors() error {
+	// Load sensors from home directory, because access to /var/ by non-root can be tricky
 	configPath, err := os.UserConfigDir()
 	if err != nil {
 		return err
@@ -161,16 +179,30 @@ func LoadSensors(fileName string, sensors *[]Sensor) error {
 		return err
 	}
 
-	jsonStr, err := os.ReadFile(path.Join(configPath, "ss_machmos", fileName))
+	jsonStr, err := os.ReadFile(path.Join(configPath, "ss_machmos", SENSORS_FILE))
 	if err != nil {
-		*sensors = make([]Sensor, 0)
+		//sensors = make([]Sensor, 0)
 		return err
 	}
-	err = json.Unmarshal(jsonStr, sensors)
+	var newSensors []Sensor
+	err = json.Unmarshal(jsonStr, &newSensors)
 	if err != nil {
-		*sensors = make([]Sensor, 0)
 		return err
 	}
+
+	// Verify loaded configuration for errors
+	for _, curSensor := range newSensors {
+		curErr := curSensor.Verify()
+		if curErr != nil {
+			err = errors.Join(err, curErr)
+		}
+	}
+	if err != nil {
+		return err
+	}
+
+	// No errors, copy over new config
+	sensors = newSensors
 	return nil
 }
 
@@ -181,7 +213,7 @@ func RemoveSensor(mac [6]byte, sensors *[]Sensor) error {
 	for i, s := range *sensors {
 		if s.Mac == mac {
 			*sensors = append((*sensors)[:i], (*sensors)[i+1:]...)
-			err := saveSensors(SENSORS_FILE, sensors)
+			err := saveSensors()
 			return err
 		}
 	}
@@ -198,9 +230,9 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32 /*,
 		CollectionCapacity:      collectionCapacity,
 		WakeUpInterval:          3600,
 		WakeUpIntervalMaxOffset: 300,
-		NextWakeUp:              time.Now().Add(3600 * time.Second),
-		DeviceActive:            false,
-		Settings:                map[string]settings{},
+		// NextWakeUp:              time.Now().Add(3600 * time.Second),
+		DeviceActive: false,
+		Settings:     map[string]settings{},
 	}
 
 	for _, t := range types {
@@ -233,7 +265,7 @@ func AddSensor(mac [6]byte, types []string, collectionCapacity uint32 /*publicKe
 	}
 
 	*sensors = append(*sensors, getDefaultSensor(mac, types, collectionCapacity /*, publicKey*/))
-	err := saveSensors(SENSORS_FILE, sensors)
+	err := saveSensors()
 	return err
 }
 
@@ -279,15 +311,15 @@ func (sensor *Sensor) SettingsBytes() []byte {
 }
 
 // Updates a single sensor and stores back to JSON cache
-func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]Sensor) error {
+func UpdateSensorSetting(mac [6]byte, setting string, value string) error {
 	if sensors == nil {
 		return errors.New("sensors is nil")
 	}
 
 	var sensor *Sensor
-	for i, s := range *sensors {
+	for i, s := range sensors {
 		if s.Mac == mac {
-			sensor = &(*sensors)[i]
+			sensor = &(sensors)[i]
 			break
 		}
 	}
@@ -297,12 +329,12 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 
 	if setting == "auto" {
 		*sensor = getDefaultSensor(mac, sensor.Types, sensor.CollectionCapacity /*, &sensor.PublicKey*/)
-		return saveSensors(SENSORS_FILE, sensors)
+		return saveSensors()
 	}
 
 	if setting == "name" {
 		sensor.Name = value
-		return saveSensors(SENSORS_FILE, sensors)
+		return saveSensors()
 	}
 
 	if setting == "device_active" {
@@ -311,7 +343,7 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 			return errors.New("invalid boolean for device_active " + value)
 		}
 		sensor.DeviceActive = deviceActive
-		return saveSensors(SENSORS_FILE, sensors)
+		return saveSensors()
 	}
 
 	if setting == "wake_up_interval" {
@@ -324,7 +356,7 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 		// 	return errors.New("invalid value for wake_up_interval setting (must an integer between wake_up_interval_max_offset and 4 294 967)")
 		// }
 		sensor.WakeUpInterval = intValue
-		return saveSensors(SENSORS_FILE, sensors)
+		return saveSensors()
 	}
 	if setting == "wake_up_interval_max_offset" {
 		intValue, err := strconv.Atoi(value)
@@ -336,7 +368,7 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 			return errors.New("invalid value for wake_up_interval_max_offset setting (must an integer between 0 and wake_up_interval)")
 		}
 		sensor.WakeUpIntervalMaxOffset = intValue
-		return saveSensors(SENSORS_FILE, sensors)
+		return saveSensors()
 	}
 
 	settingParts := strings.Split(setting, "_")
@@ -393,7 +425,7 @@ func UpdateSensorSetting(mac [6]byte, setting string, value string, sensors *[]S
 		return errors.New("setting " + setting + " doesn't exist")
 	}
 
-	return saveSensors(SENSORS_FILE, sensors)
+	return saveSensors()
 }
 
 // Returns size of a complete sensor collection in bytes
@@ -461,7 +493,7 @@ func GetConfigDir() (string, error) {
 }
 
 // Only reason we take as input is because we can't import server ourselves
-func saveSensors(fileName string, sensors *[]Sensor) error {
+func saveSensors() error {
 	if sensors == nil {
 		return errors.New("sensors is nil")
 	}
@@ -476,7 +508,7 @@ func saveSensors(fileName string, sensors *[]Sensor) error {
 		return err
 	}
 
-	return os.WriteFile(path.Join(confDir, fileName), jsonStr, 0777)
+	return os.WriteFile(path.Join(confDir, SENSORS_FILE), jsonStr, 0777)
 }
 
 func LoadSensorHistory() error {

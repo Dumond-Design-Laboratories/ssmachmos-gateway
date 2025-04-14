@@ -24,17 +24,32 @@ type UnsentDataError struct {
 	//Reason              string    `json:"reason"`
 	LastAttemptedUpload time.Time `json:"last_attempted_upload"`
 }
-var unsentData []UnsentDataError = []UnsentDataError{};
+
+var unsentData []UnsentDataError = []UnsentDataError{}
+
+const permCode os.FileMode = 0664
+
+func dataDir() string {
+	// NOTE: the 0 at the beginning makes the number octal
+	os.MkdirAll("/var/ss_machmos/", permCode) // rw- rw- r--
+	return "/var/ss_machmosx/"
+}
 
 func unsentDataDir() string {
-	dir := path.Join(os.TempDir(), "/ss_machmos/", "/unsent_data/")
-	os.MkdirAll(dir, 0777)
+	dir := path.Join(dataDir(), "/unsent_data/")
+	err := os.MkdirAll(dir, permCode)
+	if err != nil {
+		out.Logger.Println("Failed to create", dir)
+	}
 	return dir
 }
 
 func archivedDataDir() string {
-	dir := path.Join(os.TempDir(), "/ss_machmos/", "/sent_data/")
-	os.MkdirAll(dir, 0777)
+	dir := path.Join(os.TempDir(), "/sent_data/")
+	err := os.MkdirAll(dir, permCode)
+	if err != nil {
+		out.Logger.Println("Failed to create", dir)
+	}
 	return dir
 }
 
@@ -75,11 +90,6 @@ func sendMeasurements(jsonData []byte, gateway *model.Gateway) (*http.Response, 
 
 // Sending failed, save to disk for later
 func saveUnsentMeasurements(data []byte, timestamp time.Time) error {
-	err := os.MkdirAll(unsentDataDir(), 0777)
-	if err != nil {
-		return err
-	}
-
 	unsentData = append(unsentData, UnsentDataError{
 		//Reason: "",
 		LastAttemptedUpload: timestamp,

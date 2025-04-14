@@ -112,7 +112,7 @@ func pairDeviceConnected(MAC [6]byte) bool {
 	if sensor != nil {
 		out.Logger.Println("pairDeviceConnected " + model.MacToString(MAC) + " already exists.")
 		// Update last seen log
-		sensor.UpdateLastSeenNow(model.Sensors)
+		sensor.UpdateLastSeen(model.SensorActivityIdle)
 		// Log that device already exists
 		out.Broadcast("SENSOR-CONNECTED:" + model.MacToString(MAC))
 		return false

@@ -13,8 +13,8 @@ import (
 	"github.com/jukuly/ss_machmos/server/internal/server"
 )
 
-var connectionsAlive []*net.Conn;
-var shouldExit bool = false;
+var connectionsAlive []*net.Conn
+var shouldExit bool = false
 
 func handleCommand(command string, conn *net.Conn) string {
 	parts := strings.Split(command, " ")
@@ -26,7 +26,7 @@ func handleCommand(command string, conn *net.Conn) string {
 	case "PING":
 		return "OK:PING:PONG"
 	case "PID":
-		return "OK:PID:"+strconv.Itoa(os.Getpid())
+		return "OK:PID:" + strconv.Itoa(os.Getpid())
 	case "LIST":
 		// List devices paired
 		res, err := list()
@@ -42,7 +42,7 @@ func handleCommand(command string, conn *net.Conn) string {
 			out.Logger.Println("Error:", err)
 			return "ERR:LIST-CONNECTED:" + err.Error()
 		}
-		return "OK:LIST-CONNECTED:"+res;
+		return "OK:LIST-CONNECTED:" + res
 	case "COLLECT":
 		if len(parts) < 2 {
 			return "ERR:COLLECT:Not enough arguments, missing mac address"
@@ -54,12 +54,12 @@ func handleCommand(command string, conn *net.Conn) string {
 		}
 		return "OK:COLLECT:"
 	case "LIST-PENDING-UPLOADS":
-		res, err := pendingUploads();
+		res, err := pendingUploads()
 		if err != nil {
 			out.Logger.Println("Error:", err)
-			return "ERR:LIST-PENDING-UPLOADS:"+err.Error()
+			return "ERR:LIST-PENDING-UPLOADS:" + err.Error()
 		}
-		return "OK:LIST-PENDING-UPLOADS:"+res;
+		return "OK:LIST-PENDING-UPLOADS:" + res
 	case "VIEW":
 		if len(parts) < 2 {
 			return "ERR:not enough arguments"
@@ -155,9 +155,12 @@ func handleCommand(command string, conn *net.Conn) string {
 		err := model.TestGateway(server.Gateway)
 		if err != nil {
 			out.Logger.Println("Error:", err)
-			return "ERR:TEST-GATEWAY:"+err.Error()
+			return "ERR:TEST-GATEWAY:" + err.Error()
 		}
 		return "OK:TEST-GATEWAY"
+	case "RELOAD-SENSOR-SETTINGS":
+		model.LoadSensors()
+		return "OK:RELOAD-SENSOR-SETTINGS:"
 	case "SET-SENSOR-SETTINGS":
 		if len(parts) < 2 {
 			return "ERR:SET-SENSOR-SETTINGS:not enough arguments"
@@ -172,17 +175,17 @@ func handleCommand(command string, conn *net.Conn) string {
 		nbrOfSettings := (len(parts) - 2) / 2
 		for i := 0; i < nbrOfSettings; i++ {
 			// FIXME: Replace this with JSON instead
-			err = model.UpdateSensorSetting(mac, parts[2+i*2], parts[3+i*2], model.Sensors)
+			err = model.UpdateSensorSetting(mac, parts[2+i*2], parts[3+i*2])
 			if err != nil {
 				out.Logger.Println("Error:", err)
 				return "ERR:SET-SENSOR-SETTINGS:" + err.Error()
 			}
 		}
-		server.TriggerSettingCollection();
+		server.TriggerSettingCollection()
 		return "OK:SET-SENSOR-SETTINGS:"
 	case "ADD-LOGGER":
 		out.LoggingConnections[conn] = true
-		out.Logger.Println("Adding logger");
+		out.Logger.Println("Adding logger")
 		return "OK:ADD-LOGGER:"
 	case "REMOVE-LOGGER":
 		delete(out.LoggingConnections, conn)
@@ -190,7 +193,7 @@ func handleCommand(command string, conn *net.Conn) string {
 	case "STOP":
 		stop()
 		// then exit loop
-		shouldExit = true;
+		shouldExit = true
 	default:
 		return "ERR:invalid command " + command
 	}
@@ -265,5 +268,5 @@ func Start() error {
 		go handleConnection(&conn)
 	}
 
-	return nil;
+	return nil
 }

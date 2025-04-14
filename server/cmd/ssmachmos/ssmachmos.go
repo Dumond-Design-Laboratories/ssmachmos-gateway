@@ -24,9 +24,9 @@ func serve() {
 	}
 
 	out.Logger.Println("Loading local config...")
-	var sensors *[]model.Sensor = &[]model.Sensor{}
+
 	var gateway *model.Gateway = &model.Gateway{}
-	model.LoadSensors(model.SENSORS_FILE, sensors)
+	model.LoadSensors()
 	model.LoadSensorHistory()
 	err = model.LoadSettings(gateway, model.GATEWAY_FILE)
 	if err != nil {
@@ -34,7 +34,7 @@ func serve() {
 	}
 
 	out.Logger.Println("Starting bluetooth advertisement...")
-	err = server.Init(sensors, gateway)
+	err = server.Init(gateway)
 	if err != nil {
 		out.Logger.Println("Error:", err)
 	} else {
@@ -47,7 +47,8 @@ func serve() {
 	if err == nil {
 		out.Logger.Println("Done initializing server.")
 	} else {
-		out.Logger.Println("Done initializing server with errors.")
+		out.Logger.Println("Error while initializing server. Is bluetooth enabled?")
+		return
 	}
 	api.Start()
 }
