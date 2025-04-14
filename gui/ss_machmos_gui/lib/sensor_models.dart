@@ -1,6 +1,7 @@
 // Embedding data as enums
 enum SensorModel {
-  machmo(name: "MachMo", autoMaxCapacity: true, maxCapacity: 0, sensorsAvailable: {
+  // To be more precise, the cache partition is 0x2D0000 bytes
+  machmo(name: "MachMo", autoMaxCapacity: true, maxCapacity: 0x2D0000, sensorsAvailable: {
     "vibration": (singlePoint: false, samplingFrequencies: [25, 50, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600]),
     "audio": (singlePoint: false, samplingFrequencies: [221100]),
     "temperature": (singlePoint: true, samplingFrequencies: []),

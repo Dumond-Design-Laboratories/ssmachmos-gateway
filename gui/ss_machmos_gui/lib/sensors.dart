@@ -70,7 +70,7 @@ class Sensor {
   int collectionCapacity;
   int wakeUpInterval;
   int wakeUpIntervalMaxOffset;
-  DateTime nextWakeUp;
+  // DateTime nextWakeUp;
   bool deviceActive; // Should the sensor start sampling or stay idle
   //DateTime? lastSeen;
   SensorStatus? status;
@@ -89,7 +89,8 @@ class Sensor {
       required this.deviceActive,
       this.status,
       // required this.lastSeen,
-      required this.nextWakeUp});
+      // required this.nextWakeUp
+  });
 
   factory Sensor.fromJson(Map<String, dynamic> s) {
     Map<String, SensorSettings> settings = {};
@@ -108,7 +109,7 @@ class Sensor {
       collectionCapacity: s["collection_capacity"],
       wakeUpInterval: s["wake_up_interval"],
       wakeUpIntervalMaxOffset: s["wake_up_interval_max_offset"],
-      nextWakeUp: DateTime.parse(s["next_wake_up"]),
+      //nextWakeUp: DateTime.parse(s["next_wake_up"]),
       batteryLevel: s["battery_level"],
       deviceActive: s["device_active"] as bool,
       //lastSeen: DateTime.parse(s["last_seen"]), // KEEP THIS AS-IS, stored as local time

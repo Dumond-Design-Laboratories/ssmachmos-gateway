@@ -163,9 +163,9 @@ func handleData(dataType string, _ bluetooth.Connection, address string, _mtu in
 	// Find sensor that is sending data
 	macAddress, _ := model.StringToMac(address)
 	var sensor *model.Sensor = nil
-	for i, s := range *model.Sensors {
+	for i, s := range model.Sensors {
 		if s.Mac == macAddress {
-			sensor = &(*model.Sensors)[i]
+			sensor = &(model.Sensors[i])
 			break
 		}
 	}

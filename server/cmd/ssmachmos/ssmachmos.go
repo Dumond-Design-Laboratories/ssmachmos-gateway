@@ -26,7 +26,11 @@ func serve() {
 	out.Logger.Println("Loading local config...")
 
 	var gateway *model.Gateway = &model.Gateway{}
-	model.LoadSensors()
+	err = model.LoadSensors()
+	if err != nil {
+		out.Logger.Println(err.Error())
+		return
+	}
 	model.LoadSensorHistory()
 	err = model.LoadSettings(gateway, model.GATEWAY_FILE)
 	if err != nil {

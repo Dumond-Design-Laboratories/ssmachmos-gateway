@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +18,8 @@ import (
 const SENSORS_FILE = "sensors.json"
 const SENSOR_HISTORY_FILE = "sensor_history.json"
 
-var sensors []Sensor = []Sensor{}
+// List of known sensors and their configs
+var Sensors []Sensor = []Sensor{}
 
 var DATA_SIZE = map[string]int{
 	"temperature": 2,
@@ -90,9 +92,6 @@ func (sensor *Sensor) Verify() error {
 
 	return err
 }
-
-// List of known sensors and their configs
-var Sensors *[]Sensor
 
 // List of sensor statuses and uploads
 var SensorHistory map[string]SensorLastSeen = map[string]SensorLastSeen{}
@@ -202,17 +201,18 @@ func LoadSensors() error {
 	}
 
 	// No errors, copy over new config
-	sensors = newSensors
+	Sensors = newSensors
 	return nil
 }
 
-func RemoveSensor(mac [6]byte, sensors *[]Sensor) error {
-	if sensors == nil {
+func RemoveSensor(mac [6]byte) error {
+	if Sensors == nil {
 		return errors.New("sensors is nil")
 	}
-	for i, s := range *sensors {
+	for i, s := range Sensors {
 		if s.Mac == mac {
-			*sensors = append((*sensors)[:i], (*sensors)[i+1:]...)
+			//Sensors = append((Sensors)[:i], (Sensors)[i+1:]...)
+			Sensors = slices.Delete(Sensors, i, i+1)
 			err := saveSensors()
 			return err
 		}
@@ -259,12 +259,12 @@ func getDefaultSensor(mac [6]byte, types []string, collectionCapacity uint32 /*,
 	return sensor
 }
 
-func AddSensor(mac [6]byte, types []string, collectionCapacity uint32 /*publicKey *rsa.PublicKey,*/, sensors *[]Sensor) error {
-	if sensors == nil {
+func AddSensor(mac [6]byte, types []string, collectionCapacity uint32) error {
+	if Sensors == nil {
 		return errors.New("sensors is nil")
 	}
 
-	*sensors = append(*sensors, getDefaultSensor(mac, types, collectionCapacity /*, publicKey*/))
+	Sensors = append(Sensors, getDefaultSensor(mac, types, collectionCapacity))
 	err := saveSensors()
 	return err
 }
@@ -312,14 +312,14 @@ func (sensor *Sensor) SettingsBytes() []byte {
 
 // Updates a single sensor and stores back to JSON cache
 func UpdateSensorSetting(mac [6]byte, setting string, value string) error {
-	if sensors == nil {
+	if Sensors == nil {
 		return errors.New("sensors is nil")
 	}
 
 	var sensor *Sensor
-	for i, s := range sensors {
+	for i, s := range Sensors {
 		if s.Mac == mac {
-			sensor = &(sensors)[i]
+			sensor = &(Sensors)[i]
 			break
 		}
 	}
@@ -494,11 +494,11 @@ func GetConfigDir() (string, error) {
 
 // Only reason we take as input is because we can't import server ourselves
 func saveSensors() error {
-	if sensors == nil {
+	if Sensors == nil {
 		return errors.New("sensors is nil")
 	}
 
-	jsonStr, err := json.MarshalIndent(sensors, "", "\t")
+	jsonStr, err := json.MarshalIndent(Sensors, "", "\t")
 	if err != nil {
 		return err
 	}

@@ -134,7 +134,7 @@ class _SensorDetailsState extends State<SensorDetails> {
               ]),
               Text("Predicted next wake-up: ${sensor.predictedWakeupTime}"),
               DividerText("Individual sensor configurations"),
-              Text("Memory usage: ${sensor.memoryUsage}/1200"),
+              Text("Memory usage: ${sensor.memoryUsage}/${sensor.model.maxCapacity} bytes"),
               ...configs,
               Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

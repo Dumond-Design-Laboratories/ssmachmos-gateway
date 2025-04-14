@@ -11,9 +11,9 @@ import (
 func getSettingsForSensor(address string) []byte {
 	mac, _ := model.StringToMac(address)
 	var sensor *model.Sensor
-	for i, s := range *model.Sensors {
+	for i, s := range model.Sensors {
 		if s.Mac == mac {
-			sensor = &(*model.Sensors)[i]
+			sensor = &(model.Sensors[i])
 			break
 		}
 	}
