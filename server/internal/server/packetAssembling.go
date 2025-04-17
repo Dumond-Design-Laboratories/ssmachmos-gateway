@@ -107,7 +107,7 @@ func savePacket(data []byte, macAddress [6]byte, dataType string) (t Transmissio
 		transmissions[macAddress] = Transmission{
 			macAddress:        macAddress,
 			sensorModel:       sensorExists(macAddress).Model,
-			timestamp:         time.UnixMicro(timestamp), // time.Now(),
+			timestamp:         time.Unix(timestamp, 0), // time.Now(),
 			dataType:          dataType,
 			samplingFrequency: samplingFrequency,
 			currentLength:     0,
