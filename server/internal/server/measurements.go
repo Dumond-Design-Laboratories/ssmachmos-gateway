@@ -27,28 +27,40 @@ type UnsentDataError struct {
 
 var unsentData []UnsentDataError = []UnsentDataError{}
 
-const permCode os.FileMode = 0664
+// NOTE: the 0 at the beginning makes the number octal
+// NOTE: This is for directories only since it sets executable bit
+const dirPermCode os.FileMode = 0775
 
 func dataDir() string {
-	// NOTE: the 0 at the beginning makes the number octal
-	os.MkdirAll("/var/ss_machmos/", permCode) // rw- rw- r--
-	return "/var/ss_machmosx/"
+	userDir, err := os.UserCacheDir()
+	if err != nil {
+		out.Logger.Println(err.Error())
+		out.Logger.Println("defaulting to tmp directory")
+		userDir = os.TempDir()
+	}
+	// ~/.config/ss_machmos/ or /tmp/ss_machmos
+	dir := path.Join(userDir, "/ss_machmos/")
+	err = os.MkdirAll(dir, dirPermCode) // rw- rw- r--
+	if err != nil {
+		out.Logger.Panic(err.Error())
+	}
+	return dir
 }
 
 func unsentDataDir() string {
 	dir := path.Join(dataDir(), "/unsent_data/")
-	err := os.MkdirAll(dir, permCode)
+	err := os.MkdirAll(dir, dirPermCode)
 	if err != nil {
-		out.Logger.Println("Failed to create", dir)
+		out.Logger.Panic(err.Error())
 	}
 	return dir
 }
 
 func archivedDataDir() string {
-	dir := path.Join(os.TempDir(), "/sent_data/")
-	err := os.MkdirAll(dir, permCode)
+	dir := path.Join(dataDir(), "/sent_data/")
+	err := os.MkdirAll(dir, dirPermCode)
 	if err != nil {
-		out.Logger.Println("Failed to create", dir)
+		out.Logger.Panic(err.Error())
 	}
 	return dir
 }
