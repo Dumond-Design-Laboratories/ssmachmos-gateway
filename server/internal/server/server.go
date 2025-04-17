@@ -56,6 +56,9 @@ var Gateway *model.Gateway
 var flaggedForCollect []string
 
 func Init(g *model.Gateway) error {
+	dataDir() // ensure data dir exists
+	unsentDataDir()
+	archivedDataDir()
 	Gateway = g
 
 	err := adapter.Enable()
