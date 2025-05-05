@@ -31,6 +31,8 @@ var unsentData []UnsentDataError = []UnsentDataError{}
 // NOTE: This is for directories only since it sets executable bit
 const dirPermCode os.FileMode = 0775
 
+const filePermCode os.FileMode = 0644
+
 func dataDir() string {
 	userDir, err := os.UserCacheDir()
 	if err != nil {
@@ -58,6 +60,15 @@ func unsentDataDir() string {
 
 func archivedDataDir() string {
 	dir := path.Join(dataDir(), "/sent_data/")
+	err := os.MkdirAll(dir, dirPermCode)
+	if err != nil {
+		out.Logger.Panic(err.Error())
+	}
+	return dir
+}
+
+func debugDataDir() string {
+	dir := path.Join(os.TempDir(), "/ss_machmos/debug_data/")
 	err := os.MkdirAll(dir, dirPermCode)
 	if err != nil {
 		out.Logger.Panic(err.Error())
@@ -109,11 +120,19 @@ func saveUnsentMeasurements(data []byte, timestamp time.Time) error {
 
 	// Notify GUI of a new unsent measurement
 	out.Broadcast("UPLOAD-FAILED")
-	return os.WriteFile(path.Join(unsentDataDir(), timestamp.String()+".json"), data, 0777)
+	return os.WriteFile(path.Join(unsentDataDir(), timestamp.String()+".json"), data, filePermCode)
 }
 
 func archiveMeasurements(data []byte, timestamp time.Time) error {
-	return os.WriteFile(path.Join(archivedDataDir(), timestamp.String()+".json"), data, 0777)
+	return os.WriteFile(path.Join(archivedDataDir(), timestamp.String()+".json"), data, filePermCode)
+}
+
+func saveDebugMeasurements(transmission Transmission) error {
+	err := os.WriteFile(path.Join(debugDataDir(), transmission.sensorModel+"_"+transmission.dataType+"_"+time.Now().String()+".bin"), transmission.packets, filePermCode)
+	if err != nil {
+		out.Logger.Println(err)
+	}
+	return err
 }
 
 func PendingUploads() []UnsentDataError {

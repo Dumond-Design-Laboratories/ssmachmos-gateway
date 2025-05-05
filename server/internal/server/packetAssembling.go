@@ -102,12 +102,12 @@ func savePacket(data []byte, macAddress [6]byte, dataType string) (t Transmissio
 		// First packet is a header, unpack
 		totalLength := binary.LittleEndian.Uint32(data[0:4])
 		samplingFrequency := binary.LittleEndian.Uint32(data[4:8])
-		timestamp := int64(binary.LittleEndian.Uint64(data[8:16]))
+		//timestamp := int64(binary.LittleEndian.Uint64(data[8:16]))
 		transmissionMutex.Lock()
 		transmissions[macAddress] = Transmission{
 			macAddress:        macAddress,
 			sensorModel:       sensorExists(macAddress).Model,
-			timestamp:         time.Unix(timestamp, 0), // time.Now(),
+			timestamp:         time.Now(), // time.Unix(timestamp, 0),
 			dataType:          dataType,
 			samplingFrequency: samplingFrequency,
 			currentLength:     0,
@@ -187,6 +187,9 @@ func handleData(dataType string, _ bluetooth.Connection, address string, _mtu in
 	// Done collecting data, serialize to json and attempt immediate transfer after
 	out.Logger.Println("Received " + dataType + " data transmission from " + model.MacToString(macAddress) + " (" + sensor.Name + ")")
 	sensor.UpdateLastSeen(model.SensorActivityIdle)
+
+	// Save raw binary data received from sensor
+	saveDebugMeasurements(transmitData)
 
 	// Pick apart data and place into json structures
 	var measurements []map[string]interface{}
