@@ -5,8 +5,9 @@ go 1.22
 require tinygo.org/x/bluetooth v0.9.0
 
 // Made my own thing
-//replace tinygo.org/x/bluetooth => github.com/PencilAmazing/go-bluetooth v0.0.0-20250203213402-0f45e7b58f53
-replace tinygo.org/x/bluetooth => ../../bluetooth
+replace tinygo.org/x/bluetooth => github.com/PencilAmazing/go-bluetooth v0.0.0-20250214175102-3baf71707e41
+
+//replace tinygo.org/x/bluetooth => ../../bluetooth
 
 require (
 	github.com/soypat/cyw43439 v0.0.0-20241116210509-ae1ce0e084c5 // indirect
