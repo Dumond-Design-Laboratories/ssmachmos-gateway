@@ -244,7 +244,7 @@ func handleConnection(conn *net.Conn) {
 // Commands are zero terminated. Unix sockets are bidirectional
 // https://beej.us/guide/bgipc/html/index-wide.html#unixsock
 func Start() error {
-	socketPath := "/tmp/ss_machmos.sock"
+	socketPath := "/run/ss_machmos.sock"
 	if err := os.RemoveAll(socketPath); err != nil {
 		out.Logger.Println("Error:", err)
 		return err

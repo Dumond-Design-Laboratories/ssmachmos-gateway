@@ -42,7 +42,7 @@ func waitFor(command ...string) {
 }
 
 func OpenConnection() (net.Conn, error) {
-	socketPath := "/tmp/ss_machmos.sock"
+	socketPath := "/run/ss_machmos.sock"
 
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
