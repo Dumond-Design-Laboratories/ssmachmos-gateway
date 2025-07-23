@@ -1,0 +1,11 @@
+[Unit]
+Description=ssmachmos Sensor Gateway
+Documentation=https://openphm.org
+
+# BindsTo means this service demands bluez and dies with bluez
+BindsTo=bluetooth.service
+
+[Service]
+ExecStart=ssmachmos serve
+ExecStop=ssmachmos stop
+Restart=on-failure
