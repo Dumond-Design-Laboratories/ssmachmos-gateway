@@ -9,3 +9,6 @@ BindsTo=bluetooth.service
 ExecStart=ssmachmos serve
 ExecStop=ssmachmos stop
 Restart=on-failure
+
+[Install]
+WantedBy=default.target
